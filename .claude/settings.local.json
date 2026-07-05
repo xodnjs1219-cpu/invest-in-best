@@ -6,6 +6,7 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Skill(spec_to_plan)",
+      "Skill(idea_to_product)",
       "Bash(cd:*)",
       "Bash(mkdir:*)",
       "Bash(python -m venv:*)",
