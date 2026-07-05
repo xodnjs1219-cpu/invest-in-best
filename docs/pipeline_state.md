@@ -2,7 +2,7 @@
 
 > idea_to_product 스킬이 자동 관리하는 파일입니다. 직접 수정하지 마세요.
 
-- current_phase: 5
+- current_phase: 6
 - autonomous_mode: false
 - updated: 2026-07-05
 
@@ -14,8 +14,8 @@
 | 2.5 | 외부연동 조사 | approved | docs/external/ | 2026-07-05 |
 | 3 | 기술스택 | approved | docs/techstack.md | 2026-07-05 |
 | 4 | 데이터베이스 | approved | docs/database.md | 2026-07-05 |
-| 5 | 유스케이스 | in_progress | docs/usecases/ | |
-| 6 | 페이지 복잡도 분석 | pending | (state 기록) | |
+| 5 | 유스케이스 | approved | docs/usecases/ | 2026-07-05 |
+| 6 | 페이지 복잡도 분석 | in_progress | (state 기록) | |
 | 7 | 상태관리 | pending | docs/pages/ | |
 | 8 | 구현계획 | pending | plan.md | |
 | 9 | 환경설정 | pending | 프로젝트 스캐폴드 | |
@@ -53,3 +53,4 @@
 - 2026-07-05: Phase 2.5 승인 — 3종 문서 보강 완료. OpenDART 한도 20,000건/일 확정, 토스 sharesOutstanding 확인(시총 1순위 소스), 토스 약관 리스크는 '토스 전제 유지 + 키 발급 시 약관 수동 확인'으로 결정. Phase 3(기술스택) 시작.
 - 2026-07-05: Phase 3 승인 — Next.js+Hono+Supabase+워커 모노레포. Edge Functions 배치 기각 근거 설명 후 '상시 워커 유지, 호스팅 나중에' 결정. LLM 공급자 유보(어댑터 추상화). ruler 반영은 나중에. Phase 4(DB) 시작.
 - 2026-07-05: Phase 4 승인 — 마이그레이션 0001~0012 (23테이블), 3-검증자 워크플로우로 major 3·minor 9 발견 후 전부 수정. 적용은 Phase 9에서. Phase 5(유스케이스) 시작.
+- 2026-07-05: Phase 5 승인 — spec 31건 전부 체크 통과 (중간에 월 사용 한도 도달로 2회 분할 실행). OQ 53건 → 000_decisions.md로 확정 (환율은 축적 이후만 환산, 국내 공시 1년 소급 포함). Phase 6(복잡도 분석) 시작.
