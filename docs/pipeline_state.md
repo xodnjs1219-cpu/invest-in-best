@@ -2,7 +2,7 @@
 
 > idea_to_product 스킬이 자동 관리하는 파일입니다. 직접 수정하지 마세요.
 
-- current_phase: 3
+- current_phase: 4
 - autonomous_mode: false
 - updated: 2026-07-05
 
@@ -12,8 +12,8 @@
 | 1 | PRD | approved | docs/prd.md | 2026-07-05 |
 | 2 | 유저플로우 | approved | docs/userflow.md | 2026-07-05 |
 | 2.5 | 외부연동 조사 | approved | docs/external/ | 2026-07-05 |
-| 3 | 기술스택 | in_progress | docs/techstack.md | |
-| 4 | 데이터베이스 | pending | docs/database.md | |
+| 3 | 기술스택 | approved | docs/techstack.md | 2026-07-05 |
+| 4 | 데이터베이스 | in_progress | docs/database.md | |
 | 5 | 유스케이스 | pending | docs/usecases/ | |
 | 6 | 페이지 복잡도 분석 | pending | (state 기록) | |
 | 7 | 상태관리 | pending | docs/pages/ | |
@@ -26,7 +26,7 @@
 
 ## Decisions
 
-- techstack: (미정 — Phase 3에서 결정)
+- techstack: Next.js 16 + React 19 + Hono + Supabase(Postgres+Auth) + apps/worker(node-cron) 모노레포. LLM 공급자·워커 호스팅은 유보. 상세는 docs/techstack.md (SOT)
 - external_services: [OpenDART(키 보유), SEC EDGAR(인증 불필요), 토스증권 Open API(키 발급 예정), LLM(공급자 미정)]
 - pages_with_state: []
 - implementation_order: []
@@ -51,3 +51,4 @@
 - 2026-07-05: Phase 1 승인 (PRD Open Questions 10건 확정 반영, 잔여 없음). Phase 2(유저플로우) 시작.
 - 2026-07-05: Phase 2 승인 (31개 기능, OQ 21건 확정 — 사용자 체인 타임라인 지원, 이메일 인증 필수 포함). Phase 2.5(외부연동 보강) 시작.
 - 2026-07-05: Phase 2.5 승인 — 3종 문서 보강 완료. OpenDART 한도 20,000건/일 확정, 토스 sharesOutstanding 확인(시총 1순위 소스), 토스 약관 리스크는 '토스 전제 유지 + 키 발급 시 약관 수동 확인'으로 결정. Phase 3(기술스택) 시작.
+- 2026-07-05: Phase 3 승인 — Next.js+Hono+Supabase+워커 모노레포. Edge Functions 배치 기각 근거 설명 후 '상시 워커 유지, 호스팅 나중에' 결정. LLM 공급자 유보(어댑터 추상화). ruler 반영은 나중에. Phase 4(DB) 시작.
