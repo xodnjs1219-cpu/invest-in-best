@@ -2,7 +2,7 @@
 
 > idea_to_product 스킬이 자동 관리하는 파일입니다. 직접 수정하지 마세요.
 
-- current_phase: 2
+- current_phase: 2.5
 - autonomous_mode: false
 - updated: 2026-07-05
 
@@ -10,8 +10,8 @@
 |---|---|---|---|---|
 | 0 | 요구사항 정제 | approved | docs/requirement.md | 2026-07-05 |
 | 1 | PRD | approved | docs/prd.md | 2026-07-05 |
-| 2 | 유저플로우 | in_progress | docs/userflow.md | |
-| 2.5 | 외부연동 조사 | pending | docs/external/ | |
+| 2 | 유저플로우 | approved | docs/userflow.md | 2026-07-05 |
+| 2.5 | 외부연동 조사 | in_progress | docs/external/ | |
 | 3 | 기술스택 | pending | docs/techstack.md | |
 | 4 | 데이터베이스 | pending | docs/database.md | |
 | 5 | 유스케이스 | pending | docs/usecases/ | |
@@ -49,3 +49,4 @@
 - 2026-07-05: Phase 0 승인. Phase 1(PRD) 시작.
 - 2026-07-05: 노드 그루핑 요구사항 추가 접수 — requirement.md/prd.md 반영.
 - 2026-07-05: Phase 1 승인 (PRD Open Questions 10건 확정 반영, 잔여 없음). Phase 2(유저플로우) 시작.
+- 2026-07-05: Phase 2 승인 (31개 기능, OQ 21건 확정 — 사용자 체인 타임라인 지원, 이메일 인증 필수 포함). Phase 2.5(외부연동 보강) 시작.
