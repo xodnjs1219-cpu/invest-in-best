@@ -1,4 +1,4 @@
-`/docs/userflow.md`의 {N}번 기능에 대한 상세 유스케이스를 작성하고, `/docs/00N/spec.md` 경로에 저장하세요.
+`/docs/userflow.md`의 {N}번 기능에 대한 상세 유스케이스를 작성하고, `/docs/usecases/00N/spec.md` 경로에 저장하세요.
 간결하게, 검토하기 쉽게 작성하세요. 다음 내용을 포함하세요. 
 
 - Primary Actor
