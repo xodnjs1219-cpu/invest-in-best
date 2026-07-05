@@ -2,15 +2,15 @@
 
 > idea_to_product 스킬이 자동 관리하는 파일입니다. 직접 수정하지 마세요.
 
-- current_phase: 1
+- current_phase: 2
 - autonomous_mode: false
 - updated: 2026-07-05
 
 | Phase | 이름 | 상태 | 산출물 | 승인일 |
 |---|---|---|---|---|
 | 0 | 요구사항 정제 | approved | docs/requirement.md | 2026-07-05 |
-| 1 | PRD | in_progress | docs/prd.md | |
-| 2 | 유저플로우 | pending | docs/userflow.md | |
+| 1 | PRD | approved | docs/prd.md | 2026-07-05 |
+| 2 | 유저플로우 | in_progress | docs/userflow.md | |
 | 2.5 | 외부연동 조사 | pending | docs/external/ | |
 | 3 | 기술스택 | pending | docs/techstack.md | |
 | 4 | 데이터베이스 | pending | docs/database.md | |
@@ -47,3 +47,5 @@
 - 2026-07-05: 플랜 모드 승인. docs/requirement.md 작성, Phase 0 게이트 대기.
 - 2026-07-05: 수정 요청 반영 — 수집 범위를 '편입 종목만'에서 '전 종목 정기 수집'으로 변경.
 - 2026-07-05: Phase 0 승인. Phase 1(PRD) 시작.
+- 2026-07-05: 노드 그루핑 요구사항 추가 접수 — requirement.md/prd.md 반영.
+- 2026-07-05: Phase 1 승인 (PRD Open Questions 10건 확정 반영, 잔여 없음). Phase 2(유저플로우) 시작.
