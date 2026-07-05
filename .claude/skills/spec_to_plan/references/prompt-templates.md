@@ -98,19 +98,19 @@ docs(database): add database schema and migration
 
 Replace `{N}` with the feature number from userflow.md.
 
-**🤖 Use Agent**: Launch `usecase-writer` agent with Task tool
+**🤖 Use Agent**: Launch `usecase_writer` agent with Task tool
 
 ```
 Task(
-  subagent_type="usecase-writer",
+  subagent_type="usecase_writer",
   description="Write use case for feature {N}",
-  prompt="/docs/userflow.md의 {N}번 기능에 대한 상세 유스케이스를 작성하고 /docs/00{N}/spec.md에 저장해주세요. Hono Backend Guide를 참고하여 API 명세도 포함해주세요."
+  prompt="/docs/userflow.md의 {N}번 기능에 대한 상세 유스케이스를 작성하고 /docs/usecases/00{N}/spec.md에 저장해주세요. API 명세도 포함해주세요. (techstack이 Hono인 경우 Hono Backend Guide 참고)"
 )
 ```
 
 **Fallback (if not using agent):**
 ```
-`/docs/userflow.md`의 {N}번 기능에 대한 상세 유스케이스를 작성하고, `/docs/00N/spec.md` 경로에 저장하세요.
+`/docs/userflow.md`의 {N}번 기능에 대한 상세 유스케이스를 작성하고, `/docs/usecases/00N/spec.md` 경로에 저장하세요.
 간결하게, 검토하기 쉽게 작성하세요. 다음 내용을 포함하세요.
 
 - Primary Actor
@@ -123,7 +123,7 @@ Task(
   - Database Operations
 
 PlantUML 문법을 사용한 Sequence Diagram도 작성하세요.
-User / FE / Hono Router / Service / Database로 나누면 됩니다.
+User / FE / BE 계층(techstack의 아키텍처 계층대로, 예: Hono라면 Router/Service) / Database로 나누면 됩니다.
 구분선 같은 마킹없이 PlantUML 표준 문법을 따르도록 작성하세요.
 ```
 
@@ -135,7 +135,7 @@ After generating the use case, use this prompt to request user review:
 ✅ **Phase 2 완료: Use Case #{N}**
 
 다음 파일이 생성되었습니다:
-- `/docs/00{N}/spec.md` - {기능 간략 설명}
+- `/docs/usecases/00{N}/spec.md` - {기능 간략 설명}
 
 **Use Case 요약:**
 - 기능: {기능명}
@@ -156,7 +156,7 @@ After generating the use case, use this prompt to request user review:
 3. Business Rules가 요구사항과 일치하나요?
 4. (Hono 프로젝트) API 명세가 명확한가요?
 
-👉 `/docs/00{N}/spec.md`를 확인해주세요.
+👉 `/docs/usecases/00{N}/spec.md`를 확인해주세요.
 
 **수정이 필요하신가요?**
 - "승인" 또는 "다음 진행" → 커밋 제안 후 다음 Use Case 또는 Phase 2.5로 이동
@@ -189,7 +189,7 @@ docs(usecase): add use case specification for feature {N}
 **Trigger**: After all Use Cases (Phase 2) are completed and approved
 
 ```
-모든 Use Case 문서(`/docs/00N/spec.md`)를 분석하여 상태 관리가 필요한 페이지를 식별하고 복잡도를 평가하세요.
+모든 Use Case 문서(`/docs/usecases/00N/spec.md`)를 분석하여 상태 관리가 필요한 페이지를 식별하고 복잡도를 평가하세요.
 
 **분석 프로세스:**
 
@@ -428,13 +428,13 @@ docs(state): add state management design for [pagename] page
 
 Replace `00N` with the actual usecase number.
 
-**🤖 Use Agent**: Launch `caseplan-writer` agent with Task tool
+**🤖 Use Agent**: Launch `caseplan_writer` agent with Task tool
 
 ```
 Task(
-  subagent_type="caseplan-writer",
+  subagent_type="caseplan_writer",
   description="Create implementation plan for use case {N}",
-  prompt="/docs/usecases/00{N}/spec.md의 유스케이스를 구현하기 위한 상세한 계획을 작성하고 /docs/usecases/00{N}/plan.md에 저장해주세요. Hono Backend Guide를 참고하여 backend 모듈도 포함해주세요."
+  prompt="/docs/usecases/00{N}/spec.md의 유스케이스를 구현하기 위한 상세한 계획을 작성하고 /docs/usecases/00{N}/plan.md에 저장해주세요. backend 모듈도 포함해주세요. (techstack이 Hono인 경우 Hono Backend Guide 참고)"
 )
 ```
 
@@ -460,11 +460,11 @@ Task(
 
 Replace `[pageName]` with the actual page name.
 
-**🤖 Use Agent**: Launch `pageplan-writer` agent with Task tool
+**🤖 Use Agent**: Launch `pageplan_writer` agent with Task tool
 
 ```
 Task(
-  subagent_type="pageplan-writer",
+  subagent_type="pageplan_writer",
   description="Create implementation plan for [pageName]",
   prompt="[pageName] 페이지의 구현 계획을 작성해주세요. 관련된 모든 use case와 state management 문서를 참고하여 /docs/pages/[pageName]/plan.md에 저장해주세요."
 )

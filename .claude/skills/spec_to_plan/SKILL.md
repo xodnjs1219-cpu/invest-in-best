@@ -1,11 +1,13 @@
 ---
-name:  spec_to_plan
-description: Systematic web development workflow from PRD to implementation plan. Generates database schemas, detailed use cases with sequence diagrams, page requirements with state management design (Context + useReducer), and modular implementation plans. Use when building web applications following spec-driven development methodology with PostgreSQL and React.
+name: spec_to_plan
+description: Systematic web development workflow from PRD to implementation plan. Generates database schemas, detailed use cases with sequence diagrams, page requirements with state management design (Context + useReducer), and modular implementation plans. Use when building web applications following spec-driven development methodology. Stack-specific details follow docs/techstack.md.
 ---
 
 # Spec-Based Web Development
 
 Structured workflow for translating specifications into implementation-ready plans.
+
+> **Stack Source of Truth**: `docs/techstack.md`가 존재하면 가장 먼저 읽으세요. 이 문서가 프로젝트 기술 스택의 유일한 기준입니다. 아래에 등장하는 스택 특정 서술(Hono/Supabase/React 등)은 **techstack.md가 해당 스택을 선택한 경우에만** 적용하고, 그렇지 않으면 예시로만 취급하세요.
 
 ## Workflow Overview
 
@@ -111,9 +113,9 @@ Create detailed use case specifications for individual features.
 Use the Task tool to launch the usecase-writer agent for each feature:
 ```
 Task(
-  subagent_type="usecase-writer",
+  subagent_type="usecase_writer",
   description="Write use case for feature N",
-  prompt="/docs/userflow.md의 {N}번 기능에 대한 상세 유스케이스를 작성하고 /docs/00N/spec.md에 저장해주세요. Hono Backend Guide를 참고하여 API 명세도 포함해주세요."
+  prompt="/docs/userflow.md의 {N}번 기능에 대한 상세 유스케이스를 작성하고 /docs/usecases/00N/spec.md에 저장해주세요. API 명세도 포함해주세요. (techstack이 Hono인 경우 Hono Backend Guide 참고)"
 )
 ```
 
@@ -132,7 +134,7 @@ Task(
 6. **[IMPORTANT]** Include External Service integration details if `/docs/external/[service].md` exists
 
 **Output:**
-- `/docs/00N/spec.md` - Use case specification
+- `/docs/usecases/00N/spec.md` - Use case specification
 
 **Required Sections:**
 - Primary Actor
@@ -148,7 +150,7 @@ Task(
 
 **Diagram Guidelines:**
 - Use standard PlantUML syntax
-- **Subdivide BE layer**: Hono Router (route.ts) and Service (service.ts)
+- **Subdivide BE layer**: techstack.md의 아키텍처 계층대로 세분화 (예: Hono라면 Router(route.ts)와 Service(service.ts))
 - **Include External Service participant**: If external service is used, add as a separate participant (e.g., "Payment Gateway", "Email Service")
 - Show validation, transformation, and error handling flows
 - No custom separators or non-standard markup
@@ -189,7 +191,7 @@ After completing this phase, present the use case document to the user with:
    - "Is the API specification clear?" (for Hono projects)
 
 5. **Request Feedback**:
-   - Ask: "Please review `/docs/00N/spec.md`. Any changes needed before proceeding to the next use case or State Management?"
+   - Ask: "Please review `/docs/usecases/00N/spec.md`. Any changes needed before proceeding to the next use case or State Management?"
    - Wait for user approval or modification requests
    - If modifications needed, update the document and repeat review
 
@@ -226,7 +228,7 @@ Analyze all use cases to identify pages requiring state management and suggest a
 **Process:**
 
 1. **Extract Pages from Use Cases**
-   - Read all `/docs/00N/spec.md` files
+   - Read all `/docs/usecases/00N/spec.md` files
    - Identify all unique pages mentioned
    - List pages with their associated use cases
 
@@ -483,9 +485,9 @@ For implementing individual features from use cases.
 Use the Task tool to launch the caseplan-writer agent:
 ```
 Task(
-  subagent_type="caseplan-writer",
+  subagent_type="caseplan_writer",
   description="Create implementation plan for use case N",
-  prompt="/docs/usecases/00N/spec.md의 유스케이스를 구현하기 위한 상세한 계획을 작성하고 /docs/usecases/00N/plan.md에 저장해주세요. Hono Backend Guide를 참고하여 backend 모듈도 포함해주세요."
+  prompt="/docs/usecases/00N/spec.md의 유스케이스를 구현하기 위한 상세한 계획을 작성하고 /docs/usecases/00N/plan.md에 저장해주세요. backend 모듈도 포함해주세요. (techstack이 Hono인 경우 Hono Backend Guide 참고)"
 )
 ```
 
@@ -540,7 +542,7 @@ For implementing complete pages with all features.
 Use the Task tool to launch the pageplan-writer agent:
 ```
 Task(
-  subagent_type="pageplan-writer",
+  subagent_type="pageplan_writer",
   description="Create implementation plan for [pagename]",
   prompt="[pagename] 페이지의 구현 계획을 작성해주세요. 관련된 모든 use case와 state management 문서를 참고하여 /docs/pages/[pagename]/plan.md에 저장해주세요."
 )
@@ -661,9 +663,9 @@ After completing this phase, present the implementation plan to the user with:
 
 **✅ DO use agents for:**
 - Phase 1: Database schema generation (database_writer)
-- Phase 2: Use case documentation (usecase-writer)
+- Phase 2: Use case documentation (usecase_writer)
 - Phase 3: State management design (status_management_writer)
-- Phase 4: Implementation planning (caseplan-writer / pageplan-writer)
+- Phase 4: Implementation planning (caseplan_writer / pageplan_writer)
 - Implementation: Actual coding (implementer)
 
 **❌ DON'T use agents for:**
@@ -691,14 +693,14 @@ Agents work sequentially, with each agent's output becoming input for the next:
 database_writer → /docs/database.md
                   /supabase/migrations/*.sql
                        ↓
-usecase-writer → /docs/usecases/00N/spec.md
+usecase_writer → /docs/usecases/00N/spec.md
                        ↓
 [Page Analysis] → Complexity scores
                        ↓
 status_management_writer → /docs/pages/[page]/requirement.md
                            /docs/pages/[page]/state_management.md
                        ↓
-caseplan-writer/pageplan-writer → /docs/usecases/00N/plan.md
+caseplan_writer/pageplan_writer → /docs/usecases/00N/plan.md
                                    /docs/pages/[page]/plan.md
                        ↓
 implementer → Actual code implementation

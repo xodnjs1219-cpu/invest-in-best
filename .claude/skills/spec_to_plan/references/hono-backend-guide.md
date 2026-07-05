@@ -1,5 +1,7 @@
 # Hono + Supabase Backend Integration Guide
 
+> **적용 조건**: 이 가이드는 `docs/techstack.md`가 **Hono + Supabase 스택을 선택한 경우에만** 적용됩니다. 다른 스택이면 이 문서를 참조하지 마세요.
+
 이 가이드는 spec_to_plan 워크플로우에서 **Hono + Next.js + Supabase 아키텍처**를 어떻게 설계하고 문서화해야 하는지 구체적인 지침을 제공합니다.
 
 ---
