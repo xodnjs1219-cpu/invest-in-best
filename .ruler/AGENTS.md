@@ -34,6 +34,24 @@
   - `plan_checker`: when checking if plan documents are complete and correct
   - `refactor_planner`: when reviewing currently written code
   - `refactor_reviewer`: when reviewing refactoring plans
+  - `prd_writer`: when writing the PRD from a finalized requirements doc (docs/requirement.md)
+  - `userflow_writer`: when writing feature-level userflow docs from the PRD
+  - `external_researcher`: when researching external SDK/API/Webhook integration specs
+  - `techstack_selector`: when selecting the project tech stack and writing docs/techstack.md
+  - `env_setupper`: when scaffolding the project and setting up dev/test environments per docs/techstack.md
+- **Leverage skills for multi-phase workflows**:
+  - `idea_to_product` skill: 사용자가 원시 요구사항/아이디어를 제시하면 요구사항 정제부터 기획 문서, 환경설정, 구현, 검증까지 전체 파이프라인을 오케스트레이션한다
+  - `spec_to_plan` skill: PRD 이후 기획 문서 단계(DB → 유스케이스 → 상태관리 → 구현계획)만 단독으로 필요할 때 사용한다
+
+## Tech Stack — Source of Truth
+
+- 프로젝트의 기술 스택은 `docs/techstack.md`가 결정한다. **이 파일이 존재하면 아래 Stack Profile들보다 우선한다.**
+- `docs/techstack.md`가 없으면 스택은 아직 미정이며, `idea_to_product` 파이프라인의 기술스택 단계에서 결정된다. 이 경우에만 Stack Profile A를 기본값으로 간주한다.
+- 아래 Stack Profile 섹션들은 해당 스택이 선택된 경우에만 적용되는 조건부 지침이다.
+
+## Stack Profile A: Django REST Framework + React/Vite
+
+> ⚠️ 이 프로필(아래 Library, Directory Structure, Backend Layer, Frontend Layer 섹션)은 `docs/techstack.md`가 이 스택을 선택했거나 techstack.md가 아직 없는 경우에만 적용된다.
 
 ## Library
 
@@ -228,6 +246,8 @@ frontend/
 ```
 
 ## Layered Architecture Principles
+
+> 아래 원칙은 모든 스택에 적용되는 범용 원칙이다. 등장하는 파일명/경로(`views.py`, `components/` 등)는 Django+React 기준 예시이며, 실제 구조는 `docs/techstack.md`의 Codebase Structure를 따른다.
 
 ### 1. Presentation Layer (프레젠테이션 계층)
 **Backend**: `views.py` - API 엔드포인트, Request/Response 처리
@@ -496,6 +516,8 @@ export const FileUploader = () => {
 
 ## Code-Style Guidelines
 
+> TypeScript/Tailwind 등 JS/TS 전용 항목은 해당 스택을 선택한 경우에만 적용한다.
+
 - Use TypeScript for type safety.
 - Follow the coding standards defined in the ESLint configuration.
 - Ensure all components are responsive and accessible.
@@ -537,6 +559,10 @@ export const FileUploader = () => {
 
 - Unit tests for core functionality
 - Consider integration and end-to-end tests
+
+## Stack Profile B: Next.js + Supabase (+ shadcn-ui)
+
+> ⚠️ 이 프로필(아래 Next.js, Shadcn-ui, Supabase 섹션)은 `docs/techstack.md`가 해당 기술을 선택한 경우에만 적용된다. Hono 백엔드 조합 시 `.claude/skills/spec_to_plan/references/hono-backend-guide.md`를 참조한다.
 
 ## Next.js (v15+)
 
@@ -647,7 +673,7 @@ export const FileUploader = () => {
 
 ## Package Manager
 
-- use npm as package manager.
+- use npm as package manager. (JS/TS 스택 기준. Python 스택은 pip + venv를 사용한다.)
 
 ## Korean Text
 
