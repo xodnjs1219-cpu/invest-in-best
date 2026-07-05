@@ -1,0 +1,92 @@
+
+# START Ruler Generated Files
+/.codex/config.json
+/.codex/config.json.bak
+/.codex/config.toml
+/.codex/config.toml.bak
+/.cursor/mcp.json
+/.cursor/mcp.json.bak
+/.cursor/rules/ruler_cursor_instructions.mdc
+/.cursor/rules/ruler_cursor_instructions.mdc.bak
+/.gemini/settings.json
+/.gemini/settings.json.bak
+/.mcp.json
+/.mcp.json.bak
+/.vscode/mcp.json
+/.vscode/mcp.json.bak
+/AGENTS.md
+/AGENTS.md.bak
+/CLAUDE.md
+/CLAUDE.md.bak
+*/.env.*
+*/.env
+backend/.env
+# END Ruler Generated Files
+
+# Environment variables
+.env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend build
+frontend/dist/
+frontend/build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Railway
+.railway/

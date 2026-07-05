@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: vmc
+          POSTGRES_USER: vmcuser
+          POSTGRES_PASSWORD: vmcpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          python -m venv venv
+          . venv/bin/activate
+          pip install -r requirements/development.txt
+      - name: Run backend tests
+        run: |
+          cd backend
+          . venv/bin/activate
+          pytest
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+      - name: Run frontend unit tests
+        run: |
+          cd frontend
+          npm run test
+      - name: Run frontend e2e tests
+        run: |
+          cd frontend
+          npx playwright install --with-deps
+          npx playwright test
