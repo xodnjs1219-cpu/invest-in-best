@@ -2,7 +2,7 @@
 
 > idea_to_product 스킬이 자동 관리하는 파일입니다. 직접 수정하지 마세요.
 
-- current_phase: 6
+- current_phase: 8
 - autonomous_mode: false
 - updated: 2026-07-05
 
@@ -15,9 +15,9 @@
 | 3 | 기술스택 | approved | docs/techstack.md | 2026-07-05 |
 | 4 | 데이터베이스 | approved | docs/database.md | 2026-07-05 |
 | 5 | 유스케이스 | approved | docs/usecases/ | 2026-07-05 |
-| 6 | 페이지 복잡도 분석 | in_progress | (state 기록) | |
-| 7 | 상태관리 | pending | docs/pages/ | |
-| 8 | 구현계획 | pending | plan.md | |
+| 6 | 페이지 복잡도 분석 | approved | (state 기록) | 2026-07-05 |
+| 7 | 상태관리 | approved | docs/pages/ | 2026-07-05 |
+| 8 | 구현계획 | in_progress | plan.md | |
 | 9 | 환경설정 | pending | 프로젝트 스캐폴드 | |
 | 10 | 구현 | pending | 소스코드 | |
 | 11 | 검증 | pending | implementation-report.md | |
@@ -28,7 +28,7 @@
 
 - techstack: Next.js 16 + React 19 + Hono + Supabase(Postgres+Auth) + apps/worker(node-cron) 모노레포. LLM 공급자·워커 호스팅은 유보. 상세는 docs/techstack.md (SOT)
 - external_services: [OpenDART(키 보유), SEC EDGAR(인증 불필요), 토스증권 Open API(키 발급 예정), LLM(공급자 미정)]
-- pages_with_state: []
+- pages_with_state: [chain-editor(L3, 21점), chain-view(L3, 18.5점), main-explore(L2, 13점), company-detail(L2, 14점), admin-llm-queue(L2, 11점)] — 어드민 공식체인 관리는 chain-editor 설계 공유, L1 3개(로그인/계정·어드민배치·관계마스터)와 약관(L0)은 문서 생략
 - implementation_order: []
 - auth: 이메일 + 소셜(Google 우선, 네이버·카카오 확장 대비)
 - markets: KRX + 미국 동시 (MVP)
@@ -54,3 +54,5 @@
 - 2026-07-05: Phase 3 승인 — Next.js+Hono+Supabase+워커 모노레포. Edge Functions 배치 기각 근거 설명 후 '상시 워커 유지, 호스팅 나중에' 결정. LLM 공급자 유보(어댑터 추상화). ruler 반영은 나중에. Phase 4(DB) 시작.
 - 2026-07-05: Phase 4 승인 — 마이그레이션 0001~0012 (23테이블), 3-검증자 워크플로우로 major 3·minor 9 발견 후 전부 수정. 적용은 Phase 9에서. Phase 5(유스케이스) 시작.
 - 2026-07-05: Phase 5 승인 — spec 31건 전부 체크 통과 (중간에 월 사용 한도 도달로 2회 분할 실행). OQ 53건 → 000_decisions.md로 확정 (환율은 축적 이후만 환산, 국내 공시 1년 소급 포함). Phase 6(복잡도 분석) 시작.
+- 2026-07-05: Phase 6 승인 — 9개 페이지 채점, 권장 5개(L3×2+L2×3) 선택. Phase 7(상태관리) 시작.
+- 2026-07-05: Phase 7 승인 — 5개 페이지 requirement+state_management 전 건 검증 통과 (한도로 2회 분할 실행). Phase 8(구현계획) 시작.
