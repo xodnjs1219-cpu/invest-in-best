@@ -2,9 +2,9 @@
 
 > idea_to_product 스킬이 자동 관리하는 파일입니다. 직접 수정하지 마세요.
 
-- current_phase: 8
-- autonomous_mode: false
-- updated: 2026-07-05
+- current_phase: 9
+- autonomous_mode: true
+- updated: 2026-07-07
 
 | Phase | 이름 | 상태 | 산출물 | 승인일 |
 |---|---|---|---|---|
@@ -17,8 +17,8 @@
 | 5 | 유스케이스 | approved | docs/usecases/ | 2026-07-05 |
 | 6 | 페이지 복잡도 분석 | approved | (state 기록) | 2026-07-05 |
 | 7 | 상태관리 | approved | docs/pages/ | 2026-07-05 |
-| 8 | 구현계획 | in_progress | plan.md | |
-| 9 | 환경설정 | pending | 프로젝트 스캐폴드 | |
+| 8 | 구현계획 | approved | plan.md | 2026-07-07 |
+| 9 | 환경설정 | in_progress | 프로젝트 스캐폴드 | |
 | 10 | 구현 | pending | 소스코드 | |
 | 11 | 검증 | pending | implementation-report.md | |
 
@@ -56,3 +56,6 @@
 - 2026-07-05: Phase 5 승인 — spec 31건 전부 체크 통과 (중간에 월 사용 한도 도달로 2회 분할 실행). OQ 53건 → 000_decisions.md로 확정 (환율은 축적 이후만 환산, 국내 공시 1년 소급 포함). Phase 6(복잡도 분석) 시작.
 - 2026-07-05: Phase 6 승인 — 9개 페이지 채점, 권장 5개(L3×2+L2×3) 선택. Phase 7(상태관리) 시작.
 - 2026-07-05: Phase 7 승인 — 5개 페이지 requirement+state_management 전 건 검증 통과 (한도로 2회 분할 실행). Phase 8(구현계획) 시작.
+- 2026-07-07: Phase 8 진행 — plan 36건(유스케이스 31 + 페이지 5) 작성 전부 완료. 선검증 14건 완료: 12건 통과(002~008, 010~014), 2건 major(001: AUTH_PASSWORD_POLICY_VIOLATION 도달 불가 모순, 009: ?at= 딥링크 무한 로딩 C5/C7 모순). 판정 파일: docs/plan-checks/*.json. 남은 작업: 015~031 + 페이지 5건 선검증, 001·009 보완+재검증. 월 사용 한도 반복 도달로 중단 — 한도 상향 후 재개 필요.
+- 2026-07-07: Phase 8 선검증 완료 — 36건 전부 plan_checker 통과. major 4건(001, 009, 021, chain-editor) 자동 보완 후 재검증 통과. 잔여 minor는 문서 표기 수준(spec 원문 역반영 권장 등, 구현 비차단). 최종 게이트 대기.
+- 2026-07-07: Phase 8 승인 — 자율 모드 전환(autonomous_mode: true). Phase 9(환경설정) 시작. 이후 Phase 9~11 게이트 없이 자동 진행·자동 커밋.

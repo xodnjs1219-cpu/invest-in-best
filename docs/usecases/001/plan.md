@@ -119,8 +119,8 @@ graph TD
     AC -->|"POST /api/auth/signup"| R0
     L1 --> D1
     L1 --> D2
-    SC --> D1
     SC --> D2
+    S1 --> D1
     S1 --> D2
     RP --> SB
     RP -->|"auth.signUp"| SA
@@ -196,7 +196,8 @@ graph TD
 
 - 구현 내용:
   1. `auth.ts`: `PASSWORD_MIN_LENGTH = 8`, `PASSWORD_PATTERN`(영문 1자 이상 + 숫자 1자 이상 — 결정 A-2),
-     `passwordSchema`(zod: min + regex refine) export. FE 폼과 BE 스키마가 동일 스키마를 import(DRY).
+     `passwordSchema`(zod: min + regex refine) export. **FE 폼(모듈 12)과 BE 서비스 재검증(모듈 10)**이 동일
+     스키마를 import(DRY). BE 요청 스키마(모듈 7)에는 내장하지 않는다(오류 코드 구분 — 모듈 7 참조).
   2. `legal.ts`: `TermsDocType = 'terms_of_service' | 'privacy_policy'`(DB enum과 동일 리터럴),
      `LEGAL_DOCS: Record<TermsDocType, { title, body, version, effectiveDate }>` — 본문은 플레이스홀더(결정 G-1),
      버전은 정적 상수(결정 A-4, 예: `'v1.0'` + 시행일). `REQUIRED_TERMS_DOC_TYPES = ['terms_of_service','privacy_policy'] as const`.
@@ -231,11 +232,16 @@ graph TD
 ### 7. 스키마 정의 (`features/auth/backend/schema.ts`)
 
 - 구현 내용:
-  1. `SignupRequestSchema`(camelCase): `email`(zod email·trim·toLowerCase), `password`(domain `passwordSchema`),
-     `passwordConfirm`(string), `termsAgreements`(array of `{docType: z.enum(REQUIRED_TERMS_DOC_TYPES), docVersion: z.string().min(1)}`),
+  1. `SignupRequestSchema`(camelCase): `email`(zod email·trim·toLowerCase), `password`(`z.string().min(1)` —
+     **형식 최소 검증만, 정책 검증 없음**), `passwordConfirm`(string),
+     `termsAgreements`(array of `{docType: z.enum(REQUIRED_TERMS_DOC_TYPES), docVersion: z.string().min(1)}`),
      `redirectTo`(optional string).
-     ※ `passwordConfirm` 일치·약관 2종 포함 여부는 스키마 refine이 아닌 **서비스 재검증**으로 판정한다
-     — spec이 `INVALID_REQUEST`(형식)와 `AUTH_PASSWORD_CONFIRM_MISMATCH`/`AUTH_TERMS_NOT_AGREED`(정책) 코드를 구분하기 때문.
+     ※ **비밀번호 정책·`passwordConfirm` 일치·약관 2종 포함 여부는 스키마가 아닌 서비스 재검증**으로 판정한다
+     — spec이 `INVALID_REQUEST`(형식: 이메일 형식/필드 누락)와 `AUTH_PASSWORD_POLICY_VIOLATION`/
+     `AUTH_PASSWORD_CONFIRM_MISMATCH`/`AUTH_TERMS_NOT_AGREED`(정책) 코드를 구분하기 때문.
+     password에 domain `passwordSchema`를 내장하면 정책 위반이 스키마 단계 `INVALID_REQUEST`로 흡수되어
+     spec의 `AUTH_PASSWORD_POLICY_VIOLATION`이 도달 불가능해지므로 **금지**(선검증 지적 반영).
+     domain `passwordSchema`는 서비스(모듈 10-1)와 FE 폼(모듈 12)에서만 사용한다.
   2. `SignupResponseSchema`: `{ email: z.string(), verificationEmailSent: z.literal(true) }` — 통일 응답 형태.
   3. `TermsAgreementRowSchema`(snake_case): `id`(uuid), `user_id`(uuid), `doc_type`, `doc_version`, `agreed_at`, `created_at`, `updated_at` — 0002 마이그레이션과 일치.
   4. 각 `z.infer` 타입 export.
@@ -243,7 +249,7 @@ graph TD
 - **Unit Tests**:
   - [ ] 유효 요청 body가 파싱되고 email이 소문자로 정규화된다
   - [ ] 이메일 형식 오류/필드 누락 시 실패한다(E5)
-  - [ ] 정책 미달 비밀번호가 스키마 단계에서 실패한다
+  - [ ] 정책 미달 비밀번호(`'abcdefgh'`, `'a1'`)도 **스키마는 통과**한다 — 정책 판정은 서비스 소관(오류 코드 구분 원칙)
   - [ ] `docType`에 enum 외 값이 오면 실패한다
 
 ### 8. 에러 코드 (`features/auth/backend/error.ts`)
@@ -289,7 +295,8 @@ graph TD
 
 - 구현 내용: `signUp(deps, config, request): Promise<HandlerResult<SignupResponse, AuthServiceError>>`
   (`deps`는 repository 함수 집합 — 테스트에서 mock 주입 가능하도록 인터페이스 타입으로 받음):
-  1. **서버 재검증**(FE 검증과 독립 — Main Scenario 5):
+  1. **서버 재검증**(FE 검증과 독립 — Main Scenario 5. 요청 스키마는 정책을 거르지 않으므로(모듈 7)
+     정책 위반 요청이 **여기까지 도달**하며, 본 분기가 spec E3 오류 코드의 유일한 발생 지점):
      비밀번호 정책(domain `passwordSchema`) 위반 → `failure(400, AUTH_PASSWORD_POLICY_VIOLATION)`;
      `password !== passwordConfirm` → `failure(400, AUTH_PASSWORD_CONFIRM_MISMATCH)`(E3);
      `termsAgreements`에 `REQUIRED_TERMS_DOC_TYPES` 2종이 모두 포함되지 않음 → `failure(400, AUTH_TERMS_NOT_AGREED)`(E4).
@@ -341,7 +348,7 @@ graph TD
 | 1 | 유효 body로 `POST /api/auth/signup` | 200 `{email, verificationEmailSent:true}` + 인증 메일 수신 |
 | 2 | 이미 가입된 이메일로 재요청 | #1과 **바이트 단위 동일한 형태**의 200 응답, 메일 미발송 |
 | 3 | 이메일 형식 오류/필드 누락 | 400 `INVALID_REQUEST` |
-| 4 | 8자 미만·숫자 없는 비밀번호 | 400 (스키마 단계 `INVALID_REQUEST` — FE는 필드 오류로 표시) |
+| 4 | 8자 미만·숫자 없는 비밀번호(스키마는 통과) | 400 `AUTH_PASSWORD_POLICY_VIOLATION`(서비스 재검증 — spec E3) |
 | 5 | `passwordConfirm` 불일치(스키마는 통과하는 형식) | 400 `AUTH_PASSWORD_CONFIRM_MISMATCH` |
 | 6 | `termsAgreements`에 1종만 포함 | 400 `AUTH_TERMS_NOT_AGREED` |
 | 7 | 연속 대량 요청(Supabase 내장 리밋 초과) | 429 `AUTH_RATE_LIMITED` |

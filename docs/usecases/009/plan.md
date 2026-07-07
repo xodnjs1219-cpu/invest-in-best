@@ -428,8 +428,8 @@ graph TD
      - State: `chainId`, `selectedDate`(S1), `localNodePositions`(S5), `collapsedGroupIds`(S6), `isTimeTraveling`, `structure: StructureView`, `renderGraph: RenderGraph | null`, `dataFreshness`, `isOwner`.
      - Actions: `commitNodeDrag`, `toggleGroupCollapse`, `retryStructure`.
   2. `ChainViewProvider.tsx`(`'use client'`, Container) — §8.1 골격의 UC-009 부분 조립:
-     - `useReducer(chainViewReducer, { atParam, today }, createInitialChainViewState)` — `today`는 Asia/Seoul 기준(C-6)으로 Provider에서 1회 계산해 주입(reducer 순수성 유지).
-     - `useChainStructure(chainId, { enabled: selectedDate === null })` — UC-009에서 S1은 항상 null이지만 enabled 조건을 계약대로 두어 UC-012 확장 시 무변경.
+     - **`?at=` 배선 규칙(UC-009 단계 확정)**: Provider는 props로 `atParam`을 받되(시그니처는 state_management §8.2 계약 유지) **UC-009 단계에서는 이를 초기 상태에 주입하지 않는다** — `useReducer(chainViewReducer, { atParam: null, today }, createInitialChainViewState)`로 S1을 항상 `null`에서 시작한다. UC-009에는 시점 복원 쿼리(`snapshot-at`)가 없으므로, atParam을 그대로 주입하면 유효한 과거 날짜 딥링크(예: `?at=2026-05-02`)에서 S1≠null이 되어 구조 쿼리가 영구 비활성(`enabled=false`) → 무한 로딩에 빠지기 때문이다. **atParam→`parseAtParam`→S1 주입 복원은 UC-012 plan(모듈 12·16)이 snapshot-at 쿼리 배선과 반드시 동일 변경으로 수행**한다(주입만 복원되고 쿼리가 없는 부분 배선 상태 금지). `today`는 Asia/Seoul 기준(C-6)으로 Provider에서 1회 계산해 주입(reducer 순수성 유지).
+     - `useChainStructure(chainId, { enabled: selectedDate === null })` — enabled 조건은 state_management §6 계약대로 두되, 위 배선 규칙으로 UC-009 단계에서는 S1이 항상 `null`임이 보장되므로 구조 쿼리는 유효/무효 `?at=` 진입 모두에서 항상 발화한다(항상 최신 구조 표시). UC-012가 atParam 주입을 복원해도 이 줄은 무변경.
      - computed(`useMemo`):
        - `structure`: 쿼리 `pending → {status:'loading'}` / error `status ∈ {400,401,403,404}` → `{status:'not-found'}`(C-2 방어적 통일 + E12) / 그 외 error → `{status:'error'}` / 성공 → `{status:'ready', data, snapshotEffectiveAt, isRestoring:false}`.
        - `renderGraph`: `structure.status==='ready'`일 때만 `buildRenderGraph(...)`(S5·S6·데이터 참조 입력별 개별 `useMemo`).
@@ -449,6 +449,7 @@ graph TD
 | 5 | `commitNodeDrag` 호출 | `renderGraph`의 해당 노드 좌표만 변경, 네트워크 요청 없음(BR-3) |
 | 6 | `toggleGroupCollapse` 호출 | `renderGraph`에서 멤버 노드·엣지 숨김/복원 |
 | 7 | 액션만 소비하는 컴포넌트 | 상태 변경 시 리렌더되지 않음(Context 2분할 검증) |
+| 8 | 유효한 과거 날짜 `atParam='2026-05-02'`로 Provider 마운트 | S1=null 유지(atParam 미주입 — `?at=` 배선 규칙), 구조 쿼리 정상 발화 → `structure.status='ready'`(무한 로딩 없음) |
 
 ### C6. Presenter 컴포넌트 (`features/valuechains/components/*`)
 
@@ -488,7 +489,7 @@ graph TD
 
 ### C7. 페이지 셸 (`app/(public)/valuechains/[chainId]/page.tsx`)
 
-- 구현 내용: Server Component. `const { chainId } = await params; const { at } = await searchParams;`(Next.js 16 Promise params 규칙) → `<ChainViewProvider chainId={chainId} atParam={at ?? null}>` 아래 `ChainViewHeader`·`MindmapCanvas`·`DataSourceFooter` 배치. `NodeInfoPanel`(UC-011)·`DashboardPanel`(UC-010)·`TimelinePanel`(UC-012)은 각 plan에서 이 트리에 추가(state_management §9 순서 유지). 메타데이터(`generateMetadata`)로 체인명 기반 title은 선택 구현.
+- 구현 내용: Server Component. `const { chainId } = await params; const { at } = await searchParams;`(Next.js 16 Promise params 규칙) → `<ChainViewProvider chainId={chainId} atParam={at ?? null}>` 아래 `ChainViewHeader`·`MindmapCanvas`·`DataSourceFooter` 배치. `at`은 state_management §9 계약대로 Provider에 전달하지만, **UC-009 단계 Provider는 C5의 `?at=` 배선 규칙에 따라 이를 무시(S1=null 고정)** 하므로 유효한 과거 날짜 딥링크도 최신 구조를 표시한다(시점 복원은 UC-012에서 활성화). `NodeInfoPanel`(UC-011)·`DashboardPanel`(UC-010)·`TimelinePanel`(UC-012)은 각 plan에서 이 트리에 추가(state_management §9 순서 유지). 메타데이터(`generateMetadata`)로 체인명 기반 title은 선택 구현.
 - 의존성: C5, C6.
 
 **QA Sheet:**
@@ -496,7 +497,7 @@ graph TD
 | # | 시나리오 | 기대 결과 |
 | --- | --- | --- |
 | 1 | `/valuechains/{uuid}` 직접 진입 | 페이지 SSR 셸 + 클라이언트 구조 로드 정상 |
-| 2 | `/valuechains/{uuid}?at=2026-05-02` 진입 | UC-009 시점에는 최신 구조 표시(무효 `at`은 `parseAtParam`이 null 처리 — 시점 복원 동작은 UC-012에서 활성화), 오류 없음 |
+| 2 | `/valuechains/{uuid}?at=2026-05-02`(유효 과거 날짜) 또는 무효 `?at=` 값으로 진입 | 둘 다 최신 구조 표시 — C5 배선 규칙상 atParam이 S1에 주입되지 않아 구조 쿼리가 항상 발화(무한 로딩·오류 없음). 시점 복원 동작은 UC-012에서 활성화 |
 | 3 | 카드 목록/기업 상세에서 링크 진입 | 동일 렌더 결과 |
 
 ---
@@ -512,6 +513,7 @@ graph TD
 **다른 plan과의 경계(충돌 방지):**
 
 - C4 상태 모듈(리듀서·액션 9종)과 C2 쿼리 키는 본 plan이 **완성 정의**하며 UC-010~012는 수정하지 않는다.
+- **`?at=` 딥링크 배선 핸드오프**: UC-009 단계 Provider는 atParam을 초기 상태에 주입하지 않는다(S1=null 고정 — C5 배선 규칙). atParam→`parseAtParam`→S1 주입과 snapshot-at 쿼리 배선은 **UC-012 plan(모듈 12·16)이 하나의 변경으로 동시에** 수행한다 — 부분 배선(주입만 복원, 쿼리 미구현) 상태는 어느 시점에도 존재해서는 안 된다(유효 딥링크 무한 로딩 방지).
 - B1/B2/C1/C5는 UC-010~012가 **추가만** 한다(기존 심볼 변경 금지).
 - A8 마인드맵 프리미티브는 편집(UC-015~018)과 공용 — 뷰 전용 로직(접힘 요약 등)은 props로 제어해 편집에서 재사용 가능하게 유지한다.
 - 외부 서비스 연동 모듈 없음(BR-8) — OpenDART/SEC/토스 어댑터는 배치 유스케이스(026~031) plan 범위.
