@@ -1,0 +1,28 @@
+{
+  "name": "invest-in-best",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "postinstall": "node scripts/patch-eslint-plugin-react.cjs",
+    "dev:web": "npm run dev -w apps/web",
+    "dev:worker": "npm run dev -w apps/worker",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e -w apps/web",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "backfill": "npm run backfill -w apps/worker"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.4",
+    "typescript": "^6.0.3"
+  }
+}

@@ -2,7 +2,7 @@
 
 > idea_to_product 스킬이 자동 관리하는 파일입니다. 직접 수정하지 마세요.
 
-- current_phase: 9
+- current_phase: 10
 - autonomous_mode: true
 - updated: 2026-07-07
 
@@ -18,8 +18,8 @@
 | 6 | 페이지 복잡도 분석 | approved | (state 기록) | 2026-07-05 |
 | 7 | 상태관리 | approved | docs/pages/ | 2026-07-05 |
 | 8 | 구현계획 | approved | plan.md | 2026-07-07 |
-| 9 | 환경설정 | in_progress | 프로젝트 스캐폴드 | |
-| 10 | 구현 | pending | 소스코드 | |
+| 9 | 환경설정 | approved | 프로젝트 스캐폴드 | 2026-07-07 |
+| 10 | 구현 | in_progress | 소스코드 | |
 | 11 | 검증 | pending | implementation-report.md | |
 
 (상태: pending / in_progress / awaiting_approval / approved / skipped / failed)
@@ -29,7 +29,17 @@
 - techstack: Next.js 16 + React 19 + Hono + Supabase(Postgres+Auth) + apps/worker(node-cron) 모노레포. LLM 공급자·워커 호스팅은 유보. 상세는 docs/techstack.md (SOT)
 - external_services: [OpenDART(키 보유), SEC EDGAR(인증 불필요), 토스증권 Open API(키 발급 예정), LLM(공급자 미정)]
 - pages_with_state: [chain-editor(L3, 21점), chain-view(L3, 18.5점), main-explore(L2, 13점), company-detail(L2, 14점), admin-llm-queue(L2, 11점)] — 어드민 공식체인 관리는 chain-editor 설계 공유, L1 3개(로그인/계정·어드민배치·관계마스터)와 약관(L0)은 문서 생략
-- implementation_order: []
+- implementation_order: |
+  Wave0(병렬): UC-001, UC-026
+  Wave1(준-직렬 002~006, 나머지 병렬): UC-002,003,004,005,006, UC-008, UC-009, UC-022, UC-027, UC-028
+  Wave2(병렬): UC-007, UC-010,011,012, UC-023
+  Wave3(병렬): UC-013, UC-020, UC-029, UC-025, main-explore, chain-view
+  Wave4(병렬): UC-014, UC-015, UC-016, UC-031, company-detail, admin-llm-queue
+  Wave5(병렬): UC-017, UC-019, UC-024, UC-030
+  Wave6: UC-018
+  Wave7: UC-021
+  Wave8: chain-editor
+  (근거: Explore 에이전트 의존성 분석 — 골격 SOT는 001/026/008/009/022/013/016/018, 마이그레이션 신규분 0013~0026 예상, 함수명 기준 단일 소유로 수렴)
 - auth: 이메일 + 소셜(Google 우선, 네이버·카카오 확장 대비)
 - markets: KRX + 미국 동시 (MVP)
 - user_chain_visibility: 본인만
@@ -59,3 +69,4 @@
 - 2026-07-07: Phase 8 진행 — plan 36건(유스케이스 31 + 페이지 5) 작성 전부 완료. 선검증 14건 완료: 12건 통과(002~008, 010~014), 2건 major(001: AUTH_PASSWORD_POLICY_VIOLATION 도달 불가 모순, 009: ?at= 딥링크 무한 로딩 C5/C7 모순). 판정 파일: docs/plan-checks/*.json. 남은 작업: 015~031 + 페이지 5건 선검증, 001·009 보완+재검증. 월 사용 한도 반복 도달로 중단 — 한도 상향 후 재개 필요.
 - 2026-07-07: Phase 8 선검증 완료 — 36건 전부 plan_checker 통과. major 4건(001, 009, 021, chain-editor) 자동 보완 후 재검증 통과. 잔여 minor는 문서 표기 수준(spec 원문 역반영 권장 등, 구현 비차단). 최종 게이트 대기.
 - 2026-07-07: Phase 8 승인 — 자율 모드 전환(autonomous_mode: true). Phase 9(환경설정) 시작. 이후 Phase 9~11 게이트 없이 자동 진행·자동 커밋.
+- 2026-07-07: Phase 9 완료 — npm workspaces 모노레포(apps/web, apps/worker, packages/domain) 스캐폴딩, build/lint/typecheck/test/test:e2e/format:check 7개 명령 전부 통과 확인. Next.js 16.2.10에서 `next lint` 제거로 `eslint .` 대체, eslint-plugin-react/ESLint10 비호환은 postinstall 패치로 해결(scripts/patch-eslint-plugin-react.cjs). techstack §7(로컬 Supabase 실행 금지, MCP apply_migration 사용) 확인 — 마이그레이션 0001~0012는 원격에 미적용 상태로 남음(Phase 10 구현 중 필요 시 적용). Phase 10(구현) 시작, Wave0(UC-001, UC-026)부터 진행.
