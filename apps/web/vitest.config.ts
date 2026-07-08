@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // `server-only`는 react-server 조건 밖에서 import 시 예외를 던지므로 테스트에서는 빈 스텁으로 대체.
+      "server-only": path.resolve(__dirname, "./src/test/stubs/server-only.ts"),
     },
   },
   test: {
