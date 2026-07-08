@@ -26,7 +26,7 @@ import { createLlmClient } from "./adapters/llm/client";
 import { createCollectQuotesJob } from "./jobs/collect-quotes.job";
 import { createCollectFinancialsJob } from "./jobs/collect-financials.job";
 import { createCollectFxMarketHoursJob } from "./jobs/collect-fx-market-hours.job";
-import { createAggregateDailyMetricsJob } from "./jobs/aggregate-daily-metrics.job";
+import { assembleAggregateDailyMetricsJob } from "./jobs/aggregate-daily-metrics.job";
 import { createAnalyzeDisclosuresJob } from "./jobs/analyze-disclosures.job";
 import { findByMarketDate, upsertDays } from "./repositories/market-calendar.repository";
 import {
@@ -50,29 +50,14 @@ import {
   upsertDisclosures,
 } from "./repositories/disclosures.repository";
 import {
-  findAnnualOnlySecurities,
   findExistingPeriodKeys,
-  findMinCorrectedQuarterSince,
-  findQuarterRevenues,
   upsertFinancials,
 } from "./repositories/financials.repository";
 import { findLatestBySource, upsertShares } from "./repositories/shares.repository";
 import { findLatestRate, upsertRate } from "./repositories/fx.repository";
-import { findActiveChains, findLatestSnapshotComposition, listActiveOfficialChains } from "./repositories/chains.repository";
-import { findNodesBySnapshotIds, findSnapshotsByChain } from "./repositories/snapshots.repository";
+import { findLatestSnapshotComposition, listActiveOfficialChains } from "./repositories/chains.repository";
 import { listActiveRelationTypes } from "./repositories/relation-types.repository";
 import { insertPendingProposal, listPendingKeys } from "./repositories/llm-proposals.repository";
-import {
-  findDailyCloses,
-  findFxRates,
-  findLatestClosesBefore,
-  findLatestFxBefore,
-  findLatestShares,
-  findMinCorrectedFxDateSince,
-  findMinCorrectedQuoteDateSince,
-} from "./repositories/market-data.repository";
-import { upsertDailyMetrics, upsertQuarterlyMetrics } from "./repositories/chain-metrics.repository";
-import { findLatestRunByStatus } from "./repositories/batch.repository";
 
 const JOB_TYPE_COLLECT_QUOTES = "collect_quotes";
 const JOB_TYPE_COLLECT_FINANCIALS = "collect_financials";
@@ -326,40 +311,8 @@ export function startScheduler(): void {
     },
   });
 
-  const aggregateDailyMetricsJob = createAggregateDailyMetricsJob({
-    batchLog,
-    repos: {
-      batch: {
-        findLatestRunByStatus: (jobType, status) => findLatestRunByStatus(supabase, jobType, status),
-      },
-      chains: {
-        findActiveChains: () => findActiveChains(supabase),
-      },
-      snapshots: {
-        findSnapshotsByChain: (chainId, untilIso) => findSnapshotsByChain(supabase, chainId, untilIso),
-        findNodesBySnapshotIds: (snapshotIds) => findNodesBySnapshotIds(supabase, snapshotIds),
-      },
-      marketData: {
-        findDailyCloses: (securityIds, from, to) => findDailyCloses(supabase, securityIds, from, to),
-        findLatestClosesBefore: (securityIds, before) => findLatestClosesBefore(supabase, securityIds, before),
-        findLatestShares: (securityIds) => findLatestShares(supabase, securityIds),
-        findFxRates: (pair, from, to) => findFxRates(supabase, pair, from, to),
-        findLatestFxBefore: (pair, before) => findLatestFxBefore(supabase, pair, before),
-        findMinCorrectedQuoteDateSince: (sinceIso) => findMinCorrectedQuoteDateSince(supabase, sinceIso),
-        findMinCorrectedFxDateSince: (sinceIso) => findMinCorrectedFxDateSince(supabase, sinceIso),
-      },
-      financials: {
-        findQuarterRevenues: (securityIds, year, quarter) => findQuarterRevenues(supabase, securityIds, year, quarter),
-        findAnnualOnlySecurities: (securityIds, year, quarterStart, quarterEnd) =>
-          findAnnualOnlySecurities(supabase, securityIds, year, quarterStart, quarterEnd),
-        findMinCorrectedQuarterSince: (sinceIso) => findMinCorrectedQuarterSince(supabase, sinceIso),
-      },
-      chainMetrics: {
-        upsertDailyMetrics: (rows) => upsertDailyMetrics(supabase, rows),
-        upsertQuarterlyMetrics: (rows) => upsertQuarterlyMetrics(supabase, rows),
-      },
-    },
-  });
+  // 조립 헬퍼로 일원화(UC-031 백필 후속 트리거와 공유 — 중복 제거).
+  const aggregateDailyMetricsJob = assembleAggregateDailyMetricsJob(supabase);
 
   registerSchedules({
     jobLock,

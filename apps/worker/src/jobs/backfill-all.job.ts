@@ -49,6 +49,7 @@ import { createPhase0SeedSecurities } from "./backfill/phase0-seed-securities";
 import { createPhase1DailyQuotes } from "./backfill/phase1-daily-quotes";
 import { createPhase2KrxFinancials } from "./backfill/phase2-krx-financials";
 import { createPhase3UsFinancials } from "./backfill/phase3-us-financials";
+import { assembleAggregateDailyMetricsJob } from "./aggregate-daily-metrics.job";
 
 export interface BackfillBatchRepo {
   findRunningRun(jobType: string): Promise<RepoResult<RunningRun | null>>;
@@ -181,9 +182,11 @@ export function createBackfillAllJob(deps: BackfillAllJobDeps): BackfillAllJob {
 
         if (status === "success") {
           if (runFollowUpAggregation) {
+            // 백필 성공 시에만 UC-029 후속 집계 1회 실행(BR-10). 집계 잡 자체가 예외를 삼키므로
+            // 여기서 실패해도 백필 성공 기록에는 영향 없다.
             await runFollowUpAggregation();
           } else {
-            console.log("[backfill-all] completed — aggregate_daily_metrics(UC-029) follow-up hook not injected yet, no-op");
+            console.log("[backfill-all] completed — no follow-up aggregation hook injected, skipping");
           }
         }
       } catch (error) {
@@ -321,6 +324,9 @@ export function assembleBackfillAllJob(): BackfillAllJob {
     batchLog: sharedBatchLog,
   });
 
+  // UC-031 spec step 11 — 백필 완료 후 일별 지표 집계(UC-029)를 1회 후속 실행(BR-10).
+  const aggregateJob = assembleAggregateDailyMetricsJob(supabase);
+
   return createBackfillAllJob({
     batchRepo,
     checkpointsRepo,
@@ -330,7 +336,7 @@ export function assembleBackfillAllJob(): BackfillAllJob {
     phase1,
     phase2,
     phase3,
-    // UC-029 잡 구현 후 CLI 조립부 한 줄로 연결(BR-10) — 현재는 미구현이므로 미주입.
+    runFollowUpAggregation: () => aggregateJob.run(),
   });
 }
 

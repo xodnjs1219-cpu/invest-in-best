@@ -27,18 +27,42 @@ import {
   type IsoDate,
   type QuarterlyConstituent,
 } from "@iib/domain";
-import type { BatchLogger } from "../runtime/batch-log";
-import type { FinishRunInput } from "../repositories/batch.repository";
-import type { ActiveChain } from "../repositories/chains.repository";
-import type { ChainSnapshot, ListedNode, SnapshotNodesSummary } from "../repositories/snapshots.repository";
-import type {
-  DailyClose,
-  FxRateRow,
-  LatestCloseBefore,
-  LatestShares,
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createBatchLogger, type BatchLogger } from "../runtime/batch-log";
+import { findLatestRunByStatus, type FinishRunInput } from "../repositories/batch.repository";
+import { findActiveChains, type ActiveChain } from "../repositories/chains.repository";
+import {
+  findNodesBySnapshotIds,
+  findSnapshotsByChain,
+  type ChainSnapshot,
+  type ListedNode,
+  type SnapshotNodesSummary,
+} from "../repositories/snapshots.repository";
+import {
+  findDailyCloses,
+  findFxRates,
+  findLatestClosesBefore,
+  findLatestFxBefore,
+  findLatestShares,
+  findMinCorrectedFxDateSince,
+  findMinCorrectedQuoteDateSince,
+  type DailyClose,
+  type FxRateRow,
+  type LatestCloseBefore,
+  type LatestShares,
 } from "../repositories/market-data.repository";
-import type { QuarterRevenueRow } from "../repositories/financials.repository";
-import type { DailyMetricRow, QuarterlyMetricRow } from "../repositories/chain-metrics.repository";
+import {
+  findAnnualOnlySecurities,
+  findMinCorrectedQuarterSince,
+  findQuarterRevenues,
+  type QuarterRevenueRow,
+} from "../repositories/financials.repository";
+import {
+  upsertDailyMetrics,
+  upsertQuarterlyMetrics,
+  type DailyMetricRow,
+  type QuarterlyMetricRow,
+} from "../repositories/chain-metrics.repository";
 import type { RepoResult } from "../repositories/result";
 
 const JOB_TYPE = BATCH_JOB_TYPE_AGGREGATE_DAILY_METRICS;
@@ -565,4 +589,45 @@ function subtractOneDay(date: IsoDate): IsoDate {
 
 function truncate(errorLog: string): string {
   return errorLog.length > BATCH_ERROR_LOG_MAX_LENGTH ? errorLog.slice(0, BATCH_ERROR_LOG_MAX_LENGTH) : errorLog;
+}
+
+/**
+ * 조립 헬퍼 — 주어진 supabase 클라이언트로 aggregate-daily-metrics 잡을 조립한다.
+ * scheduler(cron)와 UC-031 백필 후속 트리거가 공유해 조립 로직 중복을 제거한다(BR-10).
+ */
+export function assembleAggregateDailyMetricsJob(supabase: SupabaseClient): AggregateDailyMetricsJob {
+  return createAggregateDailyMetricsJob({
+    batchLog: createBatchLogger(supabase),
+    repos: {
+      batch: {
+        findLatestRunByStatus: (jobType, status) => findLatestRunByStatus(supabase, jobType, status),
+      },
+      chains: {
+        findActiveChains: () => findActiveChains(supabase),
+      },
+      snapshots: {
+        findSnapshotsByChain: (chainId, untilIso) => findSnapshotsByChain(supabase, chainId, untilIso),
+        findNodesBySnapshotIds: (snapshotIds) => findNodesBySnapshotIds(supabase, snapshotIds),
+      },
+      marketData: {
+        findDailyCloses: (securityIds, from, to) => findDailyCloses(supabase, securityIds, from, to),
+        findLatestClosesBefore: (securityIds, before) => findLatestClosesBefore(supabase, securityIds, before),
+        findLatestShares: (securityIds) => findLatestShares(supabase, securityIds),
+        findFxRates: (pair, from, to) => findFxRates(supabase, pair, from, to),
+        findLatestFxBefore: (pair, before) => findLatestFxBefore(supabase, pair, before),
+        findMinCorrectedQuoteDateSince: (sinceIso) => findMinCorrectedQuoteDateSince(supabase, sinceIso),
+        findMinCorrectedFxDateSince: (sinceIso) => findMinCorrectedFxDateSince(supabase, sinceIso),
+      },
+      financials: {
+        findQuarterRevenues: (securityIds, year, quarter) => findQuarterRevenues(supabase, securityIds, year, quarter),
+        findAnnualOnlySecurities: (securityIds, year, quarterStart, quarterEnd) =>
+          findAnnualOnlySecurities(supabase, securityIds, year, quarterStart, quarterEnd),
+        findMinCorrectedQuarterSince: (sinceIso) => findMinCorrectedQuarterSince(supabase, sinceIso),
+      },
+      chainMetrics: {
+        upsertDailyMetrics: (rows) => upsertDailyMetrics(supabase, rows),
+        upsertQuarterlyMetrics: (rows) => upsertQuarterlyMetrics(supabase, rows),
+      },
+    },
+  });
 }
