@@ -20,7 +20,7 @@
 | 8 | 구현계획 | approved | plan.md | 2026-07-07 |
 | 9 | 환경설정 | approved | 프로젝트 스캐폴드 | 2026-07-07 |
 | 10 | 구현 | approved | 소스코드 | 2026-07-08 |
-| 11 | 검증 | in_progress | implementation-report.md | |
+| 11 | 검증 | approved | implementation-report.md | 2026-07-08 |
 
 (상태: pending / in_progress / awaiting_approval / approved / skipped / failed)
 
@@ -78,3 +78,4 @@
 - 2026-07-08: Phase 10 Wave3 완료 — UC-013(빈 캔버스 체인 생성: editor Flux 코어·quota 게이트·(protected) 로그인 가드), UC-020(기업 상세: 캔들차트·재무·공시·편입체인, lightweight-charts 도입), UC-025(약관/정책 3종 페이지·not-found·푸터), UC-029(일별 지표 집계 배치: carry-forward·chain metrics). 4개 에이전트 병렬. UC-013 에이전트 초기 하위에이전트 위임 오류를 직접 구현으로 교정. 마이그레이션 0020_fn_security_belonging_chains·0021_fn_metric_aggregation_inputs 적용. 전체 1776 테스트(web 1257/worker 281/domain 238) 통과, typecheck/lint/build 클린. 커밋 b05b616. 후속: E2E Playwright, useUnsavedChangesGuard와 router.push 상호작용(UC-018 통합 시), 시드 데이터 기반 재검증. 다음: Wave4(편집 클러스터 UC-014~019, 024, 030 + 페이지 5개).
 - 2026-07-08: Phase 10 Wave4-1 완료 — UC-015(노드 추가/삭제), UC-016(엣지/관계/최신구성 API·저장 재검증 계약), UC-024(관계종류 마스터), UC-031(전종목 백필: 4단계 잡·종목시드, 실API로 10,976건 스모크 검증). 마이그레이션 0022_relation_types_admin. editor reducer에 노드/엣지 액션 추가. 전체 2105 테스트 통과. 커밋 2847cac.
 - 2026-07-08: Phase 10 Wave4-2 완료 — **31개 유스케이스 전체 구현 완료**. UC-017(그루핑), UC-018(저장 계약 SOT: save_user_chain RPC·낙관적 잠금), UC-021(공식 체인 CRUD·어드민), UC-014(복제), UC-019(삭제), UC-030(LLM 공시 분석: Anthropic Claude claude-sonnet-5 어댑터·tool_choice 강제 구조화 출력). 마이그레이션 0023_clone/0024_save_user/0025_save_official. LLM 공급자 Anthropic Claude 확정(techstack §10). 에이전트가 지정한 구형 모델 ID claude-sonnet-4-5 → claude-sonnet-5로 교정. 전체 2553 테스트(web 1749/worker 445/domain 359) 통과, typecheck/lint/build 클린. 커밋 60a5cb9. 마이그레이션 원격 0001~0025 전부 적용. 다음: 페이지 5개(chain-editor·chain-view·main-explore·company-detail·admin-llm-queue) 통합 검증, Phase 11.
+- 2026-07-08: Phase 11(검증) 완료 — **파이프라인 완주**. 6개 검증 에이전트(페이지 5개 통합 + 전체 유스케이스 크로스커팅)로 점검. 발견된 실제 갭 4건 전부 보완: (1) UC-018/021 pruneEmptyGroups 미배선(빈 그룹 저장), (2) UC-011 선택 노드 시각 강조 누락, (3) UC-012 isRestoring 인디케이터 누락 → 커밋 8bdb532; (4) UC-031→UC-029 후속 집계 no-op 미배선 → 커밋 4e1e2a2(assembleAggregateDailyMetricsJob 헬퍼로 scheduler/backfill 공유). minor 2건(admin-llm-queue dto 레이어·상세 메타) 정리 052b540. 크로스커팅 확인: 라우터 11개·배치 잡 6개·RPC 전부 배선, 핵심 결정사항 준수. 최종 전체 2553 테스트 통과, typecheck/lint/build 클린. 보고서: implementation-report.md(루트). Critical/Major 잔여 0건. 남은 것은 인프라 설정(Supabase 대시보드·실 API 키)·실데이터 재검증 등 배포 준비 작업(코드 범위 밖).
