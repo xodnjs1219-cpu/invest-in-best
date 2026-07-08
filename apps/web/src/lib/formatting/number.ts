@@ -40,3 +40,14 @@ export const formatKrwCompact = (value: string): string => {
 
   return `${sign}${formatWithComma(integerPart)}원`;
 };
+
+/**
+ * null 인지 KRW 축약 포맷터 (UC-010 대시보드 지표 전용) — `null`(미산출/미제공)과 `0`(집계 결과 0)을
+ * 구분해 표기한다(spec §6.1). `value`는 number(Zod coerce 결과) 또는 string(정밀도 보존 경로) 모두 허용한다.
+ */
+export const formatKrwCompactOrNull = (value: number | string | null, nullLabel: string): string => {
+  if (value === null) {
+    return nullLabel;
+  }
+  return formatKrwCompact(String(value));
+};

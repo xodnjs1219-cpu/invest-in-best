@@ -3,9 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppEnv } from "@/backend/hono/context";
 
 const getChainViewMock = vi.hoisted(() => vi.fn());
+const listOfficialChainCardsMock = vi.hoisted(() => vi.fn());
+const listMyChainCardsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/valuechains/backend/service", () => ({
   getChainView: getChainViewMock,
+  listOfficialChainCards: listOfficialChainCardsMock,
+  listMyChainCards: listMyChainCardsMock,
 }));
 
 const { registerValuechainsRoutes } = await import("@/features/valuechains/backend/route");
@@ -125,5 +129,200 @@ describe("GET /valuechains/:chainId", () => {
     const body = (await res.json()) as { error: { code: string; details?: unknown } };
     expect(body.error.code).toBe("SNAPSHOT_MISSING");
     expect(body.error.details).toBeUndefined();
+  });
+});
+
+describe("GET /valuechains/official", () => {
+  beforeEach(() => {
+    listOfficialChainCardsMock.mockReset();
+  });
+
+  it("파라미터 없음 → 200, service는 기본값(page:1, limit:20)으로 호출된다", async () => {
+    // Arrange
+    listOfficialChainCardsMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { items: [], pagination: { page: 1, limit: 20, totalCount: 0, hasMore: false } },
+    });
+    const app = buildApp();
+
+    // Act
+    const res = await app.request("/valuechains/official");
+
+    // Assert
+    expect(res.status).toBe(200);
+    expect(listOfficialChainCardsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      { page: 1, limit: 20 },
+    );
+  });
+
+  it("page=2&limit=10 → service에 그대로 전달된다", async () => {
+    // Arrange
+    listOfficialChainCardsMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { items: [], pagination: { page: 2, limit: 10, totalCount: 0, hasMore: false } },
+    });
+    const app = buildApp();
+
+    // Act
+    await app.request("/valuechains/official?page=2&limit=10");
+
+    // Assert
+    expect(listOfficialChainCardsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      { page: 2, limit: 10 },
+    );
+  });
+
+  it("page=0(잘못된 값) → 400 VALUECHAIN_LIST_INVALID_QUERY, service 미호출", async () => {
+    // Arrange
+    const app = buildApp();
+
+    // Act
+    const res = await app.request("/valuechains/official?page=0");
+
+    // Assert
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("VALUECHAIN_LIST_INVALID_QUERY");
+    expect(listOfficialChainCardsMock).not.toHaveBeenCalled();
+  });
+
+  it("limit=101(상한 초과) → 400 VALUECHAIN_LIST_INVALID_QUERY", async () => {
+    // Arrange
+    const app = buildApp();
+
+    // Act
+    const res = await app.request("/valuechains/official?limit=101");
+
+    // Assert
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("VALUECHAIN_LIST_INVALID_QUERY");
+  });
+
+  it("인증 없이도 호출 가능하다(공개 API)", async () => {
+    // Arrange
+    listOfficialChainCardsMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { items: [], pagination: { page: 1, limit: 20, totalCount: 0, hasMore: false } },
+    });
+    const app = buildApp(null);
+
+    // Act
+    const res = await app.request("/valuechains/official");
+
+    // Assert
+    expect(res.status).toBe(200);
+  });
+
+  it("service가 500을 반환하면 그대로 전달하고 details는 노출하지 않는다", async () => {
+    // Arrange
+    listOfficialChainCardsMock.mockResolvedValue({
+      ok: false,
+      status: 500,
+      error: {
+        code: "VALUECHAIN_LIST_FETCH_FAILED",
+        message: "조회 실패",
+        details: { secret: 1 },
+      },
+    });
+    const app = buildApp();
+
+    // Act
+    const res = await app.request("/valuechains/official");
+
+    // Assert
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error: { code: string; details?: unknown } };
+    expect(body.error.code).toBe("VALUECHAIN_LIST_FETCH_FAILED");
+    expect(body.error.details).toBeUndefined();
+  });
+});
+
+describe("GET /valuechains/mine", () => {
+  beforeEach(() => {
+    listMyChainCardsMock.mockReset();
+  });
+
+  it("무세션이면 401 VALUECHAIN_LIST_UNAUTHORIZED, service 미호출 (엣지 4·7)", async () => {
+    // Arrange
+    const app = buildApp(null);
+
+    // Act
+    const res = await app.request("/valuechains/mine");
+
+    // Assert
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("VALUECHAIN_LIST_UNAUTHORIZED");
+    expect(listMyChainCardsMock).not.toHaveBeenCalled();
+  });
+
+  it("유효 세션이면 service에 userId를 전달하고 200을 반환한다", async () => {
+    // Arrange
+    listMyChainCardsMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { items: [], pagination: { page: 1, limit: 20, totalCount: 0, hasMore: false } },
+    });
+    const app = buildApp({ id: "user-1" });
+
+    // Act
+    const res = await app.request("/valuechains/mine");
+
+    // Assert
+    expect(res.status).toBe(200);
+    expect(listMyChainCardsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      { page: 1, limit: 20 },
+    );
+  });
+
+  it("파라미터 검증은 인증 확인 이전에 발생하지 않는다 — 무세션+잘못된 쿼리도 401 우선", async () => {
+    // Arrange
+    const app = buildApp(null);
+
+    // Act
+    const res = await app.request("/valuechains/mine?page=abc");
+
+    // Assert
+    expect(res.status).toBe(401);
+  });
+
+  it("유효 세션 + 잘못된 쿼리(page=0) → 400 VALUECHAIN_LIST_INVALID_QUERY", async () => {
+    // Arrange
+    const app = buildApp({ id: "user-1" });
+
+    // Act
+    const res = await app.request("/valuechains/mine?page=0");
+
+    // Assert
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("VALUECHAIN_LIST_INVALID_QUERY");
+    expect(listMyChainCardsMock).not.toHaveBeenCalled();
+  });
+
+  it("0건 응답도 200으로 정상 처리한다(엣지 2)", async () => {
+    // Arrange
+    listMyChainCardsMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { items: [], pagination: { page: 1, limit: 20, totalCount: 0, hasMore: false } },
+    });
+    const app = buildApp({ id: "user-1" });
+
+    // Act
+    const res = await app.request("/valuechains/mine");
+
+    // Assert
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: { items: unknown[] } };
+    expect(body.data.items).toEqual([]);
   });
 });

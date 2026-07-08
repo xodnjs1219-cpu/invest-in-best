@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { checkChainAccess, getChainView } from "@/features/valuechains/backend/service";
-import { valuechainsErrorCodes } from "@/features/valuechains/backend/error";
+import {
+  checkChainAccess,
+  getChainView,
+  listMyChainCards,
+  listOfficialChainCards,
+  type ChainCardsRepository,
+} from "@/features/valuechains/backend/service";
+import { valuechainListErrorCodes, valuechainsErrorCodes } from "@/features/valuechains/backend/error";
 import type { ValuechainsViewRepository } from "@/features/valuechains/backend/repository";
 import { RepositoryError } from "@/features/valuechains/backend/repository";
 
@@ -345,6 +351,226 @@ describe("getChainView", () => {
         "SEC EDGAR",
         "토스증권",
       ]);
+    }
+  });
+});
+
+describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
+  const VALID_ROW = {
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "반도체 밸류체인",
+    chain_type: "official",
+    focus_type: "company",
+    focus_company_name: "삼성전자",
+    node_count: 3,
+    metric_date: "2026-07-08",
+    total_market_cap_krw: "123456789012345.67",
+    covered_node_count: 2,
+    total_node_count: 3,
+    is_carried_forward: false,
+    updated_at: "2026-07-08T00:00:00Z",
+    total_count: 2,
+  };
+
+  const createCardsRepo = (
+    impl: (params: {
+      chainType: "official" | "user";
+      ownerId: string | null;
+      limit: number;
+      offset: number;
+    }) => Promise<{ rows: unknown[]; error: string | null }>,
+  ): ChainCardsRepository => ({ findChainCards: impl });
+
+  it("정상 2행 → 200 success, snake_case→camelCase 전 필드 매핑이 정확하다", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [VALID_ROW, { ...VALID_ROW, id: "22222222-2222-4222-8222-222222222222" }],
+      error: null,
+    }));
+
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.items).toHaveLength(2);
+      expect(result.data.items[0]).toEqual({
+        id: VALID_ROW.id,
+        name: "반도체 밸류체인",
+        chainType: "official",
+        focusType: "company",
+        focusCompanyName: "삼성전자",
+        nodeCount: 3,
+        latestMetric: {
+          metricDate: "2026-07-08",
+          totalMarketCapKrw: "123456789012345.67",
+          coveredNodeCount: 2,
+          totalNodeCount: 3,
+          isCarriedForward: false,
+        },
+        updatedAt: "2026-07-08T00:00:00Z",
+      });
+    }
+  });
+
+  it("0행 → items:[], totalCount:0, hasMore:false (엣지 1)", async () => {
+    const repo = createCardsRepo(async () => ({ rows: [], error: null }));
+
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.items).toEqual([]);
+      expect(result.data.pagination).toEqual({ page: 1, limit: 20, totalCount: 0, hasMore: false });
+    }
+  });
+
+  it("metric_date=null인 row → latestMetric=null(0 아님, 엣지 3)", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [{ ...VALID_ROW, metric_date: null, total_market_cap_krw: null, covered_node_count: null, total_node_count: null, is_carried_forward: null }],
+      error: null,
+    }));
+
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.items[0].latestMetric).toBeNull();
+    }
+  });
+
+  it("metric_date는 있으나 total_market_cap_krw가 null이면 latestMetric=null(방어 규칙)", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [{ ...VALID_ROW, total_market_cap_krw: null }],
+      error: null,
+    }));
+
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.items[0].latestMetric).toBeNull();
+    }
+  });
+
+  it("is_carried_forward=true인 row → latestMetric.isCarriedForward=true", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [{ ...VALID_ROW, is_carried_forward: true }],
+      error: null,
+    }));
+
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.items[0].latestMetric?.isCarriedForward).toBe(true);
+    }
+  });
+
+  it("node_count=0인 row → nodeCount=0으로 카드 정상 생성(엣지 9)", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [{ ...VALID_ROW, node_count: 0, metric_date: null, total_market_cap_krw: null, covered_node_count: null, total_node_count: null, is_carried_forward: null }],
+      error: null,
+    }));
+
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.items[0].nodeCount).toBe(0);
+    }
+  });
+
+  it("repository error → failure(500, VALUECHAIN_LIST_FETCH_FAILED)", async () => {
+    const repo = createCardsRepo(async () => ({ rows: [], error: "db down" }));
+
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(500);
+      expect(result.error.code).toBe(valuechainListErrorCodes.fetchFailed);
+    }
+  });
+
+  it("Row 스키마 위반(id가 uuid 아님) → failure(500, VALUECHAIN_LIST_VALIDATION_ERROR)", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [{ ...VALID_ROW, id: "not-a-uuid" }],
+      error: null,
+    }));
+
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(500);
+      expect(result.error.code).toBe(valuechainListErrorCodes.validationError);
+    }
+  });
+
+  it("page=2, limit=20 → repository에 offset=20이 전달된다", async () => {
+    let capturedOffset: number | undefined;
+    const repo = createCardsRepo(async (params) => {
+      capturedOffset = params.offset;
+      return { rows: [], error: null };
+    });
+
+    await listOfficialChainCards(repo, { page: 2, limit: 20 });
+
+    expect(capturedOffset).toBe(20);
+  });
+
+  it("totalCount=41, page=2, limit=20 → hasMore=true", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [{ ...VALID_ROW, total_count: 41 }],
+      error: null,
+    }));
+
+    const result = await listOfficialChainCards(repo, { page: 2, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.pagination.hasMore).toBe(true);
+    }
+  });
+
+  it("totalCount=40, page=2, limit=20 → hasMore=false", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [{ ...VALID_ROW, total_count: 40 }],
+      error: null,
+    }));
+
+    const result = await listOfficialChainCards(repo, { page: 2, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.pagination.hasMore).toBe(false);
+    }
+  });
+
+  it("listMyChainCards는 ownerId와 chainType='user'를 repository에 정확히 전달한다", async () => {
+    let capturedParams: { chainType: string; ownerId: string | null } | undefined;
+    const repo = createCardsRepo(async (params) => {
+      capturedParams = params;
+      return { rows: [], error: null };
+    });
+
+    await listMyChainCards(repo, "user-123", { page: 1, limit: 20 });
+
+    expect(capturedParams).toEqual(
+      expect.objectContaining({ chainType: "user", ownerId: "user-123" }),
+    );
+  });
+
+  it("listMyChainCards 정상 응답의 chainType은 'user'다", async () => {
+    const repo = createCardsRepo(async () => ({
+      rows: [{ ...VALID_ROW, chain_type: "user" }],
+      error: null,
+    }));
+
+    const result = await listMyChainCards(repo, "user-123", { page: 1, limit: 20 });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.items[0].chainType).toBe("user");
     }
   });
 });

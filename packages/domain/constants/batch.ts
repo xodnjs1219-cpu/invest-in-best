@@ -66,3 +66,25 @@ export const BATCH_JOB_TYPE_COLLECT_FX_MARKET_HOURS = "collect_fx_market_hours";
 
 /** cron 실행 타임존(KST) — 026 COLLECT_QUOTES_CRON은 시간대 무관이라 영향 없음. */
 export const BATCH_CRON_TIMEZONE = "Asia/Seoul";
+
+/* ── UC-023 배치 모니터링 조회 확장 (docs/usecases/023/plan.md 모듈 1) ── */
+
+/**
+ * `batch_runs.job_type` enum 리터럴 6종(0012_batch_runs.sql, BR-3·BR-4).
+ * 워커 잡(026~031)의 jobType 인자와 웹의 필터 검증·FE 라벨 키가 공용하는 단일 SOT.
+ */
+export const BATCH_JOB_TYPES = [
+  "collect_quotes",
+  "collect_financials",
+  "collect_fx_market_hours",
+  "aggregate_daily_metrics",
+  "analyze_disclosures",
+  "backfill_all",
+] as const;
+
+export type BatchJobType = (typeof BATCH_JOB_TYPES)[number];
+
+/** `batch_runs.status` enum 리터럴 4종(0012_batch_runs.sql, BR-3). */
+export const BATCH_RUN_STATUSES = ["running", "success", "partial_success", "failed"] as const;
+
+export type BatchRunStatus = (typeof BATCH_RUN_STATUSES)[number];

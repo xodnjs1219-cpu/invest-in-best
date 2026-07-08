@@ -1,6 +1,9 @@
 import { ChainViewHeader } from "@/features/valuechains/components/ChainViewHeader";
 import { DataSourceFooter } from "@/features/valuechains/components/DataSourceFooter";
 import { MindmapCanvas } from "@/features/valuechains/components/MindmapCanvas";
+import { NodeInfoPanel } from "@/features/valuechains/components/NodeInfoPanel";
+import { DashboardPanel } from "@/features/valuechains/components/DashboardPanel";
+import { TimelinePanel } from "@/features/valuechains/components/TimelinePanel";
 import { ChainViewProvider } from "@/features/valuechains/context/ChainViewProvider";
 
 type PageProps = {
@@ -10,12 +13,12 @@ type PageProps = {
 
 /**
  * 밸류체인 뷰 페이지 셸 (plan 모듈 C7) — Server Component: params/searchParams 해석만 하고
- * Provider에 위임한다. `at`은 state_management §9 계약대로 Provider에 전달하지만, UC-009 단계
- * Provider는 C5의 `?at=` 배선 규칙에 따라 이를 무시(S1=null 고정)하므로 유효한 과거 날짜
- * 딥링크도 최신 구조를 표시한다(시점 복원은 UC-012에서 활성화).
+ * Provider에 위임한다. `at`은 state_management §9 계약대로 Provider에 전달되며, UC-012에서
+ * `?at=` 배선(S1 초기화 + snapshot-at 쿼리 활성화)이 함께 활성화되어 유효한 과거 날짜
+ * 딥링크가 해당 시점 구조를 정상 복원한다.
  *
- * `NodeInfoPanel`(UC-011)·`DashboardPanel`(UC-010)·`TimelinePanel`(UC-012)은 각 plan에서
- * 이 트리에 추가한다(state_management.md §9 컴포넌트 트리 순서 유지).
+ * 컴포넌트 트리 순서(state_management.md §9): Header → MindmapCanvas → NodeInfoPanel →
+ * DashboardPanel → TimelinePanel → DataSourceFooter.
  */
 export default async function ValuechainViewPage({ params, searchParams }: PageProps) {
   const { chainId } = await params;
@@ -26,6 +29,9 @@ export default async function ValuechainViewPage({ params, searchParams }: PageP
       <div className="mx-auto max-w-5xl px-4 py-8">
         <ChainViewHeader />
         <MindmapCanvas />
+        <NodeInfoPanel />
+        <DashboardPanel />
+        <TimelinePanel />
         <DataSourceFooter />
       </div>
     </ChainViewProvider>

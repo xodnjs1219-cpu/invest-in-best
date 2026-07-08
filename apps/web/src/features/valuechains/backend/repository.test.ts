@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createValuechainsViewRepository,
+  findChainCards,
   RepositoryError,
 } from "@/features/valuechains/backend/repository";
 
@@ -216,5 +217,99 @@ describe("createValuechainsViewRepository", () => {
       // Assert
       expect(result).toBeNull();
     });
+  });
+});
+
+describe("findChainCards (UC-007 체인 카드 목록)", () => {
+  it("official 조회 시 p_chain_type='official', p_owner_id=null로 RPC를 정확히 1회 호출한다", async () => {
+    // Arrange
+    const client = { rpc: vi.fn(async () => ({ data: [], error: null })) };
+
+    // Act
+    await findChainCards(client as never, {
+      chainType: "official",
+      ownerId: null,
+      limit: 20,
+      offset: 0,
+    });
+
+    // Assert
+    expect(client.rpc).toHaveBeenCalledTimes(1);
+    expect(client.rpc).toHaveBeenCalledWith("list_chain_cards", {
+      p_chain_type: "official",
+      p_owner_id: null,
+      p_limit: 20,
+      p_offset: 0,
+    });
+  });
+
+  it("mine 조회 시 p_owner_id에 사용자 id를 전달한다", async () => {
+    // Arrange
+    const client = { rpc: vi.fn(async () => ({ data: [], error: null })) };
+
+    // Act
+    await findChainCards(client as never, {
+      chainType: "user",
+      ownerId: "user-1",
+      limit: 20,
+      offset: 20,
+    });
+
+    // Assert
+    expect(client.rpc).toHaveBeenCalledWith("list_chain_cards", {
+      p_chain_type: "user",
+      p_owner_id: "user-1",
+      p_limit: 20,
+      p_offset: 20,
+    });
+  });
+
+  it("RPC 성공 시 { rows: data, error: null }을 반환한다", async () => {
+    // Arrange
+    const rows = [{ id: "chain-1" }];
+    const client = { rpc: vi.fn(async () => ({ data: rows, error: null })) };
+
+    // Act
+    const result = await findChainCards(client as never, {
+      chainType: "official",
+      ownerId: null,
+      limit: 20,
+      offset: 0,
+    });
+
+    // Assert
+    expect(result).toEqual({ rows, error: null });
+  });
+
+  it("RPC 오류 시 예외를 던지지 않고 { rows: [], error: message }를 반환한다", async () => {
+    // Arrange
+    const client = { rpc: vi.fn(async () => ({ data: null, error: { message: "db down" } })) };
+
+    // Act
+    const result = await findChainCards(client as never, {
+      chainType: "official",
+      ownerId: null,
+      limit: 20,
+      offset: 0,
+    });
+
+    // Assert
+    expect(result).toEqual({ rows: [], error: "db down" });
+  });
+
+  it("data가 null이고 error도 없으면 rows를 빈 배열로 정규화한다", async () => {
+    // Arrange
+    const client = { rpc: vi.fn(async () => ({ data: null, error: null })) };
+
+    // Act
+    const result = await findChainCards(client as never, {
+      chainType: "official",
+      ownerId: null,
+      limit: 20,
+      offset: 0,
+    });
+
+    // Assert
+    expect(result).toEqual({ rows: [], error: null });
   });
 });

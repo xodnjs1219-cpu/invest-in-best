@@ -89,8 +89,8 @@ const toReactFlowElements = (
 };
 
 const MindmapCanvasInner = () => {
-  const { structure, renderGraph } = useChainViewState();
-  const { commitNodeDrag, toggleGroupCollapse } = useChainViewActions();
+  const { structure, renderGraph, selectedNodeId } = useChainViewState();
+  const { commitNodeDrag, toggleGroupCollapse, selectNode } = useChainViewActions();
 
   const { nodes, edges } = useMemo(() => {
     if (!renderGraph) {
@@ -124,9 +124,21 @@ const MindmapCanvasInner = () => {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodeDragStop={(_, n) => commitNodeDrag(n.id, n.position)}
+        onNodeClick={(_, n) => {
+          // 그룹 클러스터(Sub Flow 부모 노드)는 노드 유형이 아니므로 클릭 대상에서 제외한다(UC-011).
+          if (n.type === "groupNode") {
+            return;
+          }
+          selectNode(n.id);
+        }}
         onlyRenderVisibleElements
         fitView
       />
+      {selectedNodeId !== null && (
+        <span data-testid="mindmap-selected-node-id" className="sr-only">
+          {selectedNodeId}
+        </span>
+      )}
     </div>
   );
 };
@@ -134,7 +146,8 @@ const MindmapCanvasInner = () => {
 /**
  * 마인드맵 캔버스 (plan 모듈 C6) — `structure.status` 분기 + React Flow 렌더.
  * `useChainViewState()`/`useChainViewActions()` 두 훅 외 데이터 접근 없음(쿼리 훅·dispatch·라우터 직접 사용 금지).
- * 노드 클릭 핸들러는 UC-011 plan에서 연결(본 구현에서는 미배선).
+ * 노드 클릭(UC-011): `onNodeClick`이 `selectNode(nodeId)`를 호출해 S3를 갱신한다.
+ * 그룹 클러스터(`groupNode`) 클릭은 노드 상세 조회 대상에서 제외한다.
  */
 export const MindmapCanvas = () => (
   <ReactFlowProvider>

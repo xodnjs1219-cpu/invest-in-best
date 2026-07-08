@@ -7,6 +7,7 @@ import { withOptionalAuth } from "@/backend/middleware/optional-auth";
 import { withSupabase } from "@/backend/middleware/supabase";
 import { withSupabaseAuth } from "@/backend/middleware/supabase-auth";
 import { registerAccountRoutes } from "@/features/account/backend/route";
+import { registerAdminBatchRoutes } from "@/features/admin-batches/backend/route";
 import { registerAdminLlmProposalRoutes } from "@/features/admin-llm-proposals/backend/route";
 import { registerAuthRoutes } from "@/features/auth/backend/route";
 import { registerExampleRoutes } from "@/features/example/backend/route";
@@ -41,6 +42,7 @@ export const createHonoApp = () => {
   registerSecuritiesRoutes(app);
   registerValuechainsRoutes(app);
   registerAdminLlmProposalRoutes(app);
+  registerAdminBatchRoutes(app);
   registerAccountRoutes(app);
 
   singletonApp = app;

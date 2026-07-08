@@ -1,8 +1,27 @@
-import type { NodePosition } from "@iib/domain";
+import {
+  presetToDailyRange,
+  resolveDailyMetricsRange,
+  resolveQuarterlyMetricsRange,
+  dateToCalendarQuarter,
+  type IsoDate,
+  type NodePosition,
+} from "@iib/domain";
 import { applyAutoLayout } from "@/components/mindmap/auto-layout";
 import type { RenderEdge, RenderGraph, RenderGroup, RenderNode } from "@/components/mindmap/types";
-import type { ChainViewResponse } from "@/features/valuechains/lib/dto";
-import type { ChainViewState } from "@/features/valuechains/state/chain-view.reducer";
+import type {
+  DailyMetricsResponse,
+  QuarterlyMetricsResponse,
+  ChainViewResponse,
+  NodeDetailResponse,
+} from "@/features/valuechains/lib/dto";
+import type {
+  DailyMetricsView,
+  QuarterlyMetricsView,
+  NodePanelView,
+} from "@/features/valuechains/context/chain-view-context";
+import type { ApiError } from "@/lib/http/api-client";
+import type { ChainViewState, MetricsRange } from "@/features/valuechains/state/chain-view.reducer";
+import type { QuarterlyParams } from "@/features/valuechains/hooks/chain-view-query-keys";
 
 /** S1 → 과거 시점 조회 중 여부(state_management.md §5). */
 export const selectIsTimeTraveling = (state: Pick<ChainViewState, "timeline">): boolean =>
@@ -87,4 +106,149 @@ export const buildRenderGraph = (input: {
     }));
 
   return { nodes, edges, groups };
+};
+
+// ============================================================================
+// UC-010: 대시보드 지표 파라미터 셀렉터·뷰모델 빌더
+// ============================================================================
+
+/** S4 → 일별 지표 API 파라미터(하한/상한 보정 포함, UC-010 E8·E11). */
+export const selectDailyMetricsParams = (
+  range: MetricsRange,
+  today: IsoDate,
+): { from: IsoDate; to: IsoDate } => {
+  if (range.kind === "preset") {
+    return presetToDailyRange(range.preset, today);
+  }
+  const resolved = resolveDailyMetricsRange({ from: range.from, to: range.to, today });
+  if (resolved.ok) {
+    return { from: resolved.from, to: resolved.to };
+  }
+  // 보정 불가 조합(from > to)은 방어적으로 기본 1Y로 폴백(FE 1차 검증은 MetricsRangeSelector가 선행 차단).
+  return presetToDailyRange("1Y", today);
+};
+
+/** S4 → 분기 지표 API 파라미터(역년 정규화 축, 하한 2015Q1). */
+export const selectQuarterlyMetricsParams = (range: MetricsRange, today: IsoDate): QuarterlyParams => {
+  const input =
+    range.kind === "preset"
+      ? { today }
+      : {
+          fromYear: dateToCalendarQuarter(range.from).calendarYear,
+          fromQuarter: dateToCalendarQuarter(range.from).calendarQuarter,
+          toYear: dateToCalendarQuarter(range.to).calendarYear,
+          toQuarter: dateToCalendarQuarter(range.to).calendarQuarter,
+          today,
+        };
+  const resolved = resolveQuarterlyMetricsRange(input);
+  if (resolved.ok) {
+    return {
+      fromYear: resolved.from.year,
+      fromQuarter: resolved.from.quarter,
+      toYear: resolved.to.year,
+      toQuarter: resolved.to.quarter,
+    };
+  }
+  const fallback = resolveQuarterlyMetricsRange({ today });
+  if (fallback.ok) {
+    return {
+      fromYear: fallback.from.year,
+      fromQuarter: fallback.from.quarter,
+      toYear: fallback.to.year,
+      toQuarter: fallback.to.quarter,
+    };
+  }
+  // 이론상 도달 불가(기본값은 항상 유효) — 타입 완결성을 위한 방어적 최종 폴백.
+  return { fromYear: 2015, fromQuarter: 1, toYear: 2015, toQuarter: 1 };
+};
+
+type QueryLikeState<T> = { status: "pending" | "error" | "success"; data?: T; error?: ApiError | null };
+
+/** 지표 쿼리 상태 + 하이라이트 시점 → `MetricsPanelView` 판별 유니온 조립(순수 함수). */
+export const buildDailyMetricsView = (input: {
+  query: QueryLikeState<DailyMetricsResponse>;
+  highlightedDate: IsoDate | null;
+}): DailyMetricsView => {
+  const { query, highlightedDate } = input;
+  if (query.status === "error") {
+    return { status: "error" };
+  }
+  if (query.status === "pending" || !query.data) {
+    return { status: "loading" };
+  }
+  if (query.data.series.length === 0) {
+    return { status: "empty" };
+  }
+  return {
+    status: "ready",
+    current: query.data.current,
+    series: query.data.series,
+    highlightedDate,
+    annotations: query.data.annotations,
+  };
+};
+
+/** 분기 지표 쿼리 상태 → `MetricsPanelView` 조립(동형, C-8 "미제공"은 current:null로 표현). */
+export const buildQuarterlyMetricsView = (input: {
+  query: QueryLikeState<QuarterlyMetricsResponse>;
+  highlightedDate: IsoDate | null;
+}): QuarterlyMetricsView => {
+  const { query, highlightedDate } = input;
+  if (query.status === "error") {
+    return { status: "error" };
+  }
+  if (query.status === "pending" || !query.data) {
+    return { status: "loading" };
+  }
+  if (query.data.series.length === 0) {
+    return { status: "empty" };
+  }
+  return {
+    status: "ready",
+    current: query.data.current,
+    series: query.data.series,
+    highlightedDate,
+    annotations: query.data.annotations,
+  };
+};
+
+// ============================================================================
+// UC-011: 노드 정보 패널 뷰모델 빌더
+// ============================================================================
+
+/** S3 + 노드 상세 쿼리 상태 → `NodePanelView` 판별 유니온 조립(상태관리 문서 §8.2). */
+export const buildNodePanelView = (input: {
+  selectedNodeId: string | null;
+  query: QueryLikeState<NodeDetailResponse>;
+}): NodePanelView => {
+  const { selectedNodeId, query } = input;
+  if (selectedNodeId === null) {
+    return { status: "closed" };
+  }
+  if (query.status === "pending") {
+    return { status: "loading", nodeId: selectedNodeId };
+  }
+  if (query.status === "error") {
+    return { status: "error", nodeId: selectedNodeId };
+  }
+  const data = query.data;
+  if (!data) {
+    return { status: "loading", nodeId: selectedNodeId };
+  }
+  if (data.nodeKind === "free_subject") {
+    return {
+      status: "free-subject",
+      data: {
+        name: data.freeSubject?.name ?? null,
+        subjectType: data.freeSubject?.subjectType ?? null,
+        memo: data.freeSubject?.memo ?? null,
+        groupName: data.group?.name ?? null,
+      },
+    };
+  }
+  // listed_company
+  if (!data.securityResolved) {
+    return { status: "security-fallback", nodeId: selectedNodeId };
+  }
+  return { status: "routing" };
 };

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MindmapCanvas } from "@/features/valuechains/components/MindmapCanvas";
 import {
   useChainViewActions,
@@ -29,6 +29,15 @@ const mockActions = () => {
     commitNodeDrag: vi.fn(),
     toggleGroupCollapse: vi.fn(),
     retryStructure: vi.fn(),
+    changeDashboardRange: vi.fn(),
+    retryDailyMetrics: vi.fn(),
+    retryQuarterlyMetrics: vi.fn(),
+    selectNode: vi.fn(),
+    closeNodePanel: vi.fn(),
+    retryNodeDetail: vi.fn(),
+    selectTimelineDate: vi.fn(),
+    returnToLatest: vi.fn(),
+    clearRestoreFailureNotice: vi.fn(),
   };
   vi.mocked(useChainViewActions).mockReturnValue(actions);
   return actions;
@@ -100,6 +109,7 @@ describe("MindmapCanvas", () => {
         edges: [],
         groups: [],
       },
+      selectedNodeId: null,
     } as never);
     mockActions();
 
@@ -108,5 +118,62 @@ describe("MindmapCanvas", () => {
 
     // Assert
     expect(container.querySelector(".react-flow")).toBeInTheDocument();
+  });
+
+  it("노드 클릭 시 selectNode(nodeId)를 호출한다(UC-011)", () => {
+    // Arrange
+    vi.mocked(useChainViewState).mockReturnValue({
+      structure: { status: "ready", data: {}, snapshotEffectiveAt: "", isRestoring: false },
+      renderGraph: {
+        nodes: [
+          {
+            id: "n1",
+            kind: "listed_company",
+            label: "삼성전자",
+            sublabel: "005930",
+            market: "KRX",
+            listingStatus: "listed",
+            groupId: null,
+            position: { x: 0, y: 0 },
+          },
+        ],
+        edges: [],
+        groups: [],
+      },
+      selectedNodeId: null,
+    } as never);
+    const actions = mockActions();
+
+    // Act
+    const { container } = render(<MindmapCanvas />);
+    const nodeEl = container.querySelector('[data-id="n1"]');
+    expect(nodeEl).not.toBeNull();
+    fireEvent.click(nodeEl!);
+
+    // Assert
+    expect(actions.selectNode).toHaveBeenCalledWith("n1");
+  });
+
+  it("그룹 클러스터 클릭은 selectNode를 호출하지 않는다", () => {
+    // Arrange
+    vi.mocked(useChainViewState).mockReturnValue({
+      structure: { status: "ready", data: {}, snapshotEffectiveAt: "", isRestoring: false },
+      renderGraph: {
+        nodes: [],
+        edges: [],
+        groups: [{ id: "g1", label: "소재", isCollapsed: false, memberCount: 0 }],
+      },
+      selectedNodeId: null,
+    } as never);
+    const actions = mockActions();
+
+    // Act
+    const { container } = render(<MindmapCanvas />);
+    const groupEl = container.querySelector('[data-id="group:g1"]');
+    expect(groupEl).not.toBeNull();
+    fireEvent.click(groupEl!);
+
+    // Assert
+    expect(actions.selectNode).not.toHaveBeenCalled();
   });
 });

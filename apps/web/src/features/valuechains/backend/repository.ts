@@ -135,3 +135,303 @@ export const createValuechainsViewRepository = (
     return row?.finished_at ?? null;
   },
 });
+
+// ============================================
+// 체인 카드 목록 (UC-007, plan 모듈 C-3)
+// ============================================
+
+const LIST_CHAIN_CARDS_RPC = "list_chain_cards";
+
+export type FindChainCardsParams = {
+  chainType: "official" | "user";
+  ownerId: string | null;
+  limit: number;
+  offset: number;
+};
+
+export type FindChainCardsResult = {
+  rows: unknown[];
+  error: string | null;
+};
+
+/**
+ * `list_chain_cards` RPC(0016 마이그레이션) 호출 캡슐화 — Supabase 오류는 예외를 던지지 않고
+ * `{ rows: [], error: message }`로 반환한다(Result 지향, securities 패턴과 동일).
+ * Row 해석/검증은 하지 않는다(그대로 service에 전달 — Persistence는 접근만 담당).
+ */
+export const findChainCards = async (
+  client: SupabaseClient,
+  params: FindChainCardsParams,
+): Promise<FindChainCardsResult> => {
+  const { data, error } = await client.rpc(LIST_CHAIN_CARDS_RPC, {
+    p_chain_type: params.chainType,
+    p_owner_id: params.ownerId,
+    p_limit: params.limit,
+    p_offset: params.offset,
+  });
+
+  if (error) {
+    return { rows: [], error: error.message };
+  }
+
+  return { rows: data ?? [], error: null };
+};
+
+// ============================================================================
+// UC-010: 밸류체인 대시보드 지표(일별/분기) 리포지토리
+// ============================================================================
+
+const CHAIN_DAILY_METRICS_TABLE = "chain_daily_metrics";
+const CHAIN_QUARTERLY_METRICS_TABLE = "chain_quarterly_metrics";
+const FN_CHAIN_DAILY_ANNOTATIONS = "fn_chain_daily_annotations";
+
+export type RepoResult<T> = { ok: true; data: T } | { ok: false; message: string };
+
+/** 서비스는 이 인터페이스에만 의존한다(UC-010 지표 조회 전용). */
+export interface ChainMetricsRepository {
+  findDailySeries(chainId: string, from: string, to: string): Promise<RepoResult<unknown[]>>;
+  findLatestDaily(chainId: string): Promise<RepoResult<unknown | null>>;
+  findDailyByDate(chainId: string, date: string): Promise<RepoResult<unknown | null>>;
+  findQuarterlySeries(chainId: string, fromYear: number, toYear: number): Promise<RepoResult<unknown[]>>;
+  findLatestQuarterly(chainId: string): Promise<RepoResult<unknown | null>>;
+  findQuarterlyByQuarter(
+    chainId: string,
+    year: number,
+    quarter: number,
+  ): Promise<RepoResult<unknown | null>>;
+  fetchDailyAnnotations(
+    chainId: string,
+    asOfIso: string,
+    metricDate: string | null,
+  ): Promise<RepoResult<unknown>>;
+}
+
+export const createChainMetricsRepository = (client: SupabaseClient): ChainMetricsRepository => ({
+  async findDailySeries(chainId, from, to) {
+    const { data, error } = await client
+      .from(CHAIN_DAILY_METRICS_TABLE)
+      .select("metric_date, total_market_cap_krw, covered_node_count, total_node_count, is_carried_forward, based_on_snapshot_id")
+      .eq("chain_id", chainId)
+      .gte("metric_date", from)
+      .lte("metric_date", to)
+      .order("metric_date", { ascending: true });
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: true, data: data ?? [] };
+  },
+
+  async findLatestDaily(chainId) {
+    const { data, error } = await client
+      .from(CHAIN_DAILY_METRICS_TABLE)
+      .select("metric_date, total_market_cap_krw, covered_node_count, total_node_count, is_carried_forward, based_on_snapshot_id")
+      .eq("chain_id", chainId)
+      .order("metric_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: true, data: data ?? null };
+  },
+
+  async findDailyByDate(chainId, date) {
+    const { data, error } = await client
+      .from(CHAIN_DAILY_METRICS_TABLE)
+      .select("metric_date, total_market_cap_krw, covered_node_count, total_node_count, is_carried_forward, based_on_snapshot_id")
+      .eq("chain_id", chainId)
+      .eq("metric_date", date)
+      .maybeSingle();
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: true, data: data ?? null };
+  },
+
+  async findQuarterlySeries(chainId, fromYear, toYear) {
+    const { data, error } = await client
+      .from(CHAIN_QUARTERLY_METRICS_TABLE)
+      .select(
+        "calendar_year, calendar_quarter, total_revenue_krw, covered_node_count, total_node_count, excluded_unmapped_count, based_on_snapshot_id",
+      )
+      .eq("chain_id", chainId)
+      .gte("calendar_year", fromYear)
+      .lte("calendar_year", toYear)
+      .order("calendar_year", { ascending: true })
+      .order("calendar_quarter", { ascending: true });
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: true, data: data ?? [] };
+  },
+
+  async findLatestQuarterly(chainId) {
+    const { data, error } = await client
+      .from(CHAIN_QUARTERLY_METRICS_TABLE)
+      .select(
+        "calendar_year, calendar_quarter, total_revenue_krw, covered_node_count, total_node_count, excluded_unmapped_count, based_on_snapshot_id",
+      )
+      .eq("chain_id", chainId)
+      .order("calendar_year", { ascending: false })
+      .order("calendar_quarter", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: true, data: data ?? null };
+  },
+
+  async findQuarterlyByQuarter(chainId, year, quarter) {
+    const { data, error } = await client
+      .from(CHAIN_QUARTERLY_METRICS_TABLE)
+      .select(
+        "calendar_year, calendar_quarter, total_revenue_krw, covered_node_count, total_node_count, excluded_unmapped_count, based_on_snapshot_id",
+      )
+      .eq("chain_id", chainId)
+      .eq("calendar_year", year)
+      .eq("calendar_quarter", quarter)
+      .maybeSingle();
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: true, data: data ?? null };
+  },
+
+  async fetchDailyAnnotations(chainId, asOfIso, metricDate) {
+    const { data, error } = await client.rpc(FN_CHAIN_DAILY_ANNOTATIONS, {
+      p_chain_id: chainId,
+      p_as_of: asOfIso,
+      p_metric_date: metricDate,
+    });
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    // Postgres `RETURNS TABLE`은 배열로 반환된다 — 단일 행만 존재.
+    const row = Array.isArray(data) ? (data[0] ?? null) : data;
+    return { ok: true, data: row };
+  },
+});
+
+// ============================================================================
+// UC-011: 노드 상세 조회 리포지토리
+// ============================================================================
+
+const NODE_DETAIL_SELECT =
+  "id, snapshot_id, node_kind, group_id, subject_name, subject_type, subject_memo, " +
+  "chain_snapshots!inner(chain_id), " +
+  "snapshot_groups(id, name), " +
+  "securities(id, ticker, market, name, listing_status)";
+
+/**
+ * 노드 상세 조회 — `chain_snapshots!inner` + `eq('chain_snapshots.chain_id', ...)`로
+ * 노드의 체인 소속을 DB 조회 단계에서 검증한다(E7: 타 체인 노드 → 0행 → null).
+ */
+export const findNodeDetailRow = async (
+  client: SupabaseClient,
+  chainId: string,
+  nodeId: string,
+): Promise<{ row: unknown | null } | { dbError: string }> => {
+  const { data, error } = await client
+    .from(SNAPSHOT_NODES_TABLE)
+    .select(NODE_DETAIL_SELECT)
+    .eq("id", nodeId)
+    .eq("chain_snapshots.chain_id", chainId)
+    .maybeSingle();
+
+  if (error) {
+    return { dbError: error.message };
+  }
+  return { row: data ?? null };
+};
+
+// ============================================================================
+// UC-012: 타임라인 조회/스냅샷 복원 리포지토리
+// ============================================================================
+
+const FN_CHAIN_SNAPSHOT_AT = "fn_chain_snapshot_at";
+
+/** 체인의 모든 구조 변경 이벤트 시각(마커) — `effective_at` 오름차순 전체. */
+export const findSnapshotMarkers = async (
+  client: SupabaseClient,
+  chainId: string,
+): Promise<RepoResult<unknown[]>> => {
+  const { data, error } = await client
+    .from(CHAIN_SNAPSHOTS_TABLE)
+    .select("id, effective_at, change_source")
+    .eq("chain_id", chainId)
+    .order("effective_at", { ascending: true });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+  return { ok: true, data: data ?? [] };
+};
+
+/** `fn_chain_snapshot_at` RPC 호출 — 스냅샷 없으면 `data: null`(SNAPSHOT_NOT_FOUND로 매핑은 service 책임). */
+export const findSnapshotStructureAt = async (
+  client: SupabaseClient,
+  chainId: string,
+  asOfIso: string,
+): Promise<RepoResult<unknown | null>> => {
+  const { data, error } = await client.rpc(FN_CHAIN_SNAPSHOT_AT, {
+    p_chain_id: chainId,
+    p_as_of: asOfIso,
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+  return { ok: true, data: data ?? null };
+};
+
+/** 해당 일자 이하 최신 일별 지표 1건(이월 규칙, database §4.5 패턴). */
+export const findDailyMetricAt = async (
+  client: SupabaseClient,
+  chainId: string,
+  date: string,
+): Promise<RepoResult<unknown | null>> => {
+  const { data, error } = await client
+    .from(CHAIN_DAILY_METRICS_TABLE)
+    .select("metric_date, total_market_cap_krw, covered_node_count, total_node_count, is_carried_forward, based_on_snapshot_id")
+    .eq("chain_id", chainId)
+    .lte("metric_date", date)
+    .order("metric_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+  return { ok: true, data: data ?? null };
+};
+
+/** D가 속한 역년 분기의 매출 지표 단건. */
+export const findQuarterlyMetric = async (
+  client: SupabaseClient,
+  chainId: string,
+  year: number,
+  quarter: number,
+): Promise<RepoResult<unknown | null>> => {
+  const { data, error } = await client
+    .from(CHAIN_QUARTERLY_METRICS_TABLE)
+    .select(
+      "calendar_year, calendar_quarter, total_revenue_krw, covered_node_count, total_node_count, excluded_unmapped_count, based_on_snapshot_id",
+    )
+    .eq("chain_id", chainId)
+    .eq("calendar_year", year)
+    .eq("calendar_quarter", quarter)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+  return { ok: true, data: data ?? null };
+};

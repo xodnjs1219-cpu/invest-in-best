@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   BATCH_CRON_TIMEZONE,
+  BATCH_JOB_TYPES,
   BATCH_MAX_RETRY,
+  BATCH_RUN_STATUSES,
   BATCH_STALE_RUNNING_HOURS,
   BATCH_TIMEZONE,
   COLLECT_FINANCIALS_CRON,
@@ -46,5 +48,20 @@ describe("batch constants", () => {
     expect(BATCH_CRON_TIMEZONE).toBe("Asia/Seoul");
     const hourField = Number(COLLECT_FX_MARKET_HOURS_CRON.split(" ")[1]);
     expect(hourField).toBeLessThan(9);
+  });
+
+  it("BATCH_JOB_TYPES matches docs/database.md §5 batch_job_type enum (6 kinds, order-sensitive)", () => {
+    expect(BATCH_JOB_TYPES).toEqual([
+      "collect_quotes",
+      "collect_financials",
+      "collect_fx_market_hours",
+      "aggregate_daily_metrics",
+      "analyze_disclosures",
+      "backfill_all",
+    ]);
+  });
+
+  it("BATCH_RUN_STATUSES matches docs/database.md §5 batch_run_status enum (4 kinds)", () => {
+    expect(BATCH_RUN_STATUSES).toEqual(["running", "success", "partial_success", "failed"]);
   });
 });

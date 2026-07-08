@@ -20,6 +20,13 @@ export type LegalDoc = {
   effectiveDate: string;
 };
 
+/**
+ * 전역 푸터 면책 요약 문구 (결정 G-2 임시 문안, UC-007 plan 모듈 A-2).
+ * 운영 확정 시 이 상수만 교체한다 — 컴포넌트에 하드코딩 금지.
+ */
+export const DISCLAIMER_SUMMARY_TEXT =
+  "본 서비스의 모든 정보는 투자 판단의 참고 자료이며, 투자 권유가 아닙니다. 투자의 책임은 투자자 본인에게 있습니다.";
+
 export const LEGAL_DOCS: Record<TermsDocType, LegalDoc> = {
   terms_of_service: {
     title: "이용약관",
