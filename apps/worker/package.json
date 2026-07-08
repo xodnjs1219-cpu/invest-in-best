@@ -1,12 +1,12 @@
 {
-  "name": "worker",
+  "name": "@iib/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/scheduler.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/scheduler.js",
+    "start": "node dist/apps/worker/src/scheduler.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
