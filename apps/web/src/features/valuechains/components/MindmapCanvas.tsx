@@ -36,6 +36,7 @@ const edgeTypes: EdgeTypes = {
 const toReactFlowElements = (
   renderGraph: RenderGraph,
   onToggleCollapse: (groupId: string) => void,
+  selectedNodeId: string | null,
 ): { nodes: Node[]; edges: Edge[] } => {
   const groupNodes: Node<GroupNodeType["data"]>[] = renderGraph.groups.map((group, index) => ({
     id: `group:${group.id}`,
@@ -54,6 +55,8 @@ const toReactFlowElements = (
     const base = {
       id: node.id,
       position: node.position,
+      // 선택 노드 시각 강조(UC-011) — React Flow의 selected 속성으로 반영.
+      selected: node.id === selectedNodeId,
       ...(node.groupId ? { parentId: `group:${node.groupId}`, extent: "parent" as const } : {}),
     };
 
@@ -96,8 +99,11 @@ const MindmapCanvasInner = () => {
     if (!renderGraph) {
       return { nodes: [], edges: [] };
     }
-    return toReactFlowElements(renderGraph, toggleGroupCollapse);
-  }, [renderGraph, toggleGroupCollapse]);
+    return toReactFlowElements(renderGraph, toggleGroupCollapse, selectedNodeId);
+  }, [renderGraph, toggleGroupCollapse, selectedNodeId]);
+
+  // 시점 복원 중 여부(UC-012) — ready 상태에서만 노출되며 UC-009는 항상 false.
+  const isRestoring = structure.status === "ready" && structure.isRestoring;
 
   if (structure.status === "loading") {
     return (
@@ -117,7 +123,7 @@ const MindmapCanvasInner = () => {
   }
 
   return (
-    <div className="h-[480px] w-full rounded-lg border border-gray-200">
+    <div className="relative h-[480px] w-full rounded-lg border border-gray-200">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -134,6 +140,17 @@ const MindmapCanvasInner = () => {
         onlyRenderVisibleElements
         fitView
       />
+      {/* 시점 복원 중 인디케이터(UC-012) — 스냅샷 조회 중 캔버스 위에 표시. */}
+      {isRestoring && (
+        <div
+          data-testid="mindmap-restoring-indicator"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/50"
+        >
+          <span className="rounded-full bg-gray-900/80 px-4 py-2 text-sm font-medium text-white">
+            시점 구성을 불러오는 중…
+          </span>
+        </div>
+      )}
       {selectedNodeId !== null && (
         <span data-testid="mindmap-selected-node-id" className="sr-only">
           {selectedNodeId}

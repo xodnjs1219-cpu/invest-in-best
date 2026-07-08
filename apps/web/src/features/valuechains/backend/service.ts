@@ -10,6 +10,7 @@ import {
   toSeoulDayEndIso,
   todayInSeoul,
   TIMESERIES_MIN_START_DATE,
+  pruneEmptyGroups,
   validateChainStructure,
   validateEdgesPayload,
   type EdgeSaveViolation,
@@ -1624,6 +1625,10 @@ export const saveUserChain = async (
       );
     }
 
+    // 빈 그룹 정리(UC-017 BR-6) — 소속 노드 0개 그룹은 스냅샷에서 제외한다(오류 아님).
+    // deps에 logger가 없어 prunedGroupIds는 로깅하지 않는다(정리 자체가 핵심 동작).
+    const { groups: prunedGroups } = pruneEmptyGroups(body.groups, body.nodes);
+
     // 참조 존재 검증(E12/S-9): nodes[].securityId ∪ focusSecurityId.
     const securityIdsToCheck = [
       ...body.nodes.filter((n) => n.securityId !== null).map((n) => n.securityId as string),
@@ -1675,7 +1680,7 @@ export const saveUserChain = async (
         name: body.name,
         focusType: body.focusType,
         focusSecurityId,
-        groups: body.groups,
+        groups: prunedGroups,
         nodes: body.nodes,
         edges: body.edges,
         maxChainsPerUser: MAX_CHAINS_PER_USER,
@@ -1948,6 +1953,9 @@ export const createOfficialChain = async (
     return failure(409, valuechainsErrorCodes.officialNameDuplicate, "이미 사용 중인 공식 체인 이름입니다.");
   }
 
+  // 빈 그룹 정리(UC-017 BR-6) — 소속 노드 0개 그룹은 스냅샷에서 제외.
+  const { groups: createPrunedGroups } = pruneEmptyGroups(body.groups, body.nodes);
+
   return finalizeOfficialSave(
     deps,
     {
@@ -1958,7 +1966,7 @@ export const createOfficialChain = async (
       disclosureDate: body.disclosureDate ?? null,
       baseSnapshotId: null,
       createdBy: actor.userId,
-      groups: body.groups,
+      groups: createPrunedGroups,
       nodes: body.nodes,
       edges: body.edges,
       maxNodesPerChain: MAX_NODES_PER_CHAIN,
@@ -2015,6 +2023,9 @@ export const updateOfficialChain = async (
     return failure(409, valuechainsErrorCodes.officialNameDuplicate, "이미 사용 중인 공식 체인 이름입니다.");
   }
 
+  // 빈 그룹 정리(UC-017 BR-6) — 소속 노드 0개 그룹은 스냅샷에서 제외.
+  const { groups: updatePrunedGroups } = pruneEmptyGroups(body.groups, body.nodes);
+
   return finalizeOfficialSave(
     deps,
     {
@@ -2025,7 +2036,7 @@ export const updateOfficialChain = async (
       disclosureDate: body.disclosureDate ?? null,
       baseSnapshotId: body.baseSnapshotId,
       createdBy: actor.userId,
-      groups: body.groups,
+      groups: updatePrunedGroups,
       nodes: body.nodes,
       edges: body.edges,
       maxNodesPerChain: MAX_NODES_PER_CHAIN,
