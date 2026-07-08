@@ -12,6 +12,7 @@ import {
   BATCH_CRON_TIMEZONE,
   BATCH_JOB_TYPES,
   BATCH_JOB_TYPE_AGGREGATE_DAILY_METRICS,
+  BATCH_JOB_TYPE_ANALYZE_DISCLOSURES,
   BATCH_MAX_RETRY,
   BATCH_RUNNING_STALE_HOURS,
   BATCH_RUN_STATUSES,
@@ -125,5 +126,10 @@ describe("batch constants", () => {
   it("BACKFILL_KRX_DISCLOSURE_MONTHS and BACKFILL_PROGRESS_UPDATE_EVERY_N_UNITS are positive (H-10)", () => {
     expect(BACKFILL_KRX_DISCLOSURE_MONTHS).toBeGreaterThan(0);
     expect(BACKFILL_PROGRESS_UPDATE_EVERY_N_UNITS).toBeGreaterThan(0);
+  });
+
+  it("BATCH_JOB_TYPE_ANALYZE_DISCLOSURES matches the batch_job_type enum literal for UC-030", () => {
+    expect(BATCH_JOB_TYPE_ANALYZE_DISCLOSURES).toBe("analyze_disclosures");
+    expect(BATCH_JOB_TYPES).toContain(BATCH_JOB_TYPE_ANALYZE_DISCLOSURES);
   });
 });

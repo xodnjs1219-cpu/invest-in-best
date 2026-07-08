@@ -43,6 +43,43 @@ export const valuechainsErrorCodes = {
   edgeNodeRefInvalid: "VALUECHAINS.EDGE_NODE_REF_INVALID",
   relationTypeNotFound: "VALUECHAINS.RELATION_TYPE_NOT_FOUND",
   relationTypeInactiveForNewEdge: "VALUECHAINS.RELATION_TYPE_INACTIVE_FOR_NEW_EDGE",
+
+  // ── UC-014: 공식 체인 복제(`POST /valuechains/:chainId/clone`) ──
+  // UC-019 삭제(E6)도 동일 코드를 재사용한다(spec 양쪽 모두 정확히 "UNAUTHORIZED" 요구).
+  unauthorized: "UNAUTHORIZED", // 401 (미로그인/세션 만료)
+  sourceChainNotFound: "SOURCE_CHAIN_NOT_FOUND", // 404 (원본 부재/보관)
+  chainLimitExceeded: "CHAIN_LIMIT_EXCEEDED", // 409 (1인당 체인 상한 도달)
+  invalidCloneSource: "INVALID_CLONE_SOURCE", // 422 (원본이 공식 체인 아님/노드 상한 초과 비정상 데이터)
+  sourceSnapshotMissing: "SOURCE_SNAPSHOT_MISSING", // 422 (원본에 스냅샷 없음)
+  cloneFailed: "CLONE_FAILED", // 500 (복제 트랜잭션 실패)
+
+  // ── UC-019: 사용자 체인 삭제(`DELETE /valuechains/:chainId`) ──
+  validationError: "VALIDATION_ERROR", // 400 (chainId UUID 형식 오류, E9)
+  chainForbidden: "CHAIN_FORBIDDEN", // 403 (비소유자 삭제 시도, E1)
+  officialChainDeleteForbidden: "OFFICIAL_CHAIN_DELETE_FORBIDDEN", // 403 (공식 체인 삭제 시도, E2)
+
+  // ── UC-018: 밸류체인 저장(`POST/PUT /valuechains`, spec §6.2 공통 에러 코드) ──
+  saveInvalidRequest: "VALUECHAINS.INVALID_REQUEST", // 400 (본문 스키마 위반/모드 검증 실패)
+  saveAuthRequired: "AUTH_REQUIRED", // 401 (세션 없음/만료, E9)
+  saveForbidden: "VALUECHAINS.FORBIDDEN", // 403 (비소유자 갱신/공식 체인 대상, E10)
+  saveNotFound: "VALUECHAINS.NOT_FOUND", // 404 (갱신 대상 체인 없음/삭제됨, E11)
+  saveDuplicateName: "VALUECHAINS.DUPLICATE_NAME", // 409 (동일 사용자 내 이름 중복, E4)
+  saveConflict: "VALUECHAINS.SAVE_CONFLICT", // 409 (baseSnapshotId 불일치, E7)
+  saveChainLimitExceeded: "VALUECHAINS.CHAIN_LIMIT_EXCEEDED", // 422 (1인당 체인 상한, E2)
+  saveNodeLimitExceeded: "VALUECHAINS.NODE_LIMIT_EXCEEDED", // 422 (노드 상한, E1)
+  saveInvalidNode: "VALUECHAINS.INVALID_NODE", // 422 (kind-필드 조합 위반, E16)
+  saveDuplicateSecurityNode: "VALUECHAINS.DUPLICATE_SECURITY_NODE", // 422 (동일 종목 중복, E17)
+  saveSecurityNotFound: "VALUECHAINS.SECURITY_NOT_FOUND", // 422 (존재하지 않는 securityId, E12)
+  saveInvalidGroup: "VALUECHAINS.INVALID_GROUP", // 422 (그룹 이름/참조 위반 통합 코드, E6)
+  saveFailed: "VALUECHAINS.SAVE_FAILED", // 500 (저장 트랜잭션 실패, E15)
+
+  // ── UC-021: 공식 밸류체인 저장(POST/PUT /valuechains official 분기, spec §6.2) ──
+  adminRequired: "VALUECHAINS.ADMIN_REQUIRED", // 403 (비-Admin의 공식 저장, E1)
+  officialNameDuplicate: "VALUECHAINS.OFFICIAL_NAME_DUPLICATE", // 409 (공식 체인 이름 전역 유일 위반, E9)
+  chainArchived: "VALUECHAINS.CHAIN_ARCHIVED", // 409 (보관된 체인 수정 저장, E10)
+  officialGroupNameRequired: "VALUECHAINS.GROUP_NAME_REQUIRED", // 422 (세분 코드 — official)
+  officialGroupRefInvalid: "VALUECHAINS.GROUP_REF_INVALID", // 422 (세분 코드 — official, E11)
+  notImplemented: "VALUECHAINS.NOT_IMPLEMENTED", // 501 (미구현 분기 임시 stub)
 } as const;
 
 export type ValuechainsServiceError =

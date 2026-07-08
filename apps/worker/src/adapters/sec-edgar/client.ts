@@ -8,10 +8,11 @@ import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import * as yauzl from "yauzl";
-import { WORKER_HTTP_TIMEOUT_MS } from "@iib/domain";
+import { DISCLOSURE_CONTENT_MAX_CHARS, WORKER_HTTP_TIMEOUT_MS } from "@iib/domain";
 import type { WorkerConfig } from "../../runtime/config";
 import type { RateLimiter } from "../../runtime/rate-limiter";
 import { withRetry, type RetryOptions } from "../../runtime/retry";
+import { extractPlainText } from "../../runtime/text-extract";
 import {
   SecBlockedError,
   SecRequestError,
@@ -33,6 +34,17 @@ import type { SecTickerEntry } from "./contract";
 const DATA_BASE_URL = "https://data.sec.gov";
 const WWW_BASE_URL = "https://www.sec.gov";
 const TICKER_CIK_MAP_URL = `${WWW_BASE_URL}/files/company_tickers.json`;
+
+/** 원문 fetch 허용 도메인 화이트리스트(M8) — DB 값 오염 시 임의 URL fetch 방지. */
+const FILING_DOCUMENT_URL_PREFIXES = [WWW_BASE_URL, DATA_BASE_URL];
+
+/** document 전용 HTTP 레벨 오류(5xx/네트워크) — 재시도 대상. 403/404는 이 오류를 던지지 않고 즉시 null 처리. */
+class FilingDocumentHttpError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${status}`);
+    this.name = "FilingDocumentHttpError";
+  }
+}
 
 /** SEC 차단 감지 시 보수적 백오프(공식 문서 "brief period"만 명시 — 안전하게 5분). */
 export const SEC_BLOCK_BACKOFF_MS = 5 * 60 * 1000;
@@ -199,6 +211,47 @@ export function createSecEdgarClient(options: CreateSecEdgarClientOptions): SecE
         throw new SecRequestError(200, `submissions 응답 검증 실패: ${parsed.error}`);
       }
       return toSecSubmissionsEntry(parsed.data);
+    },
+
+    async fetchFilingDocumentText(url: string): Promise<string | null> {
+      if (!FILING_DOCUMENT_URL_PREFIXES.some((prefix) => url.startsWith(prefix))) {
+        console.warn(`[sec-edgar] fetchFilingDocumentText rejected non-whitelisted URL: ${url}`);
+        return null;
+      }
+      if (!config.secEdgarUserAgent) {
+        console.warn("[sec-edgar] fetchFilingDocumentText skipped — SEC_EDGAR_USER_AGENT missing");
+        return null;
+      }
+
+      try {
+        const raw = await withRetry(
+          async () => {
+            await rateLimiter.acquire("SEC");
+            const response = await fetchImpl(url, {
+              method: "GET",
+              headers: baseHeaders(),
+              signal: AbortSignal.timeout(WORKER_HTTP_TIMEOUT_MS),
+            });
+            if (response.status === 403 || response.status === 404) {
+              return null; // E7 차단·미존재 — 재시도 없이 폴백(R-3)
+            }
+            if (!response.ok) {
+              throw new FilingDocumentHttpError(response.status); // 5xx/기타 — 재시도 대상
+            }
+            return response.text();
+          },
+          { ...retryOptions, shouldRetry: (error) => error instanceof FilingDocumentHttpError },
+        );
+
+        if (raw === null) return null;
+        return extractPlainText(raw, { maxChars: DISCLOSURE_CONTENT_MAX_CHARS });
+      } catch (error) {
+        // R-3: 재시도 소진 등 어떤 실패도 공시 실패로 승격하지 않고 메타데이터-온리 폴백.
+        console.warn(
+          `[sec-edgar] fetchFilingDocumentText(${url}) failed — falling back to metadata-only: ${(error as Error).message}`,
+        );
+        return null;
+      }
     },
   };
 }

@@ -14,6 +14,7 @@ import {
 } from "@/features/valuechains/editor/context/ChainEditorContext";
 import { RelationTypePicker } from "@/features/valuechains/editor/components/RelationTypePicker";
 import { DeleteConfirmDialog } from "@/features/valuechains/editor/components/DeleteConfirmDialog";
+import { computeGroupBounds, toAbsolutePosition } from "@/features/valuechains/editor/lib/groupLayout";
 
 const EDGE_BLOCK_MESSAGES: Record<EdgeBlockReason, string> = {
   NODE_NOT_FOUND: "노드를 찾을 수 없습니다.",
@@ -32,7 +33,8 @@ type EditingEdge = { clientEdgeId: string; relationTypeId: string };
  */
 export function EditorCanvasContainer() {
   const { state, computed } = useChainEditorState();
-  const { addEdge, changeEdgeRelation, deleteElements } = useChainEditorActions();
+  const { addEdge, changeEdgeRelation, deleteElements, moveNode, dissolveGroup, changeSelection } =
+    useChainEditorActions();
 
   const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
   const [editingEdge, setEditingEdge] = useState<EditingEdge | null>(null);
@@ -77,13 +79,28 @@ export function EditorCanvasContainer() {
     setBlockedReason(null);
   };
 
+  /**
+   * 삭제 대상(React Flow가 보고하는 nodeIds)에서 그룹 노드 ID를 분리한다(UC-017 M13 — 선택 브리징).
+   * 그룹 노드는 `dissolveGroup`으로 처리(확인 없음 — 노드 유지·E5), 문서 노드/엣지는 기존 흐름(UC-015/016).
+   */
   const handleElementsDelete = (target: { nodeIds: string[]; edgeIds: string[] }) => {
-    const connectedEdgeIds = selectConnectedEdgeIds(state, target.nodeIds);
-    if (connectedEdgeIds.length > 0) {
-      setPendingDelete(target);
+    const groupIds = target.nodeIds.filter((id) => state.groups[id] !== undefined);
+    const documentNodeIds = target.nodeIds.filter((id) => state.groups[id] === undefined);
+
+    for (const groupId of groupIds) {
+      dissolveGroup(groupId);
+    }
+
+    if (documentNodeIds.length === 0 && target.edgeIds.length === 0) {
       return;
     }
-    deleteElements(target);
+
+    const connectedEdgeIds = selectConnectedEdgeIds(state, documentNodeIds);
+    if (connectedEdgeIds.length > 0) {
+      setPendingDelete({ nodeIds: documentNodeIds, edgeIds: target.edgeIds });
+      return;
+    }
+    deleteElements({ nodeIds: documentNodeIds, edgeIds: target.edgeIds });
   };
 
   const handleConfirmDelete = () => {
@@ -95,6 +112,37 @@ export function EditorCanvasContainer() {
     }
   };
 
+  /**
+   * 드래그 좌표 환원(UC-017 M13, G-5) — 소속 노드의 React Flow 상대 좌표를 절대 좌표로 환원해
+   * moveNode(015 기여분)에 전달한다. 그룹 노드 자체는 draggable:false라 이 경로를 타지 않는다.
+   */
+  const handleNodeDragStop = (nodeId: string, position: { x: number; y: number }) => {
+    const node = state.nodes[nodeId];
+    if (!node) {
+      return;
+    }
+    if (node.groupClientId === null) {
+      moveNode(nodeId, position);
+      return;
+    }
+    const membersOfGroup = Object.values(state.nodes)
+      .filter((n) => n.groupClientId === node.groupClientId && n.clientNodeId !== nodeId)
+      .map((n) => n.position);
+    const groupIndex = Object.keys(state.groups).indexOf(node.groupClientId);
+    const bounds = computeGroupBounds(membersOfGroup.length > 0 ? membersOfGroup : [node.position], groupIndex);
+    const absolute = toAbsolutePosition(position, bounds.position);
+    moveNode(nodeId, absolute);
+  };
+
+  /**
+   * 선택 브리징(UC-017 M13) — 그룹 노드 ID를 문서 selection에서 제외해 문서 selection 오염을
+   * 방지한다(문서 selection은 GroupPanel의 "선택 노드 그룹 지정"이 소비하는 노드 전용 목록이다).
+   */
+  const handleSelectionChange = (params: { nodeIds: string[]; edgeIds: string[] }) => {
+    const documentNodeIds = params.nodeIds.filter((id) => state.groups[id] === undefined);
+    changeSelection({ nodeIds: documentNodeIds, edgeIds: params.edgeIds });
+  };
+
   const isPickerOpen = pendingConnection !== null || editingEdge !== null;
 
   return (
@@ -104,7 +152,8 @@ export function EditorCanvasContainer() {
         edges={reactFlowEdges}
         onConnect={handleConnect}
         onElementsDelete={handleElementsDelete}
-        onNodeDragStop={() => undefined}
+        onNodeDragStop={handleNodeDragStop}
+        onSelectionChange={handleSelectionChange}
         nodesConnectable={computed.hasActiveRelationTypes}
       />
 

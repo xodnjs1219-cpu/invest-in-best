@@ -35,7 +35,7 @@
 | 배치 스케줄러 | `node-cron` | **4.5.0** | 상시 실행 워커 프로세스 내 cron 등록. 서버리스 실행시간 제한 없음 |
 | ZIP 스트리밍 | `yauzl` | **3.4.0** | SEC EDGAR 벌크 ZIP(1GB+)에서 필요한 CIK 엔트리만 스트리밍 추출 |
 | XML 파싱 | `fast-xml-parser` | **5.9.3** | OpenDART `corpCode.xml`(전체 매핑) 파싱. zero-dep, 활발히 유지보수되는 고채택 라이브러리(UC-027 구현 시 추가) |
-| LLM (공시 분석) | **미정 (어댑터로 추상화)** — 후보: Anthropic Claude / OpenAI | `@anthropic-ai/sdk` **0.110.0** / `openai` **6.45.0** | 사용자 결정: LLM 기능 구현 직전에 확정. 워커의 LLM 호출은 어댑터 인터페이스 뒤에 격리하고, SDK 설치도 확정 후에 진행 |
+| LLM (공시 분석) | **확정: Anthropic Claude** (`claude-sonnet-5`) | `@anthropic-ai/sdk` **0.110.0** | UC-030 구현 시점(2026-07-08) 확정. 근거: (1) `tool_choice: {type:"tool"}`로 특정 tool 호출을 강제할 수 있어 구조화 출력(JSON) 강제를 API 레벨에서 가장 직접적으로 보장(OpenAI의 `response_format: json_schema` 대비 강제성이 더 명확) (2) 본 저장소의 개발 환경(Claude Code)과 생태계 정합성 (3) 두 SDK 후보 중 먼저 확정해 어댑터 게이트(R-1)를 통과. 워커의 LLM 호출은 `adapters/llm/{contract,client}.ts` 뒤에 격리되어 공급자 교체 시 잡 로직(`analyze-disclosures.job.ts`)은 변경되지 않는다 |
 | 단위/통합 테스트 | Vitest | **4.1.9** | ESM/TS 네이티브, 빠른 실행 |
 | E2E 테스트 | `@playwright/test` | **1.61.1** | Microsoft 유지보수, 크로스브라우저 표준 |
 | 린트 | ESLint | **10.6.0** | `next lint` 통합, 최대 채택률 |
@@ -74,7 +74,7 @@
 
 **공유 (`packages/domain`)**: `zod`, `date-fns`, `date-fns-tz` — 순수 계산 함수·상수·공유 타입만 포함, 프레임워크 의존성 없음
 
-**배치 워커**: `@supabase/supabase-js`, `node-cron`, `yauzl`, `date-fns`, `date-fns-tz`, `zod`(외부 API 응답 검증), `@anthropic-ai/sdk` 또는 `openai`(§10 확정 후 하나만)
+**배치 워커**: `@supabase/supabase-js`, `node-cron`, `yauzl`, `date-fns`, `date-fns-tz`, `zod`(외부 API 응답 검증), `@anthropic-ai/sdk`(§10 확정 — Anthropic Claude)
 
 **테스트/도구**: `vitest`, `@playwright/test`, `eslint` + `eslint-config-next`, `prettier`, `typescript`, `tsx`(워커 dev 실행기)
 
@@ -271,7 +271,7 @@ SEC_EDGAR_USER_AGENT=                  # "서비스명 연락이메일" 형식
 TOSSINVEST_CLIENT_ID=
 TOSSINVEST_CLIENT_SECRET=
 
-# LLM (§10 확정 후 하나만 사용)
+# LLM (§10 확정 — Anthropic Claude만 사용. OPENAI_API_KEY는 미사용이나 어댑터 스키마는 optional로 유지)
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 
@@ -282,9 +282,9 @@ NODE_ENV=
 
 ---
 
-## 10. 확정된 결정 사항 (2026-07-05 게이트)
+## 10. 확정된 결정 사항 (2026-07-05 게이트, LLM 공급자는 2026-07-08 UC-030 구현 시점 추가 확정)
 
-1. **LLM 공급자**: 미정으로 유보 (사용자 결정). 어댑터 인터페이스로 추상화하고 LLM 기능 구현 직전에 확정한다. 후보: Anthropic Claude / OpenAI. 확정 후 `docs/external/`에 연동 스펙 문서 추가.
+1. **LLM 공급자**: **확정 — Anthropic Claude**(`@anthropic-ai/sdk`, `claude-sonnet-5`). UC-030(`analyze-disclosures` 배치) 구현 시점(2026-07-08)에 확정했다. 근거는 §1 LLM 행 참고(tool_choice 강제 구조화 출력, 개발 생태계 정합성). 어댑터는 `apps/worker/src/adapters/llm/{contract.ts,client.ts}`로 격리되어 향후 공급자 교체 시 `analyze-disclosures.job.ts`는 변경되지 않는다. `docs/external/`에 별도 연동 스펙 문서는 아직 없음 — Anthropic Messages API의 tool use(구조화 출력)·타임아웃·재시도 정책은 어댑터 코드 주석(`client.ts`)에 근거와 함께 기록했다.
 2. **토스증권 이용약관**: "토스 전제 유지 + 키 발급 시 약관 원문 수동 확인"으로 결정(Phase 2.5 게이트). 시세 수집은 어댑터 패턴(§4, §8)으로 격리하여 소스 교체가 필요해져도 잡 로직 변경을 최소화한다.
 3. **배치 워커 호스팅**: 미정으로 유보 (사용자 결정). MVP는 로컬 실행, 상시 호스팅은 출시 시점에 결정. Supabase Edge Functions는 무거운 잡의 실행시간·메모리 제한으로 기각.
 4. **네이버·카카오 소셜 로그인**: MVP Non-Goal. 인터페이스만 열어두고 실제 구현 시점에 재조사 (카카오는 Supabase Auth 커스텀 OIDC로 가능 추정, 네이버 미검증).

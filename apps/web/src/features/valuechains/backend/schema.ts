@@ -649,3 +649,147 @@ export const LatestSnapshotResponseSchema = z.object({
 export type LatestSnapshotResponse = z.infer<typeof LatestSnapshotResponseSchema>;
 export type LatestSnapshotNode = z.infer<typeof LatestSnapshotNodeDtoSchema>;
 export type LatestSnapshotEdge = z.infer<typeof LatestSnapshotEdgeDtoSchema>;
+
+// ============================================================================
+// UC-014: 공식 체인 복제 (`POST /valuechains/:chainId/clone`)
+// ============================================================================
+
+/** 원본 체인 검증 조회 Row(연산 1) — clone 전용, `owner_id` 불필요. */
+export const CloneSourceChainRowSchema = z.object({
+  id: z.string().uuid(),
+  chain_type: z.enum(["official", "user"]),
+  name: z.string(),
+  focus_type: z.enum(["industry", "company"]),
+  focus_security_id: z.string().uuid().nullable(),
+  is_archived: z.boolean(),
+});
+export type CloneSourceChainRow = z.infer<typeof CloneSourceChainRowSchema>;
+
+/** 원본 최신 스냅샷 조회 Row(연산 3) — id/effective_at만 필요. */
+export const CloneLatestSnapshotRowSchema = z.object({
+  id: z.string().uuid(),
+  effective_at: z.string(),
+});
+export type CloneLatestSnapshotRow = z.infer<typeof CloneLatestSnapshotRowSchema>;
+
+/** `clone_value_chain` RPC(0023 마이그레이션) 반환 행 — snake_case 1:1. */
+export const CloneRpcResultSchema = z.object({
+  chain_id: z.string().uuid(),
+  snapshot_id: z.string().uuid(),
+  cloned_at: z.string(),
+  group_count: z.number().int().min(0),
+  node_count: z.number().int().min(0),
+  edge_count: z.number().int().min(0),
+});
+export type CloneRpcResult = z.infer<typeof CloneRpcResultSchema>;
+
+/** `POST /valuechains/:chainId/clone` 응답 DTO(camelCase, spec §6.2). */
+export const CloneChainResponseSchema = z.object({
+  chainId: z.string(),
+  name: z.string(),
+  chainType: z.literal("user"),
+  focusType: z.enum(["industry", "company"]),
+  focusSecurityId: z.string().nullable(),
+  sourceChainId: z.string(),
+  snapshotId: z.string(),
+  clonedAt: z.string(),
+  nodeCount: z.number().int().min(0),
+  edgeCount: z.number().int().min(0),
+  groupCount: z.number().int().min(0),
+});
+export type CloneChainResponse = z.infer<typeof CloneChainResponseSchema>;
+
+// ============================================================================
+// UC-019: 사용자 체인 삭제 (`DELETE /valuechains/:chainId`)
+// ============================================================================
+
+/** 삭제 대상 소유 검증 조회 Row — 공식 체인은 `owner_id`가 NULL. */
+export const DeleteTargetChainRowSchema = z.object({
+  id: z.string().uuid(),
+  chain_type: z.enum(["official", "user"]),
+  owner_id: z.string().uuid().nullable(),
+});
+export type DeleteTargetChainRow = z.infer<typeof DeleteTargetChainRowSchema>;
+
+// ============================================================================
+// UC-018: 밸류체인 저장 (`POST /valuechains` · `PUT /valuechains/:chainId`)
+// UC-016 필드명 SOT(R-1) 재사용, UC-021이 이 계약을 official 분기로 확장(R-12).
+// ============================================================================
+
+/** 그룹 저장 페이로드(UC-017 spec §6.2 계약, S-6 — 이름 공백 검증은 스키마에 두지 않음). */
+export const SaveChainGroupPayloadSchema = z.object({
+  clientGroupId: z.string().min(1),
+  name: z.string(),
+});
+
+/** 노드 저장 페이로드 — kind-필드 조합 검증은 스키마에 두지 않는다(422 소관, S-6). */
+export const SaveChainNodePayloadSchema = z.object({
+  clientNodeId: z.string().min(1),
+  nodeKind: z.enum(["listed_company", "free_subject"]),
+  securityId: z.string().uuid().nullable(),
+  subjectName: z.string().nullable(),
+  subjectType: z.enum(["consumer", "government", "private_company", "other"]).nullable(),
+  subjectMemo: z.string().nullable(),
+  groupClientId: z.string().min(1).nullable(),
+  positionX: z.number().finite(),
+  positionY: z.number().finite(),
+});
+
+/** 엣지 저장 페이로드(UC-016 필드명 SOT — R-1). */
+export const SaveEdgePayloadSchema = z.object({
+  clientEdgeId: z.string().min(1),
+  sourceClientNodeId: z.string().min(1),
+  targetClientNodeId: z.string().min(1),
+  relationTypeId: z.string().uuid(),
+});
+
+/** 저장 요청 본문(spec §6.2) — `baseSnapshotId`는 신규=null·갱신=필수(모드 검증은 service, S-6). */
+export const SaveChainRequestSchema = z.object({
+  name: z.string().trim().min(1),
+  focusType: z.enum(["industry", "company"]),
+  focusSecurityId: z.string().uuid().nullable(),
+  baseSnapshotId: z.string().uuid().nullable(),
+  groups: z.array(SaveChainGroupPayloadSchema),
+  nodes: z.array(SaveChainNodePayloadSchema),
+  edges: z.array(SaveEdgePayloadSchema),
+});
+export type SaveChainRequestBody = z.infer<typeof SaveChainRequestSchema>;
+
+/** `save_user_chain`/`save_official_chain` RPC 반환 행(snake_case) — outcome 비-'saved'는 나머지 필드 null. */
+export const SaveRpcResultSchema = z.object({
+  outcome: z.string(),
+  chain_id: z.string().uuid().nullable(),
+  snapshot_id: z.string().uuid().nullable(),
+  effective_at: z.string().nullable(),
+  group_count: z.number().int().nullable(),
+  node_count: z.number().int().nullable(),
+  edge_count: z.number().int().nullable(),
+});
+export type SaveRpcResult = z.infer<typeof SaveRpcResultSchema>;
+
+/** 저장 응답 DTO(camelCase, spec §6.2 Response). */
+export const SaveChainResponseSchema = z.object({
+  chainId: z.string(),
+  snapshotId: z.string(),
+  effectiveAt: z.string(),
+  nodeCount: z.number().int().min(0),
+  edgeCount: z.number().int().min(0),
+  groupCount: z.number().int().min(0),
+});
+export type SaveChainResponse = z.infer<typeof SaveChainResponseSchema>;
+
+// ============================================================================
+// UC-021: 공식 밸류체인 저장 (`POST/PUT /valuechains` official 분기, R-12)
+// ============================================================================
+
+/** POST 본문의 `chainType` peek 전용 — 비-strict(다른 필드가 있어도 통과, M7 디스패치 선행). */
+export const ChainTypeDispatchSchema = z.object({
+  chainType: z.enum(["official", "user"]).optional(),
+});
+
+/** official 저장 요청 — `SaveChainRequestSchema`(UC-018 SOT)를 확장(`disclosureDate` 추가, R-12). */
+export const SaveOfficialChainRequestSchema = SaveChainRequestSchema.extend({
+  disclosureDate: z.string().date().nullable().optional(),
+});
+export type SaveOfficialChainRequestBody = z.infer<typeof SaveOfficialChainRequestSchema>;
+

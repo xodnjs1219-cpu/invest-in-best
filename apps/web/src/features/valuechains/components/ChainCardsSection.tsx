@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ChainCard } from "@/features/valuechains/components/ChainCard";
 import type { ChainCard as ChainCardType } from "@/features/valuechains/lib/dto";
 
@@ -13,6 +14,8 @@ export type ChainCardsSectionProps = {
   onLoadMore: () => void;
   onRetry: () => void;
   onSelect: (chainId: string) => void;
+  /** UC-014/019: 카드별 부가 액션(삭제·복제 버튼 등) 렌더러 — 미전달 시 기존 렌더와 동일. */
+  renderCardActions?: (card: ChainCardType) => ReactNode;
 };
 
 const LOADING_SKELETON_CARDS = 4;
@@ -38,6 +41,7 @@ export function ChainCardsSection({
   onLoadMore,
   onRetry,
   onSelect,
+  renderCardActions,
 }: ChainCardsSectionProps) {
   return (
     <section className="flex flex-col gap-3">
@@ -68,7 +72,12 @@ export function ChainCardsSection({
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {items.map((card) => (
-              <ChainCard key={card.id} card={card} onSelect={onSelect} />
+              <ChainCard
+                key={card.id}
+                card={card}
+                onSelect={onSelect}
+                actionSlot={renderCardActions?.(card)}
+              />
             ))}
           </div>
 

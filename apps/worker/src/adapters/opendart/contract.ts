@@ -93,6 +93,12 @@ export interface OpenDartPort {
 
   /** 기업개황, 결측 허용(E4). */
   fetchCompanyProfile(corpCode: string): Promise<KrxCompanyProfile | null>;
+
+  /**
+   * 공시서류원본파일(document.xml) → 평문 텍스트(docs/usecases/030/plan.md 모듈 7 — UC-030 최초 정의).
+   * null = 원문 확보 불가(폴백 신호, 오류 아님 — R-3). 재시도 소진·문서 없음(013)·일일 한도(020)·키 부재 모두 null.
+   */
+  fetchDisclosureDocumentText(rceptNo: string): Promise<string | null>;
 }
 
 /** OpenDART status=020(일일 한도 초과) — 재시도 금지, 잡의 이월 신호(E1). */

@@ -105,4 +105,22 @@ describe("ChainCardsSection", () => {
     render(<ChainCardsSection {...baseProps} title="내 밸류체인" items={[buildCard()]} />);
     expect(screen.getByText("내 밸류체인")).toBeInTheDocument();
   });
+
+  it("renderCardActions가 전달되면 각 카드에 actionSlot을 전달한다(UC-014/019)", () => {
+    const card = buildCard();
+    render(
+      <ChainCardsSection
+        {...baseProps}
+        items={[card]}
+        renderCardActions={(c) => <button type="button">{`액션-${c.id}`}</button>}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: `액션-${card.id}` })).toBeInTheDocument();
+  });
+
+  it("renderCardActions가 없으면 카드에 액션이 렌더되지 않는다(회귀 없음)", () => {
+    render(<ChainCardsSection {...baseProps} items={[buildCard()]} />);
+    expect(screen.queryByText(/액션-/)).not.toBeInTheDocument();
+  });
 });

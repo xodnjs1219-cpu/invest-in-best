@@ -6,3 +6,9 @@ export const MAX_CHAINS_PER_USER = 50;
  * `nodeCount >= NODE_LIMIT_WARNING_THRESHOLD`이면 잔여 수 안내 배지를 표시한다.
  */
 export const NODE_LIMIT_WARNING_THRESHOLD = 90;
+
+/**
+ * 복제본 이름 접미어 시작 번호 (UC-014 plan 모듈 1, D-4).
+ * 접미어 형식(" (n)")은 `resolveCloneName`이 소유한다.
+ */
+export const CLONE_NAME_SUFFIX_START = 2;

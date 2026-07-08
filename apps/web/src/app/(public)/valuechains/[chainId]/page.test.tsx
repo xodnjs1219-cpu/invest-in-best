@@ -30,6 +30,14 @@ vi.mock("@/lib/http/api-client", async () => {
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPushMock, replace: routerReplaceMock }),
   useSearchParams: () => searchParamsRef.current,
+  // UC-014 CloneChainButton(→useCloneChainAction)이 chain-view 헤더에 편입되며 필요해진 mock.
+  usePathname: () => "/valuechains/chain-1",
+}));
+
+// UC-014 CloneChainButton(→useCloneChainAction)이 로그인 상태 확인에 사용 — 이 페이지 테스트는
+// CurrentUserProvider 트리 없이 렌더되므로 비로그인 게스트로 고정한다.
+vi.mock("@/features/auth/context/current-user-provider", () => ({
+  useCurrentUser: () => ({ status: "unauthenticated" }),
 }));
 
 const CHAIN_RESPONSE = {

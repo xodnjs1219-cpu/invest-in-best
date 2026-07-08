@@ -334,7 +334,81 @@ export function chainEditorReducer(
       });
     }
 
-    // 그룹 전이는 UC-017 plan이 케이스를 추가한다(확장 지점).
+    // ── 그룹 (UC-017) ───────────────────────────────────
+    case "GROUP_CREATED": {
+      const { clientGroupId, name, memberNodeIds } = action.payload;
+      if (state.groups[clientGroupId]) {
+        return state; // no-op 가드 — 중복 생성 방어
+      }
+      const validMemberIds = memberNodeIds.filter((id) => state.nodes[id] !== undefined);
+      if (validMemberIds.length === 0) {
+        return state; // no-op 가드 — 유효 멤버 0개(액션 함수 검증의 이중 방어)
+      }
+
+      const nextNodes = { ...state.nodes };
+      for (const nodeId of validMemberIds) {
+        const existing = nextNodes[nodeId]!;
+        nextNodes[nodeId] = { ...existing, groupClientId: clientGroupId } as typeof existing;
+      }
+
+      return withDirty({
+        ...state,
+        groups: { ...state.groups, [clientGroupId]: { clientGroupId, name } },
+        nodes: nextNodes,
+      });
+    }
+
+    case "GROUP_RENAMED": {
+      const { clientGroupId, name } = action.payload;
+      const existing = state.groups[clientGroupId];
+      if (!existing) {
+        return state; // no-op 가드
+      }
+      if (existing.name === name) {
+        return state; // 동일 이름 재입력 — dirty 미발생
+      }
+      return withDirty({
+        ...state,
+        groups: { ...state.groups, [clientGroupId]: { ...existing, name } },
+      });
+    }
+
+    case "NODE_GROUP_CHANGED": {
+      const { clientNodeId, groupClientId } = action.payload;
+      const existingNode = state.nodes[clientNodeId];
+      if (!existingNode) {
+        return state; // no-op 가드(E10)
+      }
+      if (groupClientId !== null && !state.groups[groupClientId]) {
+        return state; // no-op 가드 — 미존재 그룹 참조 방어
+      }
+      if (existingNode.groupClientId === groupClientId) {
+        return state; // 동일 소속 재지정 — dirty 미발생
+      }
+      return withDirty({
+        ...state,
+        nodes: { ...state.nodes, [clientNodeId]: { ...existingNode, groupClientId } as typeof existingNode },
+      });
+    }
+
+    case "GROUP_DISSOLVED": {
+      const { clientGroupId } = action.payload;
+      if (!state.groups[clientGroupId]) {
+        return state; // no-op 가드
+      }
+      const nextGroups = { ...state.groups };
+      delete nextGroups[clientGroupId];
+
+      const nextNodes = { ...state.nodes };
+      for (const [nodeId, node] of Object.entries(state.nodes)) {
+        if (node.groupClientId === clientGroupId) {
+          nextNodes[nodeId] = { ...node, groupClientId: null } as typeof node;
+        }
+      }
+
+      return withDirty({ ...state, groups: nextGroups, nodes: nextNodes });
+    }
+
     default:
       return state;
   }

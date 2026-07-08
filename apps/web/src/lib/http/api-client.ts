@@ -57,5 +57,13 @@ export const apiFetch = async <T>(path: string, init?: RequestInit): Promise<T> 
     );
   }
 
-  return (body as ApiSuccessBody<T>).data;
+  // 204 No Content 등 무본문 성공 응답은 body가 null이다(UC-019 삭제) — data 없이 undefined 반환.
+  return body === null ? (undefined as T) : (body as ApiSuccessBody<T>).data;
 };
+
+/**
+ * DELETE 전용 헬퍼 (UC-019 plan 모듈 6) — `204 No Content` 무본문 성공 응답을
+ * JSON 파싱 오류 없이 처리한다(`apiFetch`가 이미 `.json().catch(() => null)`로 안전 처리하므로
+ * `body`가 없으면 `undefined`를 반환). 실패 시 `ApiError`는 `apiFetch`와 동일하게 전파된다.
+ */
+export const apiDelete = (path: string): Promise<void> => apiFetch<void>(path, { method: "DELETE" });

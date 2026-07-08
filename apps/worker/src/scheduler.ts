@@ -7,10 +7,12 @@ import cron from "node-cron";
 import {
   AGGREGATE_DAILY_METRICS_CRON,
   BATCH_CRON_TIMEZONE,
+  BATCH_JOB_TYPE_ANALYZE_DISCLOSURES,
   BATCH_TIMEZONE,
   COLLECT_FINANCIALS_CRON,
   COLLECT_FX_MARKET_HOURS_CRON,
   COLLECT_QUOTES_CRON,
+  type BatchRunStatus,
 } from "@iib/domain";
 import { getWorkerConfig } from "./runtime/config";
 import { createWorkerSupabase } from "./runtime/supabase";
@@ -20,10 +22,12 @@ import { createRateLimiter } from "./runtime/rate-limiter";
 import { createTossInvestClient } from "./adapters/tossinvest/client";
 import { createOpenDartClient } from "./adapters/opendart/client";
 import { createSecEdgarClient } from "./adapters/sec-edgar/client";
+import { createLlmClient } from "./adapters/llm/client";
 import { createCollectQuotesJob } from "./jobs/collect-quotes.job";
 import { createCollectFinancialsJob } from "./jobs/collect-financials.job";
 import { createCollectFxMarketHoursJob } from "./jobs/collect-fx-market-hours.job";
 import { createAggregateDailyMetricsJob } from "./jobs/aggregate-daily-metrics.job";
+import { createAnalyzeDisclosuresJob } from "./jobs/analyze-disclosures.job";
 import { findByMarketDate, upsertDays } from "./repositories/market-calendar.repository";
 import {
   findAllForFinancials,
@@ -40,7 +44,11 @@ import {
 } from "./repositories/quotes.repository";
 import { completeCheckpoint, getCheckpoint, upsertCheckpoint } from "./repositories/checkpoints.repository";
 import { upsertProfiles, findProfileFreshness } from "./repositories/company-profiles.repository";
-import { upsertDisclosures } from "./repositories/disclosures.repository";
+import {
+  listUnanalyzedChunk,
+  markAnalyzed,
+  upsertDisclosures,
+} from "./repositories/disclosures.repository";
 import {
   findAnnualOnlySecurities,
   findExistingPeriodKeys,
@@ -50,8 +58,10 @@ import {
 } from "./repositories/financials.repository";
 import { findLatestBySource, upsertShares } from "./repositories/shares.repository";
 import { findLatestRate, upsertRate } from "./repositories/fx.repository";
-import { findActiveChains } from "./repositories/chains.repository";
+import { findActiveChains, findLatestSnapshotComposition, listActiveOfficialChains } from "./repositories/chains.repository";
 import { findNodesBySnapshotIds, findSnapshotsByChain } from "./repositories/snapshots.repository";
+import { listActiveRelationTypes } from "./repositories/relation-types.repository";
+import { insertPendingProposal, listPendingKeys } from "./repositories/llm-proposals.repository";
 import {
   findDailyCloses,
   findFxRates,
@@ -83,6 +93,37 @@ export interface CollectFxMarketHoursJobPort {
 
 export interface AggregateDailyMetricsJobPort {
   run(now?: Date): Promise<void>;
+}
+
+export interface AnalyzeDisclosuresJobPort {
+  run(now?: Date): Promise<BatchRunStatus>;
+}
+
+/**
+ * collect-financials 종료(success/partial_success) 직후 analyze-disclosures를 연쇄 실행하는
+ * 트리거 팩토리(docs/usecases/030/plan.md 모듈 15, R-9). cron 등록이 아니라 collect-financials
+ * 잡의 `onFinished` 훅에 연결되는 콜백을 반환한다 — collect-financials.job.ts는 status가
+ * success/partial_success일 때만 onFinished를 호출하므로(E12), 이 콜백은 그 조건이 이미 충족된
+ * 시점에만 실행된다. 자체 job-lock(`analyze_disclosures`)으로 중복 기동을 방지하고(E13),
+ * 잡의 예외를 상위(collect-financials)로 전파하지 않는다(UC-026 모듈 8 패턴과 동일).
+ */
+export function createAnalyzeDisclosuresTrigger(deps: {
+  jobLock: JobLock;
+  analyzeDisclosuresJob: AnalyzeDisclosuresJobPort;
+}): () => Promise<void> {
+  return async () => {
+    if (!deps.jobLock.tryAcquire(BATCH_JOB_TYPE_ANALYZE_DISCLOSURES)) {
+      console.warn(`[scheduler] ${BATCH_JOB_TYPE_ANALYZE_DISCLOSURES} already running — skip chained trigger`);
+      return;
+    }
+    try {
+      await deps.analyzeDisclosuresJob.run();
+    } catch (error) {
+      console.error(`[scheduler] ${BATCH_JOB_TYPE_ANALYZE_DISCLOSURES} job crashed unexpectedly:`, error);
+    } finally {
+      deps.jobLock.release(BATCH_JOB_TYPE_ANALYZE_DISCLOSURES);
+    }
+  };
 }
 
 export interface CronScheduleOptions {
@@ -204,6 +245,8 @@ export function startScheduler(): void {
       MARKET_INFO: { tps: 3 },
       OPENDART: { tps: 8 },
       SEC: { tps: 6 },
+      // UC-030 — 보수적 초기값(공급자 문서 확정 시 조정, spec E7).
+      LLM: { tps: 1 },
     },
   });
   const toss = createTossInvestClient({ config, rateLimiter });
@@ -223,6 +266,23 @@ export function startScheduler(): void {
         findUnconfirmedDaily(supabase, market, tradeDate),
       upsertConfirmedDaily: (rows) => upsertConfirmedDaily(supabase, rows),
       deleteExpiredTicks: (cutoffUtc) => deleteExpiredTicks(supabase, cutoffUtc),
+    },
+  });
+
+  const analyzeDisclosuresJob = createAnalyzeDisclosuresJob({
+    // 생성을 잡 실행 시점으로 지연 — LlmConfigError를 잡 수준 실패로 기록 가능하게 함(E14).
+    llmFactory: () => createLlmClient({ config, rateLimiter }),
+    openDart: dart,
+    secEdgar: sec,
+    batchLog,
+    repos: {
+      listActiveOfficialChains: () => listActiveOfficialChains(supabase),
+      findLatestSnapshotComposition: (chainId) => findLatestSnapshotComposition(supabase, chainId),
+      listActiveRelationTypes: () => listActiveRelationTypes(supabase),
+      listUnanalyzedChunk: (params) => listUnanalyzedChunk(supabase, params),
+      markAnalyzed: (disclosureIds, analyzedAtIso) => markAnalyzed(supabase, disclosureIds, analyzedAtIso),
+      listPendingKeys: (chainIds) => listPendingKeys(supabase, chainIds),
+      insertPendingProposal: (row) => insertPendingProposal(supabase, row),
     },
   });
 
@@ -249,10 +309,9 @@ export function startScheduler(): void {
       findLatestBySource: (securityIds, source) => findLatestBySource(supabase, securityIds, source),
       upsertShares: (rows) => upsertShares(supabase, rows),
     },
-    // UC-030(LLM 공시 분석)이 미구현인 동안 no-op — 030 plan이 이 지점을 교체한다(BR-9).
-    onFinished: () => {
-      console.log("[scheduler] collect_financials finished — analyze_disclosures(030) hook is a no-op for now");
-    },
+    // UC-030(LLM 공시 분석) 연쇄 트리거(R-9) — collect-financials가 success/partial_success로
+    // 종료할 때만 이 훅을 호출하므로(E12), 여기서는 analyze-disclosures 자체 잡락만 적용하면 된다.
+    onFinished: createAnalyzeDisclosuresTrigger({ jobLock, analyzeDisclosuresJob }),
   });
 
   const collectFxMarketHoursJob = createCollectFxMarketHoursJob({

@@ -1,17 +1,25 @@
 import {
   DATA_SOURCE_LABELS,
   FRESHNESS_JOBS,
+  MAX_CHAINS_PER_USER,
+  MAX_NODES_PER_CHAIN,
   dateToCalendarQuarter,
+  resolveCloneName,
   resolveDailyMetricsRange,
   resolveQuarterlyMetricsRange,
   toSeoulDayEndIso,
   todayInSeoul,
   TIMESERIES_MIN_START_DATE,
+  validateChainStructure,
   validateEdgesPayload,
   type EdgeSaveViolation,
   type NodeIdentity,
   type PreviousEdgeIdentity,
+  type SaveChainNodePayload,
+  type SaveChainRequest,
+  type SaveChainResult,
   type SaveEdgePayload,
+  type StructureViolation,
   type IsoDate,
 } from "@iib/domain";
 import { buildPagination } from "@/backend/http/pagination";
@@ -24,6 +32,8 @@ import {
 } from "@/features/valuechains/backend/error";
 import {
   RepositoryError,
+  CloneRpcError,
+  SaveRpcError,
   findNodeDetailRow as findNodeDetailRowRepo,
   findSnapshotMarkers,
   findSnapshotStructureAt,
@@ -31,6 +41,10 @@ import {
   findQuarterlyMetric as findQuarterlyMetricRepo,
   type ValuechainsViewRepository,
   type ChainMetricsRepository,
+  type ValuechainsCloneRepository,
+  type ValuechainsDeleteRepository,
+  type ValuechainsSaveRepository,
+  type OfficialSaveRepository,
 } from "@/features/valuechains/backend/repository";
 import {
   BatchRunFreshnessRowSchema,
@@ -38,14 +52,21 @@ import {
   ChainCardRpcRowSchema,
   ChainSnapshotRowSchema,
   ChainViewResponseSchema,
+  CloneChainResponseSchema,
+  CloneLatestSnapshotRowSchema,
+  CloneRpcResultSchema,
+  CloneSourceChainRowSchema,
   DailyAnnotationsRowSchema,
   DailyMetricRowSchema,
   DailyMetricsResponseSchema,
+  DeleteTargetChainRowSchema,
   LatestSnapshotResponseSchema,
   NodeDetailRowSchema,
   NodeDetailResponseSchema,
   QuarterlyMetricRowSchema,
   QuarterlyMetricsResponseSchema,
+  SaveChainResponseSchema,
+  SaveRpcResultSchema,
   SnapshotAtResponseSchema,
   SnapshotAtRpcRowSchema,
   SnapshotEdgeRowSchema,
@@ -57,12 +78,15 @@ import {
   type ChainCardListQuery,
   type ChainCardListResponse,
   type ChainViewResponse,
+  type CloneChainResponse,
   type DailyMetricsQuery,
   type DailyMetricsResponse,
   type LatestSnapshotResponse,
   type NodeDetailResponse,
   type QuarterlyMetricsQuery,
   type QuarterlyMetricsResponse,
+  type SaveChainResponse,
+  type SaveOfficialChainRequestBody,
   type SnapshotAtResponse,
   type TimelineMetaResponse,
   type ValueChainRow,
@@ -1216,6 +1240,798 @@ export const validateEdgesForSave = (
     edge: first.edge,
     violations,
   });
+};
+
+// ============================================================================
+// UC-014: 공식 체인 복제 (`POST /valuechains/:chainId/clone`)
+// ============================================================================
+
+/** service가 의존하는 최소 인터페이스 — repository 구현을 알지 못한다(테스트 시 mock 용이). */
+export type CloneRepository = ValuechainsCloneRepository;
+
+/** RPC 이름 유니크 위반(23505) 1회 재시도 한도(spec Edge 10, plan 모듈 7). */
+const CLONE_NAME_CONFLICT_MAX_RETRY = 1;
+const POSTGRES_UNIQUE_VIOLATION_CODE = "23505";
+
+const buildCloneFailure = (
+  status: number,
+  code: ValuechainsServiceError,
+  message: string,
+  details?: unknown,
+): HandlerResult<CloneChainResponse, ValuechainsServiceError, unknown> =>
+  failure(status, code, message, details);
+
+/**
+ * 공식 체인 복제 — spec Main 5~10, plan 모듈 7. repository 인터페이스에만 의존한다.
+ * 검증 순서(고정): 원본 조회/보관 → 공식 체인 여부 → 보유 체인 상한 → 최신 스냅샷 존재 →
+ * 방어적 노드 상한 → 이름 결정 → RPC 실행(이름 경합 1회 재시도) → 응답 스키마 검증.
+ */
+export const cloneOfficialChain = async (
+  repo: CloneRepository,
+  userId: string,
+  chainId: string,
+): Promise<HandlerResult<CloneChainResponse, ValuechainsServiceError, unknown>> => {
+  // 1. 원본 체인 조회 + 보관 판정(Edge 4).
+  const sourceRow = await repo.findChainHeaderById(chainId);
+  if (!sourceRow) {
+    return buildCloneFailure(404, valuechainsErrorCodes.sourceChainNotFound, "원본 체인을 찾을 수 없습니다.");
+  }
+  const sourceParsed = CloneSourceChainRowSchema.safeParse(sourceRow);
+  if (!sourceParsed.success) {
+    return buildCloneFailure(
+      500,
+      valuechainsErrorCodes.cloneFailed,
+      "원본 체인 데이터 형식이 올바르지 않습니다.",
+      sourceParsed.error.format(),
+    );
+  }
+  const source = sourceParsed.data;
+
+  if (source.is_archived) {
+    return buildCloneFailure(404, valuechainsErrorCodes.sourceChainNotFound, "원본 체인을 찾을 수 없습니다.");
+  }
+
+  // 2. 공식 체인만 복제 대상(Edge 7).
+  if (source.chain_type !== "official") {
+    return buildCloneFailure(422, valuechainsErrorCodes.invalidCloneSource, "복제 대상은 공식 체인만 가능합니다.");
+  }
+
+  // 3. 1인당 체인 상한(Edge 2, BR-7).
+  const ownedChainCount = await repo.countChainsByOwner(userId);
+  if (ownedChainCount >= MAX_CHAINS_PER_USER) {
+    return buildCloneFailure(
+      409,
+      valuechainsErrorCodes.chainLimitExceeded,
+      "밸류체인 보유 상한에 도달했습니다.",
+    );
+  }
+
+  // 4. 원본 최신 스냅샷(Edge 6).
+  const snapshotRow = await repo.findLatestSnapshot(chainId);
+  if (!snapshotRow) {
+    return buildCloneFailure(
+      422,
+      valuechainsErrorCodes.sourceSnapshotMissing,
+      "원본 체인에 스냅샷이 존재하지 않습니다.",
+    );
+  }
+  const snapshotParsed = CloneLatestSnapshotRowSchema.safeParse(snapshotRow);
+  if (!snapshotParsed.success) {
+    return buildCloneFailure(
+      500,
+      valuechainsErrorCodes.cloneFailed,
+      "원본 스냅샷 데이터 형식이 올바르지 않습니다.",
+      snapshotParsed.error.format(),
+    );
+  }
+  const snapshot = snapshotParsed.data;
+
+  // 5. 방어적 노드 상한 검증(Edge 5 — 정상 데이터에선 발생 불가, 비정상 데이터만 차단).
+  const composition = await repo.countSnapshotComposition(snapshot.id);
+  if (composition.nodeCount > MAX_NODES_PER_CHAIN) {
+    return buildCloneFailure(
+      422,
+      valuechainsErrorCodes.invalidCloneSource,
+      "원본 체인의 노드 수가 상한을 초과했습니다.",
+    );
+  }
+
+  // 6. 복제본 이름 결정(Main 8, D-4).
+  let existingNames = await repo.listChainNamesByOwner(userId);
+  let resolvedName = resolveCloneName(source.name, existingNames);
+
+  // 7. RPC 실행 — 이름 경합(23505) 1회 재시도(Edge 10).
+  let rpcResult: unknown;
+  let attempt = 0;
+  for (;;) {
+    try {
+      rpcResult = await repo.executeCloneChainRpc({
+        sourceChainId: chainId,
+        sourceSnapshotId: snapshot.id,
+        ownerId: userId,
+        name: resolvedName,
+      });
+      break;
+    } catch (err) {
+      const isUniqueViolation =
+        err instanceof CloneRpcError && err.code === POSTGRES_UNIQUE_VIOLATION_CODE;
+      if (isUniqueViolation && attempt < CLONE_NAME_CONFLICT_MAX_RETRY) {
+        attempt += 1;
+        existingNames = await repo.listChainNamesByOwner(userId);
+        resolvedName = resolveCloneName(source.name, existingNames);
+        continue;
+      }
+      return buildCloneFailure(
+        500,
+        valuechainsErrorCodes.cloneFailed,
+        "체인 복제 처리 중 오류가 발생했습니다.",
+      );
+    }
+  }
+
+  // 8. RPC 결과 검증.
+  const rpcParsed = CloneRpcResultSchema.safeParse(rpcResult);
+  if (!rpcParsed.success) {
+    return buildCloneFailure(
+      500,
+      valuechainsErrorCodes.cloneFailed,
+      "복제 결과 데이터 형식이 올바르지 않습니다.",
+      rpcParsed.error.format(),
+    );
+  }
+  const rpc = rpcParsed.data;
+
+  // 9. DTO 조립 + 최종 응답 스키마 검증.
+  const dto: CloneChainResponse = {
+    chainId: rpc.chain_id,
+    name: resolvedName,
+    chainType: "user",
+    focusType: source.focus_type,
+    focusSecurityId: source.focus_security_id,
+    sourceChainId: chainId,
+    snapshotId: rpc.snapshot_id,
+    clonedAt: rpc.cloned_at,
+    nodeCount: rpc.node_count,
+    edgeCount: rpc.edge_count,
+    groupCount: rpc.group_count,
+  };
+
+  const responseParsed = CloneChainResponseSchema.safeParse(dto);
+  if (!responseParsed.success) {
+    return buildCloneFailure(
+      500,
+      valuechainsErrorCodes.cloneFailed,
+      "복제 응답 데이터 형식이 올바르지 않습니다.",
+      responseParsed.error.format(),
+    );
+  }
+
+  return success(responseParsed.data, 201);
+};
+
+// ============================================================================
+// UC-019: 사용자 체인 삭제 (`DELETE /valuechains/:chainId`)
+// ============================================================================
+
+/** service가 의존하는 최소 인터페이스 — repository 구현을 알지 못한다(테스트 시 mock 용이). */
+export type DeleteRepository = ValuechainsDeleteRepository;
+
+const buildDeleteFailure = (
+  status: number,
+  code: ValuechainsServiceError,
+  message: string,
+): HandlerResult<null, ValuechainsServiceError, unknown> => failure(status, code, message);
+
+/**
+ * 사용자 체인 삭제 — spec Main 6~8, plan 모듈 4. repository 인터페이스에만 의존한다.
+ * 검증 순서(고정, spec Main 6): 미존재(멱등 204, Edge 3/BR-4) → 공식 체인(403, Edge 2/BR-1) →
+ * 소유자 불일치(403, Edge 1/BR-2) → 삭제 실행(500, Edge 4 — DB CASCADE가 원자성 보장).
+ */
+export const deleteUserChain = async (
+  repo: DeleteRepository,
+  userId: string,
+  chainId: string,
+): Promise<HandlerResult<null, ValuechainsServiceError, unknown>> => {
+  let ownershipRow: unknown;
+  try {
+    ownershipRow = await repo.findChainOwnershipById(chainId);
+  } catch (err) {
+    return buildDeleteFailure(
+      500,
+      valuechainsErrorCodes.internalError,
+      err instanceof RepositoryError ? err.message : "체인 조회 중 오류가 발생했습니다.",
+    );
+  }
+
+  // 1. 미존재(이미 삭제됨) → 멱등 성공(BR-4).
+  if (!ownershipRow) {
+    return success(null, 204);
+  }
+
+  const parsed = DeleteTargetChainRowSchema.safeParse(ownershipRow);
+  if (!parsed.success) {
+    return buildDeleteFailure(500, valuechainsErrorCodes.internalError, "체인 데이터 형식이 올바르지 않습니다.");
+  }
+  const chain = parsed.data;
+
+  // 2. 공식 체인은 물리 삭제 금지(BR-1) — 소유자 검증보다 먼저 판정.
+  if (chain.chain_type === "official") {
+    return buildDeleteFailure(
+      403,
+      valuechainsErrorCodes.officialChainDeleteForbidden,
+      "공식 체인은 삭제할 수 없습니다. 관리자 보관 처리를 이용해 주세요.",
+    );
+  }
+
+  // 3. 소유자 본인만 삭제 가능(BR-2). owner_id가 null인 user 체인은 CHECK 제약상 불가능하지만 방어적으로 거부.
+  if (chain.owner_id === null || chain.owner_id !== userId) {
+    return buildDeleteFailure(403, valuechainsErrorCodes.chainForbidden, "체인을 삭제할 권한이 없습니다.");
+  }
+
+  // 4. 삭제 실행(단일 DELETE + FK CASCADE — DB 원자성).
+  const deleteResult = await repo.deleteUserChainById(chainId, userId);
+  if (!deleteResult.ok) {
+    return buildDeleteFailure(500, valuechainsErrorCodes.internalError, deleteResult.message);
+  }
+
+  return success(null, 204);
+};
+
+// ============================================================================
+// UC-018: 밸류체인 저장 (`POST /valuechains` · `PUT /valuechains/:chainId`)
+// ============================================================================
+
+/** service가 의존하는 최소 인터페이스 — repository 구현을 알지 못한다(테스트 시 mock 용이). */
+export type SaveRepository = ValuechainsSaveRepository;
+
+/** 종목 존재 확인 최소 인터페이스(securities feature 캡슐화 — R-13). */
+export type SecuritiesExistenceRepository = {
+  findExistingSecurityIds: (ids: string[]) => Promise<{ foundIds: Set<string> } | { error: string }>;
+};
+
+/** 관계 종류 마스터 조회 최소 인터페이스(relation-types feature 캡슐화). */
+export type RelationTypesRepository = {
+  findAllRelationTypes: () => Promise<{ rows: unknown[]; error: string | null }>;
+};
+
+export interface SaveUserChainDeps {
+  saveRepo: SaveRepository;
+  securitiesRepo: SecuritiesExistenceRepository;
+  relationTypesRepo: RelationTypesRepository;
+}
+
+export interface SaveUserChainInput {
+  userId: string;
+  chainId: string | null;
+  body: SaveChainRequest;
+}
+
+const buildSaveFailure = (
+  status: number,
+  code: ValuechainsServiceError,
+  message: string,
+  details?: unknown,
+): HandlerResult<SaveChainResponse, ValuechainsServiceError, unknown> => failure(status, code, message, details);
+
+/** UC-018 §6.2 구조 위반(reason)→ 사용자 체인 저장 응답 코드 매핑(통합 코드 — 세분 사유는 details.reason). */
+const STRUCTURE_VIOLATION_CODE_MAP: Record<StructureViolation["reason"], ValuechainsServiceError> = {
+  NODE_LIMIT_EXCEEDED: valuechainsErrorCodes.saveNodeLimitExceeded,
+  NODE_KIND_FIELD_MISMATCH: valuechainsErrorCodes.saveInvalidNode,
+  DUPLICATE_SECURITY_NODE: valuechainsErrorCodes.saveDuplicateSecurityNode,
+  GROUP_NAME_REQUIRED: valuechainsErrorCodes.saveInvalidGroup,
+  GROUP_REF_INVALID: valuechainsErrorCodes.saveInvalidGroup,
+  DUPLICATE_CLIENT_ID: valuechainsErrorCodes.saveInvalidRequest,
+};
+
+/** 대표 코드 우선순위(복수 위반 유형 공존 시 결정적 응답 — spec §6.2). */
+const STRUCTURE_VIOLATION_PRIORITY: StructureViolation["reason"][] = [
+  "NODE_LIMIT_EXCEEDED",
+  "NODE_KIND_FIELD_MISMATCH",
+  "DUPLICATE_SECURITY_NODE",
+  "GROUP_NAME_REQUIRED",
+  "GROUP_REF_INVALID",
+  "DUPLICATE_CLIENT_ID",
+];
+
+function pickRepresentativeViolation(violations: StructureViolation[]): StructureViolation {
+  for (const reason of STRUCTURE_VIOLATION_PRIORITY) {
+    const found = violations.find((v) => v.reason === reason);
+    if (found) {
+      return found;
+    }
+  }
+  return violations[0]!;
+}
+
+function toNodeIdentity(node: SaveChainNodePayload): NodeIdentity {
+  if (node.nodeKind === "listed_company") {
+    return { kind: "listed_company", securityId: node.securityId as string };
+  }
+  return {
+    kind: "free_subject",
+    subjectName: node.subjectName as string,
+    subjectType: node.subjectType as string,
+  };
+}
+
+/**
+ * 사용자 체인 저장(신규/갱신) — spec Main 1~9, plan 모듈 10.
+ * repository 인터페이스에만 의존한다(테이블 직접 접근 없음). 검증 순서(고정):
+ * 모드 검증 → (갱신) 대상/권한/낙관적 잠금 → (신규) 상한 → 이름 중복 → 구조 재검증(BR-5)
+ * → 참조 존재(securities/relation_types) → 엣지 검증(UC-016) → RPC 저장 → 응답 검증.
+ */
+export const saveUserChain = async (
+  deps: SaveUserChainDeps,
+  input: SaveUserChainInput,
+): Promise<HandlerResult<SaveChainResponse, ValuechainsServiceError, unknown>> => {
+  const { userId, chainId, body } = input;
+
+  // 정규화(S-9, R-14): focusType='industry'면 focusSecurityId를 서버가 강제 null 처리.
+  const focusSecurityId = body.focusType === "industry" ? null : body.focusSecurityId;
+
+  // 모드 검증: 신규=baseSnapshotId null 필수, 갱신=필수(스키마 밖 — service 소관, S-6).
+  if (chainId === null && body.baseSnapshotId !== null) {
+    return buildSaveFailure(400, valuechainsErrorCodes.saveInvalidRequest, "신규 저장은 baseSnapshotId를 지정할 수 없습니다.");
+  }
+  if (chainId !== null && body.baseSnapshotId === null) {
+    return buildSaveFailure(400, valuechainsErrorCodes.saveInvalidRequest, "갱신 저장은 baseSnapshotId가 필요합니다.");
+  }
+
+  try {
+    if (chainId !== null) {
+      // 갱신 대상 검증(E11/E10/BR-10).
+      const chainMeta = await deps.saveRepo.findChainMetaById(chainId);
+      if (!chainMeta || chainMeta.is_archived) {
+        return buildSaveFailure(404, valuechainsErrorCodes.saveNotFound, "체인을 찾을 수 없습니다.");
+      }
+      if (chainMeta.chain_type !== "user" || chainMeta.owner_id !== userId) {
+        return buildSaveFailure(403, valuechainsErrorCodes.saveForbidden, "체인을 저장할 권한이 없습니다.");
+      }
+
+      // 낙관적 잠금 사전 확인(빠른 실패 — 최종 강제는 RPC, BR-7).
+      const latestSnapshot = await deps.saveRepo.findLatestSnapshotHeader(chainId);
+      if (!latestSnapshot || latestSnapshot.id !== body.baseSnapshotId) {
+        return buildSaveFailure(409, valuechainsErrorCodes.saveConflict, "다른 곳에서 이 체인이 먼저 저장되었습니다.");
+      }
+    } else {
+      // 신규 저장 상한(E2).
+      const ownedCount = await deps.saveRepo.countOwnedUserChains(userId);
+      if (ownedCount >= MAX_CHAINS_PER_USER) {
+        return buildSaveFailure(422, valuechainsErrorCodes.saveChainLimitExceeded, "밸류체인 보유 상한에 도달했습니다.");
+      }
+    }
+
+    // 이름 중복(E4, BR-4).
+    const nameDuplicate = await deps.saveRepo.existsChainNameForOwner(userId, body.name, chainId);
+    if (nameDuplicate) {
+      return buildSaveFailure(409, valuechainsErrorCodes.saveDuplicateName, "이미 사용 중인 체인 이름입니다.");
+    }
+
+    // 구조 재검증(BR-5) — 노드/그룹 규칙.
+    const structureViolations = validateChainStructure({
+      groups: body.groups,
+      nodes: body.nodes,
+      edges: body.edges,
+    });
+    if (structureViolations.length > 0) {
+      const representative = pickRepresentativeViolation(structureViolations);
+      const code = STRUCTURE_VIOLATION_CODE_MAP[representative.reason];
+      return buildSaveFailure(
+        code === valuechainsErrorCodes.saveInvalidRequest ? 400 : 422,
+        code,
+        "구조 규칙을 위반했습니다.",
+        { violations: structureViolations },
+      );
+    }
+
+    // 참조 존재 검증(E12/S-9): nodes[].securityId ∪ focusSecurityId.
+    const securityIdsToCheck = [
+      ...body.nodes.filter((n) => n.securityId !== null).map((n) => n.securityId as string),
+      ...(focusSecurityId !== null ? [focusSecurityId] : []),
+    ];
+    const securityResult = await deps.securitiesRepo.findExistingSecurityIds(securityIdsToCheck);
+    if ("error" in securityResult) {
+      return buildSaveFailure(500, valuechainsErrorCodes.saveFailed, securityResult.error);
+    }
+    const missingSecurityNodeIds = body.nodes
+      .filter((n) => n.securityId !== null && !securityResult.foundIds.has(n.securityId))
+      .map((n) => n.clientNodeId);
+    const focusSecurityMissing = focusSecurityId !== null && !securityResult.foundIds.has(focusSecurityId);
+    if (missingSecurityNodeIds.length > 0 || focusSecurityMissing) {
+      return buildSaveFailure(422, valuechainsErrorCodes.saveSecurityNotFound, "존재하지 않는 종목을 참조합니다.", {
+        clientNodeIds: missingSecurityNodeIds,
+        ...(focusSecurityMissing ? { field: "focusSecurityId" } : {}),
+      });
+    }
+
+    // 엣지 검증(UC-016 위임, user variant — 비활성 종류 신규 차단 없음, BR-8).
+    const relationTypesResult = await deps.relationTypesRepo.findAllRelationTypes();
+    if (relationTypesResult.error) {
+      return buildSaveFailure(500, valuechainsErrorCodes.saveFailed, relationTypesResult.error);
+    }
+    const relationTypeById = new Map<string, { isDirected: boolean; isActive: boolean }>();
+    for (const row of relationTypesResult.rows as Array<{ id: string; is_directed: boolean; is_active: boolean }>) {
+      relationTypeById.set(row.id, { isDirected: row.is_directed, isActive: row.is_active });
+    }
+
+    const edgeValidation = validateEdgesForSave({
+      variant: "user",
+      nodes: body.nodes.map((n) => ({ clientNodeId: n.clientNodeId, identity: toNodeIdentity(n) })),
+      edges: body.edges,
+      relationTypes: relationTypeById,
+      previousEdges: null,
+    });
+    if (!edgeValidation.ok) {
+      return edgeValidation;
+    }
+
+    // 저장 RPC 호출.
+    let rpcResult: unknown;
+    try {
+      rpcResult = await deps.saveRepo.saveUserChainViaRpc({
+        userId,
+        chainId,
+        baseSnapshotId: body.baseSnapshotId,
+        name: body.name,
+        focusType: body.focusType,
+        focusSecurityId,
+        groups: body.groups,
+        nodes: body.nodes,
+        edges: body.edges,
+        maxChainsPerUser: MAX_CHAINS_PER_USER,
+        maxNodesPerChain: MAX_NODES_PER_CHAIN,
+      });
+    } catch (err) {
+      if (err instanceof SaveRpcError) {
+        if (err.pgCode === "23505") {
+          return buildSaveFailure(409, valuechainsErrorCodes.saveDuplicateName, "이미 사용 중인 체인 이름입니다.");
+        }
+        return buildSaveFailure(500, valuechainsErrorCodes.saveFailed, err.message);
+      }
+      return buildSaveFailure(500, valuechainsErrorCodes.saveFailed, "저장 처리 중 오류가 발생했습니다.");
+    }
+
+    const rpcParsed = SaveRpcResultSchema.safeParse(rpcResult);
+    if (!rpcParsed.success) {
+      return buildSaveFailure(
+        500,
+        valuechainsErrorCodes.saveFailed,
+        "저장 결과 데이터 형식이 올바르지 않습니다.",
+        rpcParsed.error.format(),
+      );
+    }
+    const rpc = rpcParsed.data;
+
+    switch (rpc.outcome) {
+      case "saved":
+        break;
+      case "chain_limit_exceeded":
+        return buildSaveFailure(422, valuechainsErrorCodes.saveChainLimitExceeded, "밸류체인 보유 상한에 도달했습니다.");
+      case "node_limit_exceeded":
+        return buildSaveFailure(422, valuechainsErrorCodes.saveNodeLimitExceeded, "노드 상한을 초과했습니다.");
+      case "chain_not_found":
+        return buildSaveFailure(404, valuechainsErrorCodes.saveNotFound, "체인을 찾을 수 없습니다.");
+      case "chain_forbidden":
+        return buildSaveFailure(403, valuechainsErrorCodes.saveForbidden, "체인을 저장할 권한이 없습니다.");
+      case "save_conflict":
+        return buildSaveFailure(409, valuechainsErrorCodes.saveConflict, "다른 곳에서 이 체인이 먼저 저장되었습니다.");
+      case "name_duplicate":
+        return buildSaveFailure(409, valuechainsErrorCodes.saveDuplicateName, "이미 사용 중인 체인 이름입니다.");
+      case "edge_node_ref_invalid":
+        return buildSaveFailure(422, valuechainsErrorCodes.invalidEdge, "엣지가 참조하는 노드를 찾을 수 없습니다.");
+      default:
+        return buildSaveFailure(500, valuechainsErrorCodes.saveFailed, "저장 처리 중 알 수 없는 오류가 발생했습니다.");
+    }
+
+    const dto: SaveChainResult = {
+      chainId: rpc.chain_id as string,
+      snapshotId: rpc.snapshot_id as string,
+      effectiveAt: rpc.effective_at as string,
+      nodeCount: rpc.node_count as number,
+      edgeCount: rpc.edge_count as number,
+      groupCount: rpc.group_count as number,
+    };
+
+    const responseParsed = SaveChainResponseSchema.safeParse(dto);
+    if (!responseParsed.success) {
+      return buildSaveFailure(
+        500,
+        valuechainsErrorCodes.saveFailed,
+        "저장 응답 데이터 형식이 올바르지 않습니다.",
+        responseParsed.error.format(),
+      );
+    }
+
+    return success(responseParsed.data, chainId === null ? 201 : 200);
+  } catch (err) {
+    if (err instanceof RepositoryError) {
+      return buildSaveFailure(500, valuechainsErrorCodes.saveFailed, err.message);
+    }
+    return buildSaveFailure(
+      500,
+      valuechainsErrorCodes.saveFailed,
+      err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.",
+    );
+  }
+};
+
+// ============================================================================
+// UC-021: 공식 밸류체인 저장 (`POST/PUT /valuechains` official 분기)
+// ============================================================================
+
+export interface SaveOfficialChainDeps {
+  officialSaveRepo: OfficialSaveRepository;
+  saveRepo: SaveRepository;
+  securitiesRepo: SecuritiesExistenceRepository;
+  relationTypesRepo: RelationTypesRepository;
+  /** 갱신 저장의 비활성 관계 종류 "기존 엣지 유지" 판별용(UC-016 BR-4) — chainId의 최신 스냅샷 엣지 정체성. */
+  findPreviousEdgeIdentities: (chainId: string) => Promise<ReadonlyArray<PreviousEdgeIdentity> | null>;
+}
+
+/** M1 매핑 표 — official 저장은 UC-018과 달리 GROUP_* 세분 코드를 그대로 사용한다(R-13). */
+const OFFICIAL_STRUCTURE_VIOLATION_CODE_MAP: Record<StructureViolation["reason"], ValuechainsServiceError> = {
+  NODE_LIMIT_EXCEEDED: valuechainsErrorCodes.saveNodeLimitExceeded,
+  NODE_KIND_FIELD_MISMATCH: valuechainsErrorCodes.saveInvalidNode,
+  DUPLICATE_SECURITY_NODE: valuechainsErrorCodes.saveDuplicateSecurityNode,
+  GROUP_NAME_REQUIRED: valuechainsErrorCodes.officialGroupNameRequired,
+  GROUP_REF_INVALID: valuechainsErrorCodes.officialGroupRefInvalid,
+  DUPLICATE_CLIENT_ID: valuechainsErrorCodes.saveInvalidRequest,
+};
+
+async function validateOfficialStructureAndReferences(
+  deps: SaveOfficialChainDeps,
+  body: SaveOfficialChainRequestBody,
+  focusSecurityId: string | null,
+): Promise<HandlerResult<SaveChainResponse, ValuechainsServiceError, unknown> | null> {
+  const structureViolations = validateChainStructure({ groups: body.groups, nodes: body.nodes, edges: body.edges });
+  if (structureViolations.length > 0) {
+    const representative = pickRepresentativeViolation(structureViolations);
+    const code = OFFICIAL_STRUCTURE_VIOLATION_CODE_MAP[representative.reason];
+    return failure(
+      code === valuechainsErrorCodes.saveInvalidRequest ? 400 : 422,
+      code,
+      "구조 규칙을 위반했습니다.",
+      { violations: structureViolations },
+    );
+  }
+
+  const securityIdsToCheck = [
+    ...body.nodes.filter((n) => n.securityId !== null).map((n) => n.securityId as string),
+    ...(focusSecurityId !== null ? [focusSecurityId] : []),
+  ];
+  const securityResult = await deps.securitiesRepo.findExistingSecurityIds(securityIdsToCheck);
+  if ("error" in securityResult) {
+    return failure(500, valuechainsErrorCodes.saveFailed, securityResult.error);
+  }
+  const missingSecurityNodeIds = body.nodes
+    .filter((n) => n.securityId !== null && !securityResult.foundIds.has(n.securityId))
+    .map((n) => n.clientNodeId);
+  const focusSecurityMissing = focusSecurityId !== null && !securityResult.foundIds.has(focusSecurityId);
+  if (missingSecurityNodeIds.length > 0 || focusSecurityMissing) {
+    return failure(422, valuechainsErrorCodes.saveSecurityNotFound, "존재하지 않는 종목을 참조합니다.", {
+      clientNodeIds: missingSecurityNodeIds,
+      ...(focusSecurityMissing ? { field: "focusSecurityId" } : {}),
+    });
+  }
+
+  return null;
+}
+
+async function validateOfficialEdges(
+  deps: SaveOfficialChainDeps,
+  body: SaveOfficialChainRequestBody,
+  previousEdges: ReadonlyArray<PreviousEdgeIdentity> | null,
+): Promise<HandlerResult<SaveChainResponse, ValuechainsServiceError, unknown> | null> {
+  const relationTypesResult = await deps.relationTypesRepo.findAllRelationTypes();
+  if (relationTypesResult.error) {
+    return failure(500, valuechainsErrorCodes.saveFailed, relationTypesResult.error);
+  }
+  const relationTypeById = new Map<string, { isDirected: boolean; isActive: boolean }>();
+  for (const row of relationTypesResult.rows as Array<{ id: string; is_directed: boolean; is_active: boolean }>) {
+    relationTypeById.set(row.id, { isDirected: row.is_directed, isActive: row.is_active });
+  }
+
+  const edgeValidation = validateEdgesForSave({
+    variant: "official",
+    nodes: body.nodes.map((n) => ({ clientNodeId: n.clientNodeId, identity: toNodeIdentity(n) })),
+    edges: body.edges,
+    relationTypes: relationTypeById,
+    previousEdges,
+  });
+  if (!edgeValidation.ok) {
+    return edgeValidation;
+  }
+  return null;
+}
+
+function mapOfficialRpcOutcome(
+  outcome: string,
+): { status: number; code: ValuechainsServiceError; message: string } | null {
+  switch (outcome) {
+    case "saved":
+      return null;
+    case "node_limit_exceeded":
+      return { status: 422, code: valuechainsErrorCodes.saveNodeLimitExceeded, message: "노드 상한을 초과했습니다." };
+    case "chain_not_found":
+      return { status: 404, code: valuechainsErrorCodes.saveNotFound, message: "체인을 찾을 수 없습니다." };
+    case "chain_type_mismatch":
+      return { status: 404, code: valuechainsErrorCodes.saveNotFound, message: "체인을 찾을 수 없습니다." };
+    case "chain_archived":
+      return { status: 409, code: valuechainsErrorCodes.chainArchived, message: "보관된 체인은 수정할 수 없습니다." };
+    case "save_conflict":
+      return { status: 409, code: valuechainsErrorCodes.saveConflict, message: "다른 곳에서 이 체인이 먼저 저장되었습니다." };
+    case "name_duplicate":
+      return { status: 409, code: valuechainsErrorCodes.officialNameDuplicate, message: "이미 사용 중인 공식 체인 이름입니다." };
+    case "edge_node_ref_invalid":
+      return { status: 422, code: valuechainsErrorCodes.invalidEdge, message: "엣지가 참조하는 노드를 찾을 수 없습니다." };
+    default:
+      return { status: 500, code: valuechainsErrorCodes.saveFailed, message: "저장 처리 중 알 수 없는 오류가 발생했습니다." };
+  }
+}
+
+async function finalizeOfficialSave(
+  deps: SaveOfficialChainDeps,
+  rpcParams: Parameters<OfficialSaveRepository["saveOfficialChainRpc"]>[0],
+  successStatus: number,
+): Promise<HandlerResult<SaveChainResponse, ValuechainsServiceError, unknown>> {
+  let rpcResult: unknown;
+  try {
+    rpcResult = await deps.officialSaveRepo.saveOfficialChainRpc(rpcParams);
+  } catch (err) {
+    if (err instanceof SaveRpcError) {
+      if (err.pgCode === "23505") {
+        return failure(409, valuechainsErrorCodes.officialNameDuplicate, "이미 사용 중인 공식 체인 이름입니다.");
+      }
+      return failure(500, valuechainsErrorCodes.saveFailed, err.message);
+    }
+    return failure(500, valuechainsErrorCodes.saveFailed, "저장 처리 중 오류가 발생했습니다.");
+  }
+
+  const rpcParsed = SaveRpcResultSchema.safeParse(rpcResult);
+  if (!rpcParsed.success) {
+    return failure(500, valuechainsErrorCodes.saveFailed, "저장 결과 데이터 형식이 올바르지 않습니다.", rpcParsed.error.format());
+  }
+  const rpc = rpcParsed.data;
+
+  const outcomeError = mapOfficialRpcOutcome(rpc.outcome);
+  if (outcomeError) {
+    return failure(outcomeError.status, outcomeError.code, outcomeError.message);
+  }
+
+  const dto: SaveChainResult = {
+    chainId: rpc.chain_id as string,
+    snapshotId: rpc.snapshot_id as string,
+    effectiveAt: rpc.effective_at as string,
+    nodeCount: rpc.node_count as number,
+    edgeCount: rpc.edge_count as number,
+    groupCount: rpc.group_count as number,
+  };
+  const responseParsed = SaveChainResponseSchema.safeParse(dto);
+  if (!responseParsed.success) {
+    return failure(500, valuechainsErrorCodes.saveFailed, "저장 응답 데이터 형식이 올바르지 않습니다.", responseParsed.error.format());
+  }
+
+  return success(responseParsed.data, successStatus);
+}
+
+/**
+ * 공식 체인 생성(UC-021 spec Main 4-B, plan 모듈 M6) — role은 route가 이미 401/403으로 선차단했다는
+ * 전제(`withAdminAuth` 미사용 — POST /valuechains는 공용 라우트이므로 이 함수가 role 재검증한다).
+ */
+export const createOfficialChain = async (
+  deps: SaveOfficialChainDeps,
+  actor: { userId: string; role: "user" | "admin" },
+  body: SaveOfficialChainRequestBody,
+): Promise<HandlerResult<SaveChainResponse, ValuechainsServiceError, unknown>> => {
+  if (actor.role !== "admin") {
+    return failure(403, valuechainsErrorCodes.adminRequired, "관리자 권한이 필요합니다.");
+  }
+
+  const focusSecurityId = body.focusType === "industry" ? null : body.focusSecurityId;
+
+  if (body.baseSnapshotId !== null) {
+    return failure(400, valuechainsErrorCodes.saveInvalidRequest, "신규 저장은 baseSnapshotId를 지정할 수 없습니다.");
+  }
+
+  const structureFailure = await validateOfficialStructureAndReferences(deps, body, focusSecurityId);
+  if (structureFailure) {
+    return structureFailure;
+  }
+
+  const edgeFailure = await validateOfficialEdges(deps, body, null);
+  if (edgeFailure) {
+    return edgeFailure;
+  }
+
+  const nameDuplicate = await deps.officialSaveRepo.existsOfficialChainName(body.name, null);
+  if (nameDuplicate) {
+    return failure(409, valuechainsErrorCodes.officialNameDuplicate, "이미 사용 중인 공식 체인 이름입니다.");
+  }
+
+  return finalizeOfficialSave(
+    deps,
+    {
+      chainId: null,
+      name: body.name,
+      focusType: body.focusType,
+      focusSecurityId,
+      disclosureDate: body.disclosureDate ?? null,
+      baseSnapshotId: null,
+      createdBy: actor.userId,
+      groups: body.groups,
+      nodes: body.nodes,
+      edges: body.edges,
+      maxNodesPerChain: MAX_NODES_PER_CHAIN,
+    },
+    201,
+  );
+};
+
+/**
+ * 공식 체인 수정(UC-021 spec Main 4-C, plan 모듈 M6).
+ */
+export const updateOfficialChain = async (
+  deps: SaveOfficialChainDeps,
+  actor: { userId: string; role: "user" | "admin" },
+  chainId: string,
+  body: SaveOfficialChainRequestBody,
+): Promise<HandlerResult<SaveChainResponse, ValuechainsServiceError, unknown>> => {
+  if (actor.role !== "admin") {
+    return failure(403, valuechainsErrorCodes.adminRequired, "관리자 권한이 필요합니다.");
+  }
+
+  const focusSecurityId = body.focusType === "industry" ? null : body.focusSecurityId;
+
+  if (body.baseSnapshotId === null) {
+    return failure(400, valuechainsErrorCodes.saveInvalidRequest, "갱신 저장은 baseSnapshotId가 필요합니다.");
+  }
+
+  const chainMeta = await deps.saveRepo.findChainMetaById(chainId);
+  if (!chainMeta) {
+    return failure(404, valuechainsErrorCodes.saveNotFound, "체인을 찾을 수 없습니다.");
+  }
+  if (chainMeta.chain_type !== "official") {
+    // 방어적 404 — M7 디스패치가 이미 이 경로를 선차단(레이스 대비).
+    return failure(404, valuechainsErrorCodes.saveNotFound, "체인을 찾을 수 없습니다.");
+  }
+  if (chainMeta.is_archived) {
+    return failure(409, valuechainsErrorCodes.chainArchived, "보관된 체인은 수정할 수 없습니다.");
+  }
+
+  const structureFailure = await validateOfficialStructureAndReferences(deps, body, focusSecurityId);
+  if (structureFailure) {
+    return structureFailure;
+  }
+
+  const previousEdges = await deps.findPreviousEdgeIdentities(chainId);
+
+  const edgeFailure = await validateOfficialEdges(deps, body, previousEdges);
+  if (edgeFailure) {
+    return edgeFailure;
+  }
+
+  const nameDuplicate = await deps.officialSaveRepo.existsOfficialChainName(body.name, chainId);
+  if (nameDuplicate) {
+    return failure(409, valuechainsErrorCodes.officialNameDuplicate, "이미 사용 중인 공식 체인 이름입니다.");
+  }
+
+  return finalizeOfficialSave(
+    deps,
+    {
+      chainId,
+      name: body.name,
+      focusType: body.focusType,
+      focusSecurityId,
+      disclosureDate: body.disclosureDate ?? null,
+      baseSnapshotId: body.baseSnapshotId,
+      createdBy: actor.userId,
+      groups: body.groups,
+      nodes: body.nodes,
+      edges: body.edges,
+      maxNodesPerChain: MAX_NODES_PER_CHAIN,
+    },
+    200,
+  );
 };
 
 // findNodeDetailRowRepo는 route.ts에서 repository 팩토리 조립 시 재노출용으로 참조된다.

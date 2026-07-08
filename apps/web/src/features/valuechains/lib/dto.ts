@@ -44,3 +44,6 @@ export type {
   LatestSnapshotNode,
   LatestSnapshotEdge,
 } from "@/features/valuechains/backend/schema";
+
+/** UC-014 공식 체인 복제(`POST /valuechains/:chainId/clone`) 응답 DTO. */
+export type { CloneChainResponse } from "@/features/valuechains/backend/schema";

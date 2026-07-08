@@ -10,6 +10,7 @@ import { registerAccountRoutes } from "@/features/account/backend/route";
 import { registerAdminBatchRoutes } from "@/features/admin-batches/backend/route";
 import { registerAdminLlmProposalRoutes } from "@/features/admin-llm-proposals/backend/route";
 import { registerAdminRelationTypeRoutes } from "@/features/admin-relation-types/backend/route";
+import { registerAdminValuechainRoutes } from "@/features/admin-valuechains/backend/route";
 import { registerAuthRoutes } from "@/features/auth/backend/route";
 import { registerCompaniesRoutes } from "@/features/companies/backend/route";
 import { registerExampleRoutes } from "@/features/example/backend/route";
@@ -49,6 +50,7 @@ export const createHonoApp = () => {
   registerAdminLlmProposalRoutes(app);
   registerAdminBatchRoutes(app);
   registerAdminRelationTypeRoutes(app);
+  registerAdminValuechainRoutes(app);
   registerAccountRoutes(app);
 
   singletonApp = app;

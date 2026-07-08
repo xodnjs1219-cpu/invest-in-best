@@ -506,3 +506,434 @@ export const findQuarterlyMetric = async (
   }
   return { ok: true, data: data ?? null };
 };
+
+// ============================================================================
+// UC-014: 공식 체인 복제 리포지토리 (plan 모듈 6)
+// ============================================================================
+
+const CLONE_VALUE_CHAIN_RPC = "clone_value_chain";
+
+const CLONE_SOURCE_CHAIN_SELECT = "id, chain_type, name, focus_type, focus_security_id, is_archived";
+
+/** Supabase RPC 오류를 code로 식별할 수 있게 정규화하는 리포지토리 계층 오류(23505 등 판별용). */
+export class CloneRpcError extends Error {
+  readonly code: string | undefined;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = "CloneRpcError";
+    this.code = code;
+  }
+}
+
+/** service는 이 인터페이스에만 의존한다(clone 전용, Supabase 쿼리 문법을 알지 못함). */
+export interface ValuechainsCloneRepository {
+  findChainHeaderById(chainId: string): Promise<unknown | null>;
+  countChainsByOwner(ownerId: string): Promise<number>;
+  listChainNamesByOwner(ownerId: string): Promise<string[]>;
+  findLatestSnapshot(chainId: string): Promise<unknown | null>;
+  countSnapshotComposition(
+    snapshotId: string,
+  ): Promise<{ groupCount: number; nodeCount: number; edgeCount: number }>;
+  executeCloneChainRpc(params: {
+    sourceChainId: string;
+    sourceSnapshotId: string;
+    ownerId: string;
+    name: string;
+  }): Promise<unknown>;
+}
+
+export const createValuechainsCloneRepository = (
+  client: SupabaseClient,
+): ValuechainsCloneRepository => ({
+  async findChainHeaderById(chainId) {
+    const { data, error } = await client
+      .from(VALUE_CHAINS_TABLE)
+      .select(CLONE_SOURCE_CHAIN_SELECT)
+      .eq("id", chainId)
+      .maybeSingle();
+
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return data ?? null;
+  },
+
+  async countChainsByOwner(ownerId) {
+    const { count, error } = await client
+      .from(VALUE_CHAINS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", ownerId);
+
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return count ?? 0;
+  },
+
+  async listChainNamesByOwner(ownerId) {
+    const { data, error } = await client
+      .from(VALUE_CHAINS_TABLE)
+      .select("name")
+      .eq("owner_id", ownerId);
+
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return ((data ?? []) as Array<{ name: string }>).map((row) => row.name);
+  },
+
+  async findLatestSnapshot(chainId) {
+    const { data, error } = await client
+      .from(CHAIN_SNAPSHOTS_TABLE)
+      .select(SNAPSHOT_SELECT)
+      .eq("chain_id", chainId)
+      .order("effective_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return data ?? null;
+  },
+
+  async countSnapshotComposition(snapshotId) {
+    const [groupsResult, nodesResult, edgesResult] = await Promise.all([
+      client.from(SNAPSHOT_GROUPS_TABLE).select("id", { count: "exact", head: true }).eq("snapshot_id", snapshotId),
+      client.from(SNAPSHOT_NODES_TABLE).select("id", { count: "exact", head: true }).eq("snapshot_id", snapshotId),
+      client.from(SNAPSHOT_EDGES_TABLE).select("id", { count: "exact", head: true }).eq("snapshot_id", snapshotId),
+    ]);
+
+    if (groupsResult.error) {
+      throw new RepositoryError(groupsResult.error.message);
+    }
+    if (nodesResult.error) {
+      throw new RepositoryError(nodesResult.error.message);
+    }
+    if (edgesResult.error) {
+      throw new RepositoryError(edgesResult.error.message);
+    }
+
+    return {
+      groupCount: groupsResult.count ?? 0,
+      nodeCount: nodesResult.count ?? 0,
+      edgeCount: edgesResult.count ?? 0,
+    };
+  },
+
+  async executeCloneChainRpc(params) {
+    const { data, error } = await client
+      .rpc(CLONE_VALUE_CHAIN_RPC, {
+        p_source_chain_id: params.sourceChainId,
+        p_source_snapshot_id: params.sourceSnapshotId,
+        p_owner_id: params.ownerId,
+        p_name: params.name,
+      })
+      .single();
+
+    if (error) {
+      throw new CloneRpcError(error.message, (error as { code?: string }).code);
+    }
+    return data;
+  },
+});
+
+// ============================================================================
+// UC-019: 사용자 체인 삭제 리포지토리 (plan 모듈 3)
+// ============================================================================
+
+/** service는 이 인터페이스에만 의존한다(delete 전용). */
+export interface ValuechainsDeleteRepository {
+  findChainOwnershipById(chainId: string): Promise<unknown | null>;
+  deleteUserChainById(
+    chainId: string,
+    ownerId: string,
+  ): Promise<{ ok: true } | { ok: false; message: string }>;
+}
+
+export const createValuechainsDeleteRepository = (
+  client: SupabaseClient,
+): ValuechainsDeleteRepository => ({
+  async findChainOwnershipById(chainId) {
+    const { data, error } = await client
+      .from(VALUE_CHAINS_TABLE)
+      .select("id, chain_type, owner_id")
+      .eq("id", chainId)
+      .maybeSingle();
+
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return data ?? null;
+  },
+
+  async deleteUserChainById(chainId, ownerId) {
+    // 조건 삼중화(id·chain_type='user'·owner_id) — SELECT-DELETE 사이 어떤 경합(TOCTOU)에서도
+    // 공식 체인·타인 체인이 삭제될 수 없다(BR-1/BR-2). 영향 행 0건도 성공 취급(E8 동시 삭제 멱등).
+    const { error } = await client
+      .from(VALUE_CHAINS_TABLE)
+      .delete()
+      .eq("id", chainId)
+      .eq("chain_type", "user")
+      .eq("owner_id", ownerId);
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: true };
+  },
+});
+
+// ============================================================================
+// UC-018: 밸류체인 저장 리포지토리 (plan 모듈 9)
+// ============================================================================
+
+const SAVE_USER_CHAIN_RPC = "save_user_chain";
+
+export type SaveChainMetaRow = { id: string; chain_type: "official" | "user"; owner_id: string | null; is_archived: boolean };
+export type LatestSnapshotHeaderRow = { id: string };
+
+/** RPC 오류를 outcome 토큰/제약 위반 코드로 정규화하는 리포지토리 계층 오류. */
+export class SaveRpcError extends Error {
+  readonly pgCode: string | undefined;
+  constructor(message: string, pgCode?: string) {
+    super(message);
+    this.name = "SaveRpcError";
+    this.pgCode = pgCode;
+  }
+}
+
+/** service는 이 인터페이스에만 의존한다(저장 전용, Supabase 쿼리 문법 비의존). */
+export interface ValuechainsSaveRepository {
+  findChainMetaById(chainId: string): Promise<SaveChainMetaRow | null>;
+  findLatestSnapshotHeader(chainId: string): Promise<LatestSnapshotHeaderRow | null>;
+  countOwnedUserChains(ownerId: string): Promise<number>;
+  existsChainNameForOwner(ownerId: string, name: string, excludeChainId: string | null): Promise<boolean>;
+  saveUserChainViaRpc(params: {
+    userId: string;
+    chainId: string | null;
+    baseSnapshotId: string | null;
+    name: string;
+    focusType: "industry" | "company";
+    focusSecurityId: string | null;
+    groups: Array<{ clientGroupId: string; name: string }>;
+    nodes: Array<{
+      clientNodeId: string;
+      nodeKind: "listed_company" | "free_subject";
+      securityId: string | null;
+      subjectName: string | null;
+      subjectType: string | null;
+      subjectMemo: string | null;
+      groupClientId: string | null;
+      positionX: number;
+      positionY: number;
+    }>;
+    edges: Array<{
+      clientEdgeId: string;
+      sourceClientNodeId: string;
+      targetClientNodeId: string;
+      relationTypeId: string;
+    }>;
+    maxChainsPerUser: number;
+    maxNodesPerChain: number;
+  }): Promise<unknown>;
+}
+
+export const createValuechainsSaveRepository = (
+  client: SupabaseClient,
+): ValuechainsSaveRepository => ({
+  async findChainMetaById(chainId) {
+    const { data, error } = await client
+      .from(VALUE_CHAINS_TABLE)
+      .select("id, chain_type, owner_id, is_archived")
+      .eq("id", chainId)
+      .maybeSingle();
+
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return (data as SaveChainMetaRow | null) ?? null;
+  },
+
+  async findLatestSnapshotHeader(chainId) {
+    const { data, error } = await client
+      .from(CHAIN_SNAPSHOTS_TABLE)
+      .select("id")
+      .eq("chain_id", chainId)
+      .order("effective_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return (data as LatestSnapshotHeaderRow | null) ?? null;
+  },
+
+  async countOwnedUserChains(ownerId) {
+    const { count, error } = await client
+      .from(VALUE_CHAINS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", ownerId)
+      .eq("chain_type", "user");
+
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return count ?? 0;
+  },
+
+  async existsChainNameForOwner(ownerId, name, excludeChainId) {
+    let query = client
+      .from(VALUE_CHAINS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", ownerId)
+      .eq("chain_type", "user")
+      .eq("name", name);
+
+    if (excludeChainId !== null) {
+      query = query.neq("id", excludeChainId);
+    }
+
+    const { count, error } = await query;
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return (count ?? 0) > 0;
+  },
+
+  async saveUserChainViaRpc(params) {
+    const { data, error } = await client
+      .rpc(SAVE_USER_CHAIN_RPC, {
+        p_user_id: params.userId,
+        p_chain_id: params.chainId,
+        p_base_snapshot_id: params.baseSnapshotId,
+        p_name: params.name,
+        p_focus_type: params.focusType,
+        p_focus_security_id: params.focusSecurityId,
+        p_groups: params.groups.map((g) => ({ clientGroupId: g.clientGroupId, name: g.name })),
+        p_nodes: params.nodes.map((n) => ({
+          clientNodeId: n.clientNodeId,
+          nodeKind: n.nodeKind,
+          securityId: n.securityId,
+          subjectName: n.subjectName,
+          subjectType: n.subjectType,
+          subjectMemo: n.subjectMemo,
+          groupClientId: n.groupClientId,
+          positionX: n.positionX,
+          positionY: n.positionY,
+        })),
+        p_edges: params.edges.map((e) => ({
+          clientEdgeId: e.clientEdgeId,
+          sourceClientNodeId: e.sourceClientNodeId,
+          targetClientNodeId: e.targetClientNodeId,
+          relationTypeId: e.relationTypeId,
+        })),
+        p_max_chains_per_user: params.maxChainsPerUser,
+        p_max_nodes_per_chain: params.maxNodesPerChain,
+      })
+      .single();
+
+    if (error) {
+      throw new SaveRpcError(error.message, (error as { code?: string }).code);
+    }
+    return data;
+  },
+});
+
+// ============================================================================
+// UC-021: 공식 밸류체인 저장 리포지토리(기여분)
+// ============================================================================
+
+const SAVE_OFFICIAL_CHAIN_RPC = "save_official_chain";
+
+/** service는 이 인터페이스에만 의존한다(official 저장 전용, Supabase 쿼리 문법 비의존). */
+export interface OfficialSaveRepository {
+  existsOfficialChainName(name: string, excludeChainId: string | null): Promise<boolean>;
+  saveOfficialChainRpc(params: {
+    chainId: string | null;
+    name: string;
+    focusType: "industry" | "company";
+    focusSecurityId: string | null;
+    disclosureDate: string | null;
+    baseSnapshotId: string | null;
+    createdBy: string;
+    groups: Array<{ clientGroupId: string; name: string }>;
+    nodes: Array<{
+      clientNodeId: string;
+      nodeKind: "listed_company" | "free_subject";
+      securityId: string | null;
+      subjectName: string | null;
+      subjectType: string | null;
+      subjectMemo: string | null;
+      groupClientId: string | null;
+      positionX: number;
+      positionY: number;
+    }>;
+    edges: Array<{
+      clientEdgeId: string;
+      sourceClientNodeId: string;
+      targetClientNodeId: string;
+      relationTypeId: string;
+    }>;
+    maxNodesPerChain: number;
+  }): Promise<unknown>;
+}
+
+export const createOfficialSaveRepository = (client: SupabaseClient): OfficialSaveRepository => ({
+  async existsOfficialChainName(name, excludeChainId) {
+    let query = client
+      .from(VALUE_CHAINS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("chain_type", "official")
+      .eq("name", name);
+
+    if (excludeChainId !== null) {
+      query = query.neq("id", excludeChainId);
+    }
+
+    const { count, error } = await query;
+    if (error) {
+      throw new RepositoryError(error.message);
+    }
+    return (count ?? 0) > 0;
+  },
+
+  async saveOfficialChainRpc(params) {
+    const { data, error } = await client
+      .rpc(SAVE_OFFICIAL_CHAIN_RPC, {
+        p_chain_id: params.chainId,
+        p_name: params.name,
+        p_focus_type: params.focusType,
+        p_focus_security_id: params.focusSecurityId,
+        p_disclosure_date: params.disclosureDate,
+        p_base_snapshot_id: params.baseSnapshotId,
+        p_created_by: params.createdBy,
+        p_groups: params.groups.map((g) => ({ clientGroupId: g.clientGroupId, name: g.name })),
+        p_nodes: params.nodes.map((n) => ({
+          clientNodeId: n.clientNodeId,
+          nodeKind: n.nodeKind,
+          securityId: n.securityId,
+          subjectName: n.subjectName,
+          subjectType: n.subjectType,
+          subjectMemo: n.subjectMemo,
+          groupClientId: n.groupClientId,
+          positionX: n.positionX,
+          positionY: n.positionY,
+        })),
+        p_edges: params.edges.map((e) => ({
+          clientEdgeId: e.clientEdgeId,
+          sourceClientNodeId: e.sourceClientNodeId,
+          targetClientNodeId: e.targetClientNodeId,
+          relationTypeId: e.relationTypeId,
+        })),
+        p_max_nodes_per_chain: params.maxNodesPerChain,
+      })
+      .single();
+
+    if (error) {
+      throw new SaveRpcError(error.message, (error as { code?: string }).code);
+    }
+    return data;
+  },
+});

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { apiFetch, ApiError } from "@/lib/http/api-client";
+import { apiDelete, apiFetch, ApiError } from "@/lib/http/api-client";
 
 describe("apiFetch", () => {
   afterEach(() => {
@@ -90,6 +90,43 @@ describe("apiFetch", () => {
     // Act & Assert
     await expect(apiFetch("/auth/signup")).rejects.toMatchObject({
       code: "NETWORK_ERROR",
+    });
+  });
+});
+
+describe("apiDelete", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("204 무본문 응답을 오류 없이 성공 처리한다(UC-019)", async () => {
+    // Arrange
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    // Act & Assert
+    await expect(apiDelete("/valuechains/chain-1")).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/valuechains/chain-1",
+      expect.objectContaining({ method: "DELETE", credentials: "same-origin" }),
+    );
+  });
+
+  it("실패 응답 시 ApiError를 throw 한다", async () => {
+    // Arrange
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ error: { code: "CHAIN_FORBIDDEN", message: "권한 없음" } }), {
+          status: 403,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    // Act & Assert
+    await expect(apiDelete("/valuechains/chain-1")).rejects.toMatchObject({
+      code: "CHAIN_FORBIDDEN",
+      status: 403,
     });
   });
 });

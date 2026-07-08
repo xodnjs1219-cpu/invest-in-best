@@ -477,4 +477,226 @@ describe("chainEditorReducer", () => {
     });
     expect(next).toBe(initialized);
   });
+
+  // ==========================================================================
+  // UC-017: 그룹 전이
+  // ==========================================================================
+
+  it("initialized=false에서 GROUP_CREATED → no-op(013 공통 게이트 회귀)", () => {
+    const state = CHAIN_EDITOR_INITIAL_STATE;
+    const next = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "소재", memberNodeIds: ["n1"] },
+    });
+    expect(next).toBe(state);
+  });
+
+  it("GROUP_CREATED(미소속 노드 2개) → 그룹 추가 + 두 노드 groupClientId 설정, isDirty=true, serverIssues=[], 원본 비변이", () => {
+    let state = initEditor();
+    state = chainEditorReducer(state, {
+      type: "LISTED_NODE_ADDED",
+      payload: {
+        clientNodeId: "n1",
+        security: { securityId: "s1", ticker: "005930", name: "삼성전자", market: "KRX" },
+        position: { x: 0, y: 0 },
+      },
+    });
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n2", subjectType: "consumer", subjectName: "소비자", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    const before = state;
+
+    const next = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "소재", memberNodeIds: ["n1", "n2"] },
+    });
+    expect(next.groups.g1).toEqual({ clientGroupId: "g1", name: "소재" });
+    expect(next.nodes.n1?.groupClientId).toBe("g1");
+    expect(next.nodes.n2?.groupClientId).toBe("g1");
+    expect(next.isDirty).toBe(true);
+    expect(next.serverIssues).toEqual([]);
+    expect(before.groups.g1).toBeUndefined();
+  });
+
+  it("GROUP_CREATED(타 그룹 g1 소속 노드 포함) → 해당 노드가 새 그룹으로 자동 이동(E1), g1은 잔존(빈 그룹이어도 유지)", () => {
+    let state = initEditor();
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n1", subjectType: "consumer", subjectName: "소비자", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    state = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "그룹1", memberNodeIds: ["n1"] },
+    });
+    expect(state.nodes.n1?.groupClientId).toBe("g1");
+
+    const next = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g2", name: "그룹2", memberNodeIds: ["n1"] },
+    });
+    expect(next.nodes.n1?.groupClientId).toBe("g2");
+    expect(next.groups.g1).toEqual({ clientGroupId: "g1", name: "그룹1" });
+    expect(next.groups.g2).toEqual({ clientGroupId: "g2", name: "그룹2" });
+  });
+
+  it("GROUP_CREATED(멤버 전부 미존재 ID) → no-op, dirty 불변", () => {
+    const state = initEditor();
+    const next = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "소재", memberNodeIds: ["missing"] },
+    });
+    expect(next).toBe(state);
+  });
+
+  it("GROUP_CREATED(기존과 동일 이름) → 정상 생성(중복 허용 — E3)", () => {
+    let state = initEditor();
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n1", subjectType: "consumer", subjectName: "소비자", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n2", subjectType: "consumer", subjectName: "소비자2", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    state = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "소재", memberNodeIds: ["n1"] },
+    });
+    const next = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g2", name: "소재", memberNodeIds: ["n2"] },
+    });
+    expect(next.groups.g1?.name).toBe("소재");
+    expect(next.groups.g2?.name).toBe("소재");
+  });
+
+  it("GROUP_RENAMED → 이름만 갱신 / 미존재 그룹 → no-op / 동일 이름 → 원본 반환(dirty 미발생)", () => {
+    let state = initEditor();
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n1", subjectType: "consumer", subjectName: "소비자", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    state = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "소재", memberNodeIds: ["n1"] },
+    });
+
+    const renamed = chainEditorReducer(state, {
+      type: "GROUP_RENAMED",
+      payload: { clientGroupId: "g1", name: "새 이름" },
+    });
+    expect(renamed.groups.g1?.name).toBe("새 이름");
+
+    const noopMissing = chainEditorReducer(state, {
+      type: "GROUP_RENAMED",
+      payload: { clientGroupId: "missing", name: "새 이름" },
+    });
+    expect(noopMissing).toBe(state);
+
+    const noopSameName = chainEditorReducer(state, {
+      type: "GROUP_RENAMED",
+      payload: { clientGroupId: "g1", name: "소재" },
+    });
+    expect(noopSameName).toBe(state);
+  });
+
+  it("NODE_GROUP_CHANGED(g1→g2) → 소속 교체(기존 소속 자동 해제) / (g1→null) → 미소속 전환, 노드·엣지 불변", () => {
+    let state = initEditor();
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n1", subjectType: "consumer", subjectName: "소비자", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n2", subjectType: "consumer", subjectName: "소비자2", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    state = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "그룹1", memberNodeIds: ["n1"] },
+    });
+    state = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g2", name: "그룹2", memberNodeIds: ["n2"] },
+    });
+
+    const moved = chainEditorReducer(state, {
+      type: "NODE_GROUP_CHANGED",
+      payload: { clientNodeId: "n1", groupClientId: "g2" },
+    });
+    expect(moved.nodes.n1?.groupClientId).toBe("g2");
+
+    const unassigned = chainEditorReducer(state, {
+      type: "NODE_GROUP_CHANGED",
+      payload: { clientNodeId: "n1", groupClientId: null },
+    });
+    expect(unassigned.nodes.n1?.groupClientId).toBeNull();
+    expect(Object.keys(unassigned.nodes)).toEqual(Object.keys(state.nodes));
+  });
+
+  it("NODE_GROUP_CHANGED(미존재 그룹 대상) → no-op / (미존재 노드) → no-op", () => {
+    let state = initEditor();
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n1", subjectType: "consumer", subjectName: "소비자", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+
+    const noopMissingGroup = chainEditorReducer(state, {
+      type: "NODE_GROUP_CHANGED",
+      payload: { clientNodeId: "n1", groupClientId: "missing-group" },
+    });
+    expect(noopMissingGroup).toBe(state);
+
+    const noopMissingNode = chainEditorReducer(state, {
+      type: "NODE_GROUP_CHANGED",
+      payload: { clientNodeId: "missing-node", groupClientId: null },
+    });
+    expect(noopMissingNode).toBe(state);
+  });
+
+  it("GROUP_DISSOLVED(멤버 3개 그룹) → 그룹 제거 + 3개 노드 전부 groupClientId=null, 노드·엣지 수 불변(E5)", () => {
+    let state = initEditor();
+    for (const id of ["n1", "n2", "n3"]) {
+      state = chainEditorReducer(state, {
+        type: "FREE_SUBJECT_NODE_ADDED",
+        payload: { clientNodeId: id, subjectType: "consumer", subjectName: id, subjectMemo: null, position: { x: 0, y: 0 } },
+      });
+    }
+    state = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "그룹1", memberNodeIds: ["n1", "n2", "n3"] },
+    });
+
+    const next = chainEditorReducer(state, { type: "GROUP_DISSOLVED", payload: { clientGroupId: "g1" } });
+    expect(next.groups.g1).toBeUndefined();
+    expect(next.nodes.n1?.groupClientId).toBeNull();
+    expect(next.nodes.n2?.groupClientId).toBeNull();
+    expect(next.nodes.n3?.groupClientId).toBeNull();
+    expect(Object.keys(next.nodes)).toHaveLength(3);
+  });
+
+  it("GROUP_DISSOLVED: 미존재 그룹 → no-op", () => {
+    const state = initEditor();
+    const next = chainEditorReducer(state, { type: "GROUP_DISSOLVED", payload: { clientGroupId: "missing" } });
+    expect(next).toBe(state);
+  });
+
+  it("ELEMENTS_DELETED로 그룹의 마지막 멤버 삭제 → 그룹 잔존(빈 그룹 유지 — D-5·E9)", () => {
+    let state = initEditor();
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n1", subjectType: "consumer", subjectName: "소비자", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    state = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g1", name: "그룹1", memberNodeIds: ["n1"] },
+    });
+
+    const next = chainEditorReducer(state, {
+      type: "ELEMENTS_DELETED",
+      payload: { nodeIds: ["n1"], edgeIds: [] },
+    });
+    expect(next.groups.g1).toEqual({ clientGroupId: "g1", name: "그룹1" });
+    expect(next.nodes.n1).toBeUndefined();
+  });
 });

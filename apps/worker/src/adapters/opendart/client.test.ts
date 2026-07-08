@@ -16,6 +16,8 @@ const config: WorkerConfig = {
   opendartApiKey: "a".repeat(40),
   secEdgarUserAgent: "InvestInBest admin@example.com",
   workerTmpDir: undefined,
+  anthropicApiKey: undefined,
+  openaiApiKey: undefined,
 };
 
 function makeClock() {
@@ -348,6 +350,81 @@ describe("createOpenDartClient — request pipeline & status handling", () => {
     expect(mappings).toEqual([
       { corpCode: "00126380", stockCode: "005930", corpName: "삼성전자", modifyDate: "20260101" },
     ]);
+  });
+});
+
+describe("fetchDisclosureDocumentText (UC-030 M7 — document.xml)", () => {
+  it("extracts plain text from a ZIP document response", async () => {
+    const { clock } = makeClock();
+    const xml = "<DOCUMENT><TITLE>사업보고서</TITLE><BODY>본문 내용입니다.</BODY></DOCUMENT>";
+    const zipBuffer = buildZipWithEntry("0001.xml", xml);
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(zipBuffer, { status: 200, headers: { "content-type": "application/x-zip-compressed" } }),
+    );
+    const client = createOpenDartClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchDisclosureDocumentText("20260101000001");
+    expect(text).toContain("본문 내용입니다");
+    expect(text).not.toMatch(/<[^>]+>/);
+  });
+
+  it("returns null (no retry) when the response body is a status=013 (no data) error envelope", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ status: "013", message: "데이터 없음" }));
+    const client = createOpenDartClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    expect(await client.fetchDisclosureDocumentText("20260101000001")).toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns null with a warning (no retry) when the response is status=020 (daily quota exceeded)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ status: "020", message: "일일 한도 초과" }));
+    const client = createOpenDartClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    expect(await client.fetchDisclosureDocumentText("20260101000001")).toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries on 5xx and returns the parsed text after a later success", async () => {
+    const { clock } = makeClock();
+    const xml = "<DOCUMENT>재시도 후 성공</DOCUMENT>";
+    const zipBuffer = buildZipWithEntry("0001.xml", xml);
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("error", { status: 500 }))
+      .mockResolvedValueOnce(new Response("error", { status: 500 }))
+      .mockResolvedValueOnce(
+        new Response(zipBuffer, { status: 200, headers: { "content-type": "application/x-zip-compressed" } }),
+      );
+    const client = createOpenDartClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchDisclosureDocumentText("20260101000001");
+    expect(text).toContain("재시도 후 성공");
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns null (no throw) after retries are exhausted (R-3 fallback)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("error", { status: 500 }));
+    const client = createOpenDartClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    await expect(client.fetchDisclosureDocumentText("20260101000001")).resolves.toBeNull();
+  });
+
+  it("acquires the OPENDART rate limiter group before calling fetch", async () => {
+    const { clock } = makeClock();
+    const rateLimiter = makeRateLimiter(clock);
+    const acquireSpy = vi.spyOn(rateLimiter, "acquire");
+    const xml = "<DOCUMENT>본문</DOCUMENT>";
+    const zipBuffer = buildZipWithEntry("0001.xml", xml);
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(zipBuffer, { status: 200, headers: { "content-type": "application/x-zip-compressed" } }),
+    );
+    const client = createOpenDartClient({ config, rateLimiter, fetchImpl, clock });
+
+    await client.fetchDisclosureDocumentText("20260101000001");
+    expect(acquireSpy).toHaveBeenCalledWith("OPENDART");
   });
 });
 

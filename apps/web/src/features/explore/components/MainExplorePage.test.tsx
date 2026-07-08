@@ -9,6 +9,7 @@ const useCurrentUserMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
+  usePathname: () => "/",
 }));
 
 vi.mock("@/features/auth/context/current-user-provider", () => ({
@@ -107,6 +108,74 @@ describe("MainExplorePage", () => {
     expect(pushMock).toHaveBeenCalledWith(
       "/valuechains/11111111-1111-4111-8111-111111111111",
     );
+  });
+
+  it("공식 체인 카드에 복제 버튼이 노출된다(UC-014)", async () => {
+    // Arrange
+    useCurrentUserMock.mockReturnValue({ status: "unauthenticated", user: null });
+    global.fetch = vi.fn().mockResolvedValue(
+      jsonResponse(
+        buildCardListResponse({
+          items: [
+            {
+              id: "11111111-1111-4111-8111-111111111111",
+              name: "반도체 밸류체인",
+              chainType: "official",
+              focusType: "industry",
+              focusCompanyName: null,
+              nodeCount: 3,
+              latestMetric: null,
+              updatedAt: "2026-07-08T00:00:00Z",
+            },
+          ],
+        }),
+      ),
+    );
+
+    // Act
+    renderPage();
+    await waitFor(() => expect(screen.getByText("반도체 밸류체인")).toBeInTheDocument());
+
+    // Assert
+    expect(screen.getByRole("button", { name: "복제" })).toBeInTheDocument();
+  });
+
+  it("내 체인 카드에 삭제 버튼이 노출된다(UC-019)", async () => {
+    // Arrange
+    useCurrentUserMock.mockReturnValue({
+      status: "authenticated",
+      user: { id: "user-1", email: "a@a.com", role: "user" },
+    });
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/valuechains/mine")) {
+        return Promise.resolve(
+          jsonResponse(
+            buildCardListResponse({
+              items: [
+                {
+                  id: "22222222-2222-4222-8222-222222222222",
+                  name: "내 체인",
+                  chainType: "user",
+                  focusType: "industry",
+                  focusCompanyName: null,
+                  nodeCount: 1,
+                  latestMetric: null,
+                  updatedAt: "2026-07-08T00:00:00Z",
+                },
+              ],
+            }),
+          ),
+        );
+      }
+      return Promise.resolve(jsonResponse(buildCardListResponse()));
+    });
+
+    // Act
+    renderPage();
+
+    // Assert
+    await waitFor(() => expect(screen.getByText("내 체인")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
   });
 
   it("내 체인 401(세션 만료) 시 게스트 뷰로 전환하고 공식 목록은 유지된다(엣지 7)", async () => {

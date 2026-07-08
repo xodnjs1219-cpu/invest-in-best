@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { EditorEdge, EditorNode, RelationType } from "../types/chainEditor";
+import type { EditorEdge, EditorGroup, EditorNode, RelationType } from "../types/chainEditor";
 import { MAX_NODES_PER_CHAIN } from "../constants/limits";
 import {
   validateChainNameFormat,
@@ -7,6 +7,8 @@ import {
   validateEdgeCandidate,
   validateListedNodeAdd,
   validateFreeSubjectAdd,
+  validateGroupCreate,
+  validateGroupRename,
 } from "./editorValidation";
 
 describe("validateChainNameFormat", () => {
@@ -330,5 +332,56 @@ describe("validateFreeSubjectAdd", () => {
     };
     const state = makeNodesState([existing]);
     expect(validateFreeSubjectAdd(state, { subjectType: "consumer", subjectName: "일반 소비자" })).toBeNull();
+  });
+});
+
+// ============================================================================
+// UC-017: 그룹 편집 검증
+// ============================================================================
+
+describe("validateGroupCreate", () => {
+  it("이름 유효 + 멤버 1개 이상 → null", () => {
+    expect(validateGroupCreate({ name: "소재", memberNodeIds: ["n1"] })).toBeNull();
+  });
+
+  it("이름 빈 문자열 → NAME_REQUIRED", () => {
+    expect(validateGroupCreate({ name: "", memberNodeIds: ["n1"] })).toBe("NAME_REQUIRED");
+  });
+
+  it("이름 공백만 → NAME_REQUIRED", () => {
+    expect(validateGroupCreate({ name: "   ", memberNodeIds: ["n1"] })).toBe("NAME_REQUIRED");
+  });
+
+  it("선택 노드 0개 → NO_NODES_SELECTED", () => {
+    expect(validateGroupCreate({ name: "소재", memberNodeIds: [] })).toBe("NO_NODES_SELECTED");
+  });
+
+  it("이름 공백 + 선택 0개 동시 위반 → NAME_REQUIRED(판정 순서 결정성)", () => {
+    expect(validateGroupCreate({ name: "", memberNodeIds: [] })).toBe("NAME_REQUIRED");
+  });
+
+  it("기존 그룹과 동일한 이름으로 생성 → null(중복 허용 — E3)", () => {
+    expect(validateGroupCreate({ name: "소재", memberNodeIds: ["n1"] })).toBeNull();
+  });
+});
+
+describe("validateGroupRename", () => {
+  function makeGroupsState(groups: EditorGroup[]) {
+    return { groups: Object.fromEntries(groups.map((g) => [g.clientGroupId, g])) };
+  }
+
+  it("미존재 그룹 → GROUP_NOT_FOUND", () => {
+    const state = makeGroupsState([]);
+    expect(validateGroupRename(state, "g1", "새 이름")).toBe("GROUP_NOT_FOUND");
+  });
+
+  it("존재 + 공백 이름 → NAME_REQUIRED", () => {
+    const state = makeGroupsState([{ clientGroupId: "g1", name: "소재" }]);
+    expect(validateGroupRename(state, "g1", "   ")).toBe("NAME_REQUIRED");
+  });
+
+  it("존재 + 유효 이름 → null", () => {
+    const state = makeGroupsState([{ clientGroupId: "g1", name: "소재" }]);
+    expect(validateGroupRename(state, "g1", "새 이름")).toBeNull();
   });
 });

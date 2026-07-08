@@ -15,6 +15,8 @@ import {
 import { SearchResultsSection } from "@/features/securities/components/SearchResultsSection";
 import { useSecuritiesSearch } from "@/features/securities/hooks/useSecuritiesSearch";
 import { ChainCardsSection } from "@/features/valuechains/components/ChainCardsSection";
+import { CloneChainButton } from "@/features/valuechains/components/CloneChainButton";
+import { DeleteChainButton } from "@/features/valuechains/components/DeleteChainButton";
 import { useMyChainCards } from "@/features/valuechains/hooks/useMyChainCards";
 import { useOfficialChainCards } from "@/features/valuechains/hooks/useOfficialChainCards";
 import { ApiError } from "@/lib/http/api-client";
@@ -101,6 +103,7 @@ export function MainExplorePage() {
         onLoadMore={() => officialQuery.fetchNextPage()}
         onRetry={() => officialQuery.refetch()}
         onSelect={(chainId) => router.push(chainViewPath(chainId))}
+        renderCardActions={(card) => <CloneChainButton chainId={card.id} variant="card" />}
       />
 
       {showMyChainsSection && (
@@ -115,6 +118,9 @@ export function MainExplorePage() {
           onLoadMore={() => myQuery.fetchNextPage()}
           onRetry={() => myQuery.refetch()}
           onSelect={(chainId) => router.push(chainViewPath(chainId))}
+          renderCardActions={(card) => (
+            <DeleteChainButton chainId={card.id} chainName={card.name} source="list" variant="card" />
+          )}
         />
       )}
     </div>

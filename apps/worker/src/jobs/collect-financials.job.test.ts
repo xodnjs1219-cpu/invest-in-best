@@ -34,6 +34,7 @@ function makeDart(overrides: Partial<CollectFinancialsJobDeps["dart"]> = {}): Co
     fetchFullFinancials: vi.fn().mockResolvedValue(null),
     fetchStockTotal: vi.fn().mockResolvedValue(null),
     fetchCompanyProfile: vi.fn().mockResolvedValue(null),
+    fetchDisclosureDocumentText: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
 }
@@ -48,6 +49,7 @@ function makeSec(overrides: Partial<CollectFinancialsJobDeps["sec"]> = {}): Coll
     }),
     fetchCompanyConcept: vi.fn().mockResolvedValue(null),
     fetchSubmissions: vi.fn().mockResolvedValue(null),
+    fetchFilingDocumentText: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
 }

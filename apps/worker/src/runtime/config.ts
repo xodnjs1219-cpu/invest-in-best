@@ -17,6 +17,10 @@ const workerEnvSchema = z.object({
     .string()
     .refine((v) => v.includes("@"), "SEC_EDGAR_USER_AGENT는 '서비스명 연락이메일' 형식(이메일 포함)이어야 합니다"),
   WORKER_TMP_DIR: z.string().min(1).optional(),
+  // UC-030(analyze-disclosures) 확장(M2) — LLM 공급자 미정(techstack §10)이라 둘 다 optional.
+  // 기동 시점 필수 검증은 하지 않는다(collect-quotes만 도는 환경 비파괴) — 실검증은 LLM 어댑터 팩토리 책임(E14).
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  OPENAI_API_KEY: z.string().min(1).optional(),
 });
 
 export interface WorkerConfig {
@@ -27,6 +31,8 @@ export interface WorkerConfig {
   opendartApiKey: string;
   secEdgarUserAgent: string;
   workerTmpDir: string | undefined;
+  anthropicApiKey: string | undefined;
+  openaiApiKey: string | undefined;
 }
 
 /**
@@ -64,6 +70,8 @@ export function loadWorkerConfig(env: Record<string, string | undefined> = proce
     opendartApiKey: parsed.data.OPENDART_API_KEY,
     secEdgarUserAgent: parsed.data.SEC_EDGAR_USER_AGENT,
     workerTmpDir: parsed.data.WORKER_TMP_DIR,
+    anthropicApiKey: parsed.data.ANTHROPIC_API_KEY,
+    openaiApiKey: parsed.data.OPENAI_API_KEY,
   };
 }
 

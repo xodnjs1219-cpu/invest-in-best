@@ -4,10 +4,11 @@
  * ZIP 다운로드·XML 파싱, 페이지네이션, 100사 청크, CFS→OFS 폴백, status 판별·오류 매핑, 레이트리밋·재시도.
  */
 import * as yauzl from "yauzl";
-import { DART_MULTI_ACNT_CHUNK_SIZE, DART_PAGE_COUNT, WORKER_HTTP_TIMEOUT_MS } from "@iib/domain";
+import { DART_MULTI_ACNT_CHUNK_SIZE, DART_PAGE_COUNT, DISCLOSURE_CONTENT_MAX_CHARS, WORKER_HTTP_TIMEOUT_MS } from "@iib/domain";
 import type { WorkerConfig } from "../../runtime/config";
 import type { RateLimiter } from "../../runtime/rate-limiter";
 import { withRetry, type RetryOptions } from "../../runtime/retry";
+import { decodeDocumentBuffer, extractPlainText } from "../../runtime/text-extract";
 import {
   DartAuthError,
   DartMaintenanceError,
@@ -31,6 +32,14 @@ import {
 } from "./dto";
 
 const BASE_URL = "https://opendart.fss.or.kr/api";
+
+/** document.xml 전용 HTTP 레벨 오류(5xx/네트워크) — 재시도 대상(M7, 021 청크 로직과 무관). */
+class DocumentHttpError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${status}`);
+    this.name = "DocumentHttpError";
+  }
+}
 
 export interface OpenDartClock {
   now(): number;
@@ -267,6 +276,53 @@ export function createOpenDartClient(options: CreateOpenDartClientOptions): Open
       if (kind === "no_data") return null;
       return toKrxCompanyProfile(raw as never);
     },
+
+    async fetchDisclosureDocumentText(rceptNo: string): Promise<string | null> {
+      try {
+        const zipBuffer = await withRetry(
+          async () => {
+            await rateLimiter.acquire("OPENDART");
+            const query = new URLSearchParams({ crtfc_key: config.opendartApiKey, rcept_no: rceptNo });
+            const url = `${BASE_URL}/document.xml?${query.toString()}`;
+            const response = await fetchImpl(url, { signal: AbortSignal.timeout(WORKER_HTTP_TIMEOUT_MS) });
+            if (!response.ok) {
+              // HTTP 레벨 오류(5xx/네트워크)는 재시도 대상(document.xml 전용 오류 — 021 청크 로직과 무관).
+              throw new DocumentHttpError(response.status);
+            }
+
+            const contentType = response.headers.get("content-type") ?? "";
+            if (contentType.includes("json")) {
+              // 오류 envelope(status/message) — 013(문서 없음)·020(일일 한도) 모두 재시도 없이 null 폴백(R-3).
+              const raw: unknown = await response.json();
+              const envelope = parseDartEnvelope(raw);
+              if (envelope.kind === "no_data") return null; // 013
+              if (envelope.kind === "quota_exceeded") {
+                console.warn(
+                  `[opendart] document.xml quota exceeded for rcept_no=${rceptNo} — falling back to metadata-only`,
+                );
+                return null; // 020
+              }
+              if (envelope.kind === "auth_error") throw new DartAuthError(envelope.status, envelope.message);
+              throw new DartRequestError(envelope.status, envelope.message);
+            }
+
+            return Buffer.from(await response.arrayBuffer());
+          },
+          { ...retryOptions, shouldRetry: (error) => error instanceof DocumentHttpError },
+        );
+
+        if (zipBuffer === null) return null;
+        const entryBuffer = await extractLargestZipEntry(zipBuffer);
+        const decoded = decodeDocumentBuffer(entryBuffer);
+        return extractPlainText(decoded, { maxChars: DISCLOSURE_CONTENT_MAX_CHARS });
+      } catch (error) {
+        // R-3: 재시도 소진·ZIP 파싱 실패 등 어떤 실패도 공시 실패로 승격하지 않고 메타데이터-온리 폴백.
+        console.warn(
+          `[opendart] fetchDisclosureDocumentText(${rceptNo}) failed — falling back to metadata-only: ${(error as Error).message}`,
+        );
+        return null;
+      }
+    },
   };
 }
 
@@ -276,6 +332,47 @@ function chunk<T>(items: T[], size: number): T[][] {
     chunks.push(items.slice(i, i + size));
   }
   return chunks;
+}
+
+/** ZIP 버퍼에서 최대 크기 엔트리 1개를 추출한다(document.xml — 본문 문서, M7). */
+function extractLargestZipEntry(zipBuffer: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    yauzl.fromBuffer(zipBuffer, { lazyEntries: true }, (err, zipfile) => {
+      if (err || !zipfile) {
+        reject(err ?? new Error("failed to open document ZIP"));
+        return;
+      }
+      let largestEntry: { entry: yauzl.Entry } | null = null;
+      zipfile.readEntry();
+      zipfile.on("entry", (entry) => {
+        if (!largestEntry || entry.uncompressedSize > largestEntry.entry.uncompressedSize) {
+          largestEntry = { entry };
+        }
+        zipfile.readEntry();
+      });
+      zipfile.on("end", () => {
+        if (!largestEntry) {
+          reject(new Error("no entries found in document ZIP"));
+          return;
+        }
+        const target = largestEntry.entry;
+        zipfile.openReadStream(target, (streamErr, readStream) => {
+          if (streamErr || !readStream) {
+            reject(streamErr ?? new Error("failed to open document ZIP entry stream"));
+            return;
+          }
+          const chunks: Buffer[] = [];
+          readStream.on("data", (data: Buffer) => chunks.push(data));
+          readStream.on("end", () => {
+            resolve(Buffer.concat(chunks));
+            zipfile.close();
+          });
+          readStream.on("error", reject);
+        });
+      });
+      zipfile.on("error", reject);
+    });
+  });
 }
 
 /** ZIP 버퍼에서 CORPCODE.xml 엔트리만 추출한다(yauzl). */

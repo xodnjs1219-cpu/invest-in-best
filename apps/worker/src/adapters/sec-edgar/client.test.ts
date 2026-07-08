@@ -15,6 +15,8 @@ const config: WorkerConfig = {
   opendartApiKey: "a".repeat(40),
   secEdgarUserAgent: "InvestInBest admin@example.com",
   workerTmpDir: undefined,
+  anthropicApiKey: undefined,
+  openaiApiKey: undefined,
 };
 
 function makeClock() {
@@ -241,5 +243,104 @@ describe("createSecEdgarClient — bulk ZIP streaming", () => {
     const okEntry = results.find((r) => "name" in r);
     expect(errorEntry).toBeDefined();
     expect(okEntry).toBeDefined();
+  });
+});
+
+describe("fetchFilingDocumentText (UC-030 M8 — Archives 문서 원문)", () => {
+  const VALID_URL = "https://www.sec.gov/Archives/edgar/data/320193/000032019326000001/doc.htm";
+
+  it("fetches and extracts plain text, including the User-Agent header", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(new Response("<html><body><p>본문 텍스트</p></body></html>", { status: 200 }));
+    const client = createSecEdgarClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchFilingDocumentText(VALID_URL);
+    expect(text).toContain("본문 텍스트");
+    const [, options] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)["User-Agent"]).toBe(config.secEdgarUserAgent);
+  });
+
+  it("returns null without calling fetch for a URL outside the sec.gov whitelist", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn();
+    const client = createSecEdgarClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchFilingDocumentText("https://evil.example.com/doc.htm");
+    expect(text).toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("accepts data.sec.gov URLs as well", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("<p>data.sec.gov 문서</p>", { status: 200 }));
+    const client = createSecEdgarClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchFilingDocumentText("https://data.sec.gov/Archives/edgar/data/1/doc.htm");
+    expect(text).toContain("data.sec.gov 문서");
+  });
+
+  it("returns null without retry on 403 (E7 block signal)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("Undeclared Automated Tool", { status: 403 }));
+    const client = createSecEdgarClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchFilingDocumentText(VALID_URL);
+    expect(text).toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns null on 404 (not found — no retry)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("not found", { status: 404 }));
+    const client = createSecEdgarClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchFilingDocumentText(VALID_URL);
+    expect(text).toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries on 5xx and returns text after a later success", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("error", { status: 500 }))
+      .mockResolvedValueOnce(new Response("<p>재시도 성공</p>", { status: 200 }));
+    const client = createSecEdgarClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchFilingDocumentText(VALID_URL);
+    expect(text).toContain("재시도 성공");
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns null (no throw) after retries are exhausted on 5xx", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("error", { status: 500 }));
+    const client = createSecEdgarClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    await expect(client.fetchFilingDocumentText(VALID_URL)).resolves.toBeNull();
+  });
+
+  it("returns null without calling fetch when SEC_EDGAR_USER_AGENT is missing", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn();
+    const noUaConfig: WorkerConfig = { ...config, secEdgarUserAgent: "" };
+    const client = createSecEdgarClient({ config: noUaConfig, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const text = await client.fetchFilingDocumentText(VALID_URL);
+    expect(text).toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("acquires the SEC rate limiter group before calling fetch", async () => {
+    const { clock } = makeClock();
+    const rateLimiter = makeRateLimiter(clock);
+    const acquireSpy = vi.spyOn(rateLimiter, "acquire");
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("<p>본문</p>", { status: 200 }));
+    const client = createSecEdgarClient({ config, rateLimiter, fetchImpl, clock });
+
+    await client.fetchFilingDocumentText(VALID_URL);
+    expect(acquireSpy).toHaveBeenCalledWith("SEC");
   });
 });

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   formatFocusLabel,
   formatMetricDisplay,
@@ -8,24 +9,42 @@ import type { ChainCard as ChainCardType } from "@/features/valuechains/lib/dto"
 type ChainCardProps = {
   card: ChainCardType;
   onSelect: (chainId: string) => void;
+  /** UC-014/019: 삭제·복제 등 카드별 부가 액션(옵션) — 미전달 시 기존 렌더와 완전 동일. */
+  actionSlot?: ReactNode;
 };
 
 /**
  * 체인 카드 Presenter (UC-007 plan 모듈 D-4) — 이름·기준·노드 수·가치총액(또는 미표시)·커버리지·
  * 이월 배지를 렌더링한다. 파생 계산은 전부 `cardPresentation.ts`에 위임한다(로직 없음).
+ * 최상위는 `role="button"`(div)이다 — `actionSlot`(버튼)을 내부에 배치해도 HTML 중첩 버튼 위반이
+ * 발생하지 않도록 카드 전체 클릭과 액션 슬롯 클릭을 형제 요소로 분리한다(UC-014/019).
  */
-export function ChainCard({ card, onSelect }: ChainCardProps) {
+export function ChainCard({ card, onSelect, actionSlot }: ChainCardProps) {
   const focusLabel = formatFocusLabel(card.focusType, card.focusCompanyName);
   const metricDisplay = formatMetricDisplay(card.latestMetric);
   const nodeCountLabel = formatNodeCount(card.nodeCount);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(card.id)}
-      className="flex w-full flex-col gap-2 rounded-lg border border-gray-200 p-4 text-left transition hover:border-blue-400 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(card.id);
+        }
+      }}
+      className="flex w-full cursor-pointer flex-col gap-2 rounded-lg border border-gray-200 p-4 text-left transition hover:border-blue-400 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
     >
-      <span className="truncate text-base font-semibold text-gray-900">{card.name}</span>
+      <div className="flex items-start justify-between gap-2">
+        <span className="truncate text-base font-semibold text-gray-900">{card.name}</span>
+        {actionSlot && (
+          <span onClick={(event) => event.stopPropagation()} className="shrink-0">
+            {actionSlot}
+          </span>
+        )}
+      </div>
       <span className="text-sm text-gray-500">{focusLabel}</span>
       <span className="text-sm text-gray-500">{nodeCountLabel}</span>
 
@@ -44,6 +63,6 @@ export function ChainCard({ card, onSelect }: ChainCardProps) {
           </span>
         </span>
       )}
-    </button>
+    </div>
   );
 }

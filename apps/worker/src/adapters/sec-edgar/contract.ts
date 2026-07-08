@@ -77,6 +77,12 @@ export interface SecEdgarPort {
 
   /** 벌크 미포함 CIK 보완용 개별 조회. */
   fetchSubmissions(cik: string): Promise<SecSubmissionsEntry | null>;
+
+  /**
+   * 공시 원문(Archives 문서) → 평문 텍스트(docs/usecases/030/plan.md 모듈 8 — UC-030 최초 정의).
+   * null = 확보 불가 폴백(R-3) — 화이트리스트 외 URL·403·404·UA 부재·재시도 소진 모두 null.
+   */
+  fetchFilingDocumentText(url: string): Promise<string | null>;
 }
 
 /** 403/차단(User-Agent 미선언 또는 레이트리밋) — 보수적 백오프 신호(E7·E8). */

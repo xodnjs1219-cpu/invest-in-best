@@ -52,6 +52,41 @@ describe("loadWorkerConfig", () => {
     const config = loadWorkerConfig({ ...validEnv, WORKER_TMP_DIR: "/tmp/custom" });
     expect(config.workerTmpDir).toBe("/tmp/custom");
   });
+
+  // UC-030(analyze-disclosures) 확장 — LLM 공급자 미정(techstack §10). optional 키라 기존 잡을 깨지 않는다(M2).
+  it("parses successfully without any LLM key (optional — existing jobs unaffected)", () => {
+    const config = loadWorkerConfig(validEnv);
+    expect(config.anthropicApiKey).toBeUndefined();
+    expect(config.openaiApiKey).toBeUndefined();
+  });
+
+  it("accepts ANTHROPIC_API_KEY when present", () => {
+    const config = loadWorkerConfig({ ...validEnv, ANTHROPIC_API_KEY: "sk-ant-test" });
+    expect(config.anthropicApiKey).toBe("sk-ant-test");
+  });
+
+  it("accepts OPENAI_API_KEY when present", () => {
+    const config = loadWorkerConfig({ ...validEnv, OPENAI_API_KEY: "sk-test" });
+    expect(config.openaiApiKey).toBe("sk-test");
+  });
+
+  it("fails when ANTHROPIC_API_KEY is an empty string (min length 1)", () => {
+    expect(() => loadWorkerConfig({ ...validEnv, ANTHROPIC_API_KEY: "" })).toThrowError(
+      /ANTHROPIC_API_KEY/,
+    );
+  });
+
+  it("fails when OPENAI_API_KEY is an empty string (min length 1)", () => {
+    expect(() => loadWorkerConfig({ ...validEnv, OPENAI_API_KEY: "" })).toThrowError(/OPENAI_API_KEY/);
+  });
+
+  it("still fails on missing required keys even with LLM keys present (regression guard)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- 구조 분해로 키 제외
+    const { OPENDART_API_KEY: _omit, ...rest } = validEnv;
+    expect(() =>
+      loadWorkerConfig({ ...rest, ANTHROPIC_API_KEY: "sk-ant-test" }),
+    ).toThrowError(/OPENDART_API_KEY/);
+  });
 });
 
 describe("tryLoadEnvFiles", () => {

@@ -34,6 +34,24 @@ describe("ChainCard", () => {
     expect(screen.getByText("반영 2/전체 3")).toBeInTheDocument();
   });
 
+  it("actionSlot이 없으면 기존 렌더와 동일하다(회귀 없음)", () => {
+    render(<ChainCard card={buildCard()} onSelect={vi.fn()} />);
+
+    expect(screen.getByText("반도체 밸류체인")).toBeInTheDocument();
+  });
+
+  it("actionSlot이 전달되면 카드 내부에 렌더된다(UC-014/019 삭제·복제 버튼 편입)", () => {
+    render(
+      <ChainCard
+        card={buildCard()}
+        onSelect={vi.fn()}
+        actionSlot={<button type="button">삭제</button>}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
+  });
+
   it("latestMetric이 null이면 가치총액 영역을 '0'과 다르게 미표시 처리한다", () => {
     render(<ChainCard card={buildCard({ latestMetric: null })} onSelect={vi.fn()} />);
 

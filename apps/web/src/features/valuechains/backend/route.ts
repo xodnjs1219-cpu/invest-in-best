@@ -1,4 +1,4 @@
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 import { todayInSeoul, isValidIsoDate, isWithinTimelineRange, type IsoDate } from "@iib/domain";
 import { failure, respond, type ErrorResult } from "@/backend/http/response";
 import { getLogger, getSupabase, getUser, type AppEnv } from "@/backend/hono/context";
@@ -12,22 +12,35 @@ import {
 import {
   createValuechainsViewRepository,
   createChainMetricsRepository,
+  createValuechainsCloneRepository,
+  createValuechainsDeleteRepository,
+  createValuechainsSaveRepository,
+  createOfficialSaveRepository,
   findChainCards,
+  findLatestEdgeIdentities,
   findNodeDetailRow,
   findSnapshotMarkers,
   findSnapshotStructureAt,
   findDailyMetricAt,
   findQuarterlyMetric,
 } from "@/features/valuechains/backend/repository";
+import { findExistingSecurityIds } from "@/features/securities/backend/repository";
+import { createRelationTypeRepository } from "@/features/relation-types/backend/repository";
 import {
   ChainCardListQuerySchema,
   ChainIdParamSchema,
+  ChainTypeDispatchSchema,
   DailyMetricsQuerySchema,
   NodeDetailParamsSchema,
   QuarterlyMetricsQuerySchema,
+  SaveChainRequestSchema,
+  SaveOfficialChainRequestSchema,
   SnapshotAtQuerySchema,
 } from "@/features/valuechains/backend/schema";
 import {
+  cloneOfficialChain,
+  createOfficialChain,
+  deleteUserChain,
   getChainView,
   getChainSnapshotAt,
   getChainTimelineMeta,
@@ -37,6 +50,8 @@ import {
   getQuarterlyMetrics,
   listMyChainCards,
   listOfficialChainCards,
+  saveUserChain,
+  updateOfficialChain,
 } from "@/features/valuechains/backend/service";
 
 /**
@@ -379,6 +394,252 @@ export const registerValuechainsRoutes = (app: Hono<AppEnv>) => {
     }
 
     // 6. 응답
+    return respond(c, result);
+  });
+
+  // ==========================================================================
+  // UC-018/021: 밸류체인 저장(`POST /valuechains` 신규, `PUT /valuechains/:chainId` 갱신)
+  // chainType 디스패치: POST는 body.chainType peek, PUT은 대상 체인의 DB chain_type으로 판별.
+  // ==========================================================================
+
+  const buildSaveDeps = (c: Context<AppEnv>) => {
+    const supabase = getSupabase(c);
+    return {
+      saveRepo: createValuechainsSaveRepository(supabase),
+      securitiesRepo: { findExistingSecurityIds: (ids: string[]) => findExistingSecurityIds(supabase, ids) },
+      relationTypesRepo: {
+        findAllRelationTypes: () => createRelationTypeRepository(supabase).findAllRelationTypes({ activeOnly: false }),
+      },
+    };
+  };
+
+  const buildOfficialSaveDeps = (c: Context<AppEnv>) => {
+    const supabase = getSupabase(c);
+    return {
+      ...buildSaveDeps(c),
+      officialSaveRepo: createOfficialSaveRepository(supabase),
+      findPreviousEdgeIdentities: (chainId: string) => findLatestEdgeIdentities(supabase, chainId),
+    };
+  };
+
+  app.post("/valuechains", async (c) => {
+    // 1. 인증 확인(E9)
+    const currentUser = getUser(c);
+    if (!currentUser) {
+      return respond(c, failure(401, valuechainsErrorCodes.saveAuthRequired, "로그인이 필요합니다."));
+    }
+
+    // 2. chainType 디스패치(peek) — 파싱 전 판별로 official 요청이 user 스키마의 unknown-key
+    //    strip에 의해 필드 소실되는 것을 구조적으로 차단(R-2).
+    const rawBody = await c.req.json().catch(() => ({}));
+    const dispatchParsed = ChainTypeDispatchSchema.safeParse(rawBody);
+    if (!dispatchParsed.success) {
+      return respond(c, failure(400, valuechainsErrorCodes.saveInvalidRequest, "chainType 값이 올바르지 않습니다."));
+    }
+    const chainType = dispatchParsed.data.chainType ?? "user";
+    const logger = getLogger(c);
+
+    if (chainType === "official") {
+      const bodyParsed = SaveOfficialChainRequestSchema.safeParse(rawBody);
+      if (!bodyParsed.success) {
+        return respond(
+          c,
+          failure(400, valuechainsErrorCodes.saveInvalidRequest, "요청 본문 형식이 올바르지 않습니다.", bodyParsed.error.format()),
+        );
+      }
+      const actorRole = await findRoleByUserId(getSupabase(c), currentUser.id);
+      const result = await createOfficialChain(
+        buildOfficialSaveDeps(c),
+        { userId: currentUser.id, role: actorRole?.role ?? "user" },
+        bodyParsed.data,
+      );
+      if (!result.ok) {
+        const errorResult = result as ErrorResult<ValuechainsServiceError, unknown>;
+        if (result.status >= 500) {
+          logger.error("[valuechains/save] official create failed", errorResult.error);
+        }
+      }
+      return respond(c, result);
+    }
+
+    // 3. 본문 스키마 검증(E3)
+    const bodyParsed = SaveChainRequestSchema.safeParse(rawBody);
+    if (!bodyParsed.success) {
+      return respond(
+        c,
+        failure(400, valuechainsErrorCodes.saveInvalidRequest, "요청 본문 형식이 올바르지 않습니다.", bodyParsed.error.format()),
+      );
+    }
+
+    // 4. 서비스 호출
+    const result = await saveUserChain(buildSaveDeps(c), {
+      userId: currentUser.id,
+      chainId: null,
+      body: bodyParsed.data,
+    });
+
+    // 5. 에러 로깅(500류만)
+    if (!result.ok) {
+      const errorResult = result as ErrorResult<ValuechainsServiceError, unknown>;
+      if (result.status >= 500) {
+        logger.error("[valuechains/save] create failed", errorResult.error);
+      }
+    }
+
+    // 6. 응답
+    return respond(c, result);
+  });
+
+  app.put("/valuechains/:chainId", async (c) => {
+    // 1. 인증 확인(E9)
+    const currentUser = getUser(c);
+    if (!currentUser) {
+      return respond(c, failure(401, valuechainsErrorCodes.saveAuthRequired, "로그인이 필요합니다."));
+    }
+
+    // 2. Path param 검증
+    const paramsParsed = ChainIdParamSchema.safeParse({ chainId: c.req.param("chainId") });
+    if (!paramsParsed.success) {
+      return respond(c, failure(400, valuechainsErrorCodes.saveInvalidRequest, "잘못된 밸류체인 경로입니다."));
+    }
+
+    // 3. chainType 디스패치 — 대상 체인의 DB chain_type으로 판별(body의 chainType은 불신).
+    const supabaseForDispatch = getSupabase(c);
+    const targetMeta = await createValuechainsSaveRepository(supabaseForDispatch).findChainMetaById(
+      paramsParsed.data.chainId,
+    );
+    const logger = getLogger(c);
+
+    if (targetMeta && targetMeta.chain_type === "official") {
+      const rawBody = await c.req.json().catch(() => ({}));
+      const bodyParsed = SaveOfficialChainRequestSchema.safeParse(rawBody);
+      if (!bodyParsed.success) {
+        return respond(
+          c,
+          failure(400, valuechainsErrorCodes.saveInvalidRequest, "요청 본문 형식이 올바르지 않습니다.", bodyParsed.error.format()),
+        );
+      }
+      const actorRole = await findRoleByUserId(supabaseForDispatch, currentUser.id);
+      const result = await updateOfficialChain(
+        buildOfficialSaveDeps(c),
+        { userId: currentUser.id, role: actorRole?.role ?? "user" },
+        paramsParsed.data.chainId,
+        bodyParsed.data,
+      );
+      if (!result.ok) {
+        const errorResult = result as ErrorResult<ValuechainsServiceError, unknown>;
+        if (result.status >= 500) {
+          logger.error("[valuechains/save] official update failed", errorResult.error);
+        }
+      }
+      return respond(c, result);
+    }
+
+    // 4. 본문 스키마 검증
+    const rawBody = await c.req.json().catch(() => ({}));
+    const bodyParsed = SaveChainRequestSchema.safeParse(rawBody);
+    if (!bodyParsed.success) {
+      return respond(
+        c,
+        failure(400, valuechainsErrorCodes.saveInvalidRequest, "요청 본문 형식이 올바르지 않습니다.", bodyParsed.error.format()),
+      );
+    }
+
+    // 5. 서비스 호출
+    const result = await saveUserChain(buildSaveDeps(c), {
+      userId: currentUser.id,
+      chainId: paramsParsed.data.chainId,
+      body: bodyParsed.data,
+    });
+
+    // 6. 에러 로깅(500류만)
+    if (!result.ok) {
+      const errorResult = result as ErrorResult<ValuechainsServiceError, unknown>;
+      if (result.status >= 500) {
+        logger.error("[valuechains/save] update failed", errorResult.error);
+      }
+    }
+
+    // 7. 응답
+    return respond(c, result);
+  });
+
+  // ==========================================================================
+  // UC-014: 공식 체인 복제
+  // ==========================================================================
+
+  app.post("/valuechains/:chainId/clone", async (c) => {
+    // 1. 인증 확인(spec Edge 1·9)
+    const currentUser = getUser(c);
+    if (!currentUser) {
+      return respond(c, failure(401, valuechainsErrorCodes.unauthorized, "로그인이 필요합니다."));
+    }
+
+    // 2. Path param 검증(400 INVALID_PARAMS)
+    const paramsParsed = ChainIdParamSchema.safeParse({ chainId: c.req.param("chainId") });
+    if (!paramsParsed.success) {
+      return respond(c, failure(400, valuechainsErrorCodes.invalidParams, "잘못된 밸류체인 경로입니다."));
+    }
+
+    // 3. 의존성 획득 — Request Body 없음(spec §6.2)
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+    const repo = createValuechainsCloneRepository(supabase);
+
+    // 4. 서비스 호출
+    const result = await cloneOfficialChain(repo, currentUser.id, paramsParsed.data.chainId);
+
+    // 5. 에러 로깅(500류만)
+    if (!result.ok) {
+      const errorResult = result as ErrorResult<ValuechainsServiceError, unknown>;
+      if (result.status >= 500) {
+        logger.error("[valuechains/clone] failed", errorResult.error);
+      }
+    }
+
+    // 6. 응답
+    return respond(c, result);
+  });
+
+  // ==========================================================================
+  // UC-019: 사용자 체인 삭제
+  // ==========================================================================
+
+  app.delete("/valuechains/:chainId", async (c) => {
+    // 1. 인증 확인(E6)
+    const currentUser = getUser(c);
+    if (!currentUser) {
+      return respond(c, failure(401, valuechainsErrorCodes.unauthorized, "로그인이 필요합니다."));
+    }
+
+    // 2. Path param 검증(E9)
+    const paramsParsed = ChainIdParamSchema.safeParse({ chainId: c.req.param("chainId") });
+    if (!paramsParsed.success) {
+      return respond(c, failure(400, valuechainsErrorCodes.validationError, "잘못된 밸류체인 경로입니다."));
+    }
+
+    // 3. 의존성 획득 — Request Body 없음(spec §6.2)
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+    const repo = createValuechainsDeleteRepository(supabase);
+
+    // 4. 서비스 호출
+    const result = await deleteUserChain(repo, currentUser.id, paramsParsed.data.chainId);
+
+    // 5. 에러 로깅(500=error, 403=warn)
+    if (!result.ok) {
+      const errorResult = result as ErrorResult<ValuechainsServiceError, unknown>;
+      if (result.status >= 500) {
+        logger.error("[valuechains/delete] failed", errorResult.error);
+      } else if (result.status === 403) {
+        logger.warn("[valuechains/delete] forbidden", errorResult.error);
+      }
+    }
+
+    // 6. 성공(204)은 무본문 응답 — 공통 respond()는 JSON 직렬화를 전제하므로 이 경로만 직접 반환한다.
+    if (result.ok) {
+      return c.body(null, 204);
+    }
     return respond(c, result);
   });
 };

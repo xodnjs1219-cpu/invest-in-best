@@ -8,6 +8,9 @@ const actionsMock = vi.hoisted(() => ({
   addEdge: vi.fn(() => ({ ok: true })),
   changeEdgeRelation: vi.fn(() => ({ ok: true })),
   deleteElements: vi.fn(),
+  moveNode: vi.fn(),
+  dissolveGroup: vi.fn(),
+  changeSelection: vi.fn(),
 }));
 
 vi.mock("@/features/valuechains/editor/context/ChainEditorContext", () => ({
@@ -28,12 +31,14 @@ beforeAll(() => {
 function setState(overrides: {
   nodes?: Record<string, unknown>;
   edges?: Record<string, unknown>;
+  groups?: Record<string, unknown>;
   hasActiveRelationTypes?: boolean;
 }) {
   stateMock.current = {
     state: {
       nodes: overrides.nodes ?? {},
       edges: overrides.edges ?? {},
+      groups: overrides.groups ?? {},
       selection: { nodeIds: [], edgeIds: [] },
     },
     computed: {

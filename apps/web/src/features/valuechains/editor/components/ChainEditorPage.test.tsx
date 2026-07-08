@@ -38,8 +38,16 @@ vi.mock("@/features/valuechains/editor/context/ChainEditorContext", async () => 
       addFreeSubjectNode: vi.fn(() => ({ ok: true })),
       moveNode: vi.fn(),
       deleteElements: vi.fn(),
+      changeSelection: vi.fn(),
       addEdge: vi.fn(() => ({ ok: true })),
       changeEdgeRelation: vi.fn(() => ({ ok: true })),
+      createGroup: vi.fn(() => ({ ok: true })),
+      renameGroup: vi.fn(() => ({ ok: true })),
+      assignNodeToGroup: vi.fn(),
+      dissolveGroup: vi.fn(),
+      save: vi.fn().mockResolvedValue({ status: "saved" }),
+      reloadFromLatest: vi.fn().mockResolvedValue(undefined),
+      resetSaveError: vi.fn(),
     }),
   };
 });
@@ -62,6 +70,7 @@ function setState(overrides: {
       edges: {},
       groups: {},
       selection: { nodeIds: [], edgeIds: [] },
+      serverIssues: [],
     },
     computed: {
       nodeCount: 0,
@@ -71,11 +80,20 @@ function setState(overrides: {
       relationTypeById: new Map(),
       activeRelationTypes: [],
       hasActiveRelationTypes: true,
+      groupCount: 0,
+      groupMembership: new Map(),
+      emptyGroupIds: [],
+      duplicateGroupNames: [],
+      canSave: true,
+      clientIssues: [],
+      issueHighlight: { nodeIds: new Set(), edgeIds: new Set(), groupIds: new Set(), nameError: null },
     },
     async: {
       isBootstrapping: overrides.isBootstrapping ?? false,
       entryBlocked: overrides.entryBlocked ?? null,
       bootstrapError: overrides.bootstrapError ?? null,
+      isSaving: false,
+      saveError: null,
     },
   };
 }

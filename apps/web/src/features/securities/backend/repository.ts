@@ -46,3 +46,33 @@ export const createSecuritiesSearchRepository = (
     return { ok: true, rows: data ?? [] };
   },
 });
+
+// ============================================================================
+// UC-018: 저장 시 securityId 존재 검증 (plan 모듈 12 — 사용자/공식 저장 service 공용)
+// ============================================================================
+
+const SECURITIES_TABLE = "securities";
+
+export type FindExistingSecurityIdsResult = { foundIds: Set<string> } | { error: string };
+
+/**
+ * `nodes[].securityId` ∪ `focusSecurityId` 존재 확인(E12·S-9). 빈 입력이면 쿼리를 생략하고
+ * 즉시 빈 Set을 반환한다(방어적 — 불필요 쿼리 제거).
+ */
+export const findExistingSecurityIds = async (
+  client: SupabaseClient,
+  ids: string[],
+): Promise<FindExistingSecurityIdsResult> => {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) {
+    return { foundIds: new Set() };
+  }
+
+  const { data, error } = await client.from(SECURITIES_TABLE).select("id").in("id", uniqueIds);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { foundIds: new Set((data ?? []).map((row) => (row as { id: string }).id)) };
+};

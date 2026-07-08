@@ -1,13 +1,13 @@
 import { MAX_NODES_PER_CHAIN } from "../constants/limits";
-import type { EditorEdge, EditorNode, FreeSubjectType, RelationType } from "../types/chainEditor";
+import type { EditorEdge, EditorGroup, EditorNode, FreeSubjectType, RelationType } from "../types/chainEditor";
 
 /**
  * chain-editor 검증 순수 함수 (UC-013 plan 모듈 4, state_management.md §4.3).
  * FE 즉시 검증과 서버(UC-018) 최종 검증이 이 파일의 함수를 공유한다(검증 이중화, 구현 단일화).
- * 본 파일은 UC-013(`validateChainNameFormat`) + UC-015(노드 검증) + UC-016(엣지 검증)을 구현한다.
+ * 본 파일은 UC-013(`validateChainNameFormat`) + UC-015(노드 검증) + UC-016(엣지 검증)
+ * + UC-017(그룹 편집 검증)을 구현한다.
  *
  * 확장 지점(후속 plan이 이 파일에 추가):
- * - UC-017: validateGroupCreate
  * - UC-018: collectClientIssues(저장 전 사전 검증 일괄 실행)
  */
 
@@ -152,5 +152,47 @@ export function validateFreeSubjectAdd(
     return "SUBJECT_FIELD_REQUIRED";
   }
 
+  return null;
+}
+
+// ============================================================================
+// UC-017: 그룹 편집 검증 (spec BR-1~BR-6, plan 모듈 M2)
+// ============================================================================
+
+export type GroupBlockReason = "NAME_REQUIRED" | "NO_NODES_SELECTED" | "GROUP_NOT_FOUND";
+
+export interface GroupCreateInput {
+  name: string;
+  memberNodeIds: string[];
+}
+
+/**
+ * 그룹 생성 검증 — 판정 순서: 이름 공백(NAME_REQUIRED) → 선택 노드 0개(NO_NODES_SELECTED) → 통과.
+ * 이름 중복은 검사하지 않는다(E3 — 허용, 알림은 selectDuplicateGroupNames 파생 소관).
+ */
+export function validateGroupCreate(input: GroupCreateInput): GroupBlockReason | null {
+  if (input.name.trim().length === 0) {
+    return "NAME_REQUIRED";
+  }
+  if (input.memberNodeIds.length === 0) {
+    return "NO_NODES_SELECTED";
+  }
+  return null;
+}
+
+/**
+ * 그룹 이름 변경 검증 — ① 대상 그룹 미존재 → GROUP_NOT_FOUND ② 이름 공백 → NAME_REQUIRED ③ 통과.
+ */
+export function validateGroupRename(
+  state: { groups: Record<string, EditorGroup> },
+  clientGroupId: string,
+  name: string,
+): GroupBlockReason | null {
+  if (!state.groups[clientGroupId]) {
+    return "GROUP_NOT_FOUND";
+  }
+  if (name.trim().length === 0) {
+    return "NAME_REQUIRED";
+  }
   return null;
 }

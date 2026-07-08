@@ -12,6 +12,8 @@ const config: WorkerConfig = {
   opendartApiKey: "a".repeat(40),
   secEdgarUserAgent: "InvestInBest admin@example.com",
   workerTmpDir: undefined,
+  anthropicApiKey: undefined,
+  openaiApiKey: undefined,
 };
 
 function makeClock() {

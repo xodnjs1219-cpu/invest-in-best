@@ -4,18 +4,20 @@ import { ReactFlow, ReactFlowProvider, type Edge, type Node, type NodeTypes, typ
 import "@xyflow/react/dist/style.css";
 import { CompanyNode } from "@/components/mindmap/CompanyNode";
 import { FreeSubjectNode } from "@/components/mindmap/FreeSubjectNode";
+import { GroupNode } from "@/components/mindmap/GroupNode";
 import { RelationEdge } from "@/components/mindmap/RelationEdge";
 
 /**
- * 공용 React Flow 캔버스 프레젠테이션 (UC-013 plan 모듈 21, UC-015/016 확장).
+ * 공용 React Flow 캔버스 프레젠테이션 (UC-013 plan 모듈 21, UC-015/016/017 확장).
  * 뷰(UC-009~012, `MindmapCanvas`)와 편집(UC-015~018 `ChainEditorPage`) 공용 — 콜백은 전부 optional,
  * 도메인 타입 비의존(React Flow `Node[]`/`Edge[]`만 수용).
- * `nodeTypes`/`edgeTypes`는 뷰/편집 공용 프레젠터(`CompanyNode`/`FreeSubjectNode`/`RelationEdge`)를 등록한다.
+ * `nodeTypes`/`edgeTypes`는 뷰/편집 공용 프레젠터(`CompanyNode`/`FreeSubjectNode`/`GroupNode`/`RelationEdge`)를 등록한다.
  */
 
 const NODE_TYPES: NodeTypes = {
   companyNode: CompanyNode,
   freeSubjectNode: FreeSubjectNode,
+  groupNode: GroupNode,
 };
 
 const EDGE_TYPES: EdgeTypes = {

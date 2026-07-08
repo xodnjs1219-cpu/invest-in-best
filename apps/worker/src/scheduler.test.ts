@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { registerSchedules } from "./scheduler";
+import { createAnalyzeDisclosuresTrigger, registerSchedules } from "./scheduler";
 import {
   AGGREGATE_DAILY_METRICS_CRON,
   BATCH_CRON_TIMEZONE,
@@ -181,5 +181,44 @@ describe("registerSchedules", () => {
     };
     registerSchedules(depsWithoutAgg);
     expect(depsWithoutAgg.cronSchedule).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("createAnalyzeDisclosuresTrigger (UC-030 M15, R-9)", () => {
+  function makeTriggerDeps() {
+    const jobLock = { tryAcquire: vi.fn().mockReturnValue(true), release: vi.fn() };
+    const analyzeDisclosuresJob = { run: vi.fn().mockResolvedValue("success") };
+    return { jobLock, analyzeDisclosuresJob };
+  }
+
+  it("invokes analyzeDisclosuresJob.run() when the lock is acquired", async () => {
+    const deps = makeTriggerDeps();
+    const trigger = createAnalyzeDisclosuresTrigger(deps);
+
+    await trigger();
+
+    expect(deps.jobLock.tryAcquire).toHaveBeenCalledWith("analyze_disclosures");
+    expect(deps.analyzeDisclosuresJob.run).toHaveBeenCalled();
+    expect(deps.jobLock.release).toHaveBeenCalledWith("analyze_disclosures");
+  });
+
+  it("skips run() when the lock is already held (E13 — duplicate chained trigger)", async () => {
+    const deps = makeTriggerDeps();
+    deps.jobLock.tryAcquire.mockReturnValue(false);
+    const trigger = createAnalyzeDisclosuresTrigger(deps);
+
+    await trigger();
+
+    expect(deps.analyzeDisclosuresJob.run).not.toHaveBeenCalled();
+    expect(deps.jobLock.release).not.toHaveBeenCalled();
+  });
+
+  it("releases the lock and does not throw even if run() rejects", async () => {
+    const deps = makeTriggerDeps();
+    deps.analyzeDisclosuresJob.run.mockRejectedValue(new Error("boom"));
+    const trigger = createAnalyzeDisclosuresTrigger(deps);
+
+    await expect(trigger()).resolves.toBeUndefined();
+    expect(deps.jobLock.release).toHaveBeenCalledWith("analyze_disclosures");
   });
 });

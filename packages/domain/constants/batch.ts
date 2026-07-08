@@ -150,3 +150,8 @@ export const BACKFILL_CONFLICT_JOB_TYPES = [
   "aggregate_daily_metrics",
   "analyze_disclosures",
 ] as const;
+
+/* ── UC-030 analyze-disclosures 확장 (docs/usecases/030/plan.md 모듈 14) ── */
+
+/** batch_runs.job_type enum 리터럴. */
+export const BATCH_JOB_TYPE_ANALYZE_DISCLOSURES = "analyze_disclosures";
