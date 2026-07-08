@@ -1,4 +1,4 @@
-import type { ProposalListItem } from "@/features/admin-llm-proposals/backend/schema";
+import type { ProposalListItem } from "@/features/admin-llm-proposals/lib/dto";
 import {
   APPLICABILITY_REASON_LABELS,
   APPROVE_CONFIRM_MESSAGE,

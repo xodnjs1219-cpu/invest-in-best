@@ -1,4 +1,4 @@
-import type { ProposalListItem } from "@/features/admin-llm-proposals/backend/schema";
+import type { ProposalListItem } from "@/features/admin-llm-proposals/lib/dto";
 import {
   APPLICABILITY_REASON_LABELS,
   APPROVE_CONFIRM_MESSAGE,
@@ -78,6 +78,18 @@ export function ProposalDetailPanel({
         <h3 className="text-sm font-medium">LLM 근거 설명</h3>
         <p className="text-sm text-gray-700">{proposal.rationale}</p>
       </div>
+
+      {/* 메타데이터(plan P4) — 생성일·기준 스냅샷. */}
+      <dl className="text-xs text-gray-500">
+        <div className="flex gap-1">
+          <dt>생성일:</dt>
+          <dd>{proposal.createdAt}</dd>
+        </div>
+        <div className="flex gap-1">
+          <dt>기준 스냅샷:</dt>
+          <dd className="font-mono">{proposal.basedOnSnapshotId}</dd>
+        </div>
+      </dl>
 
       {!proposal.applicability.isApplicable && (
         <p className="rounded bg-orange-50 p-2 text-xs text-orange-800">

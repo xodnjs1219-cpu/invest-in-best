@@ -2,7 +2,7 @@
 
 import { useMutation, type UseMutationResult } from "@tanstack/react-query";
 import { apiFetch, type ApiError } from "@/lib/http/api-client";
-import type { ProposalRejectResponse } from "@/features/admin-llm-proposals/backend/schema";
+import type { ProposalRejectResponse } from "@/features/admin-llm-proposals/lib/dto";
 
 export type RejectProposalVariables = { proposalId: string; reason?: string };
 

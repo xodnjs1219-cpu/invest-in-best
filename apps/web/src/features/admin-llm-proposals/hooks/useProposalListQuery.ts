@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/http/api-client";
-import type { ProposalListResponse } from "@/features/admin-llm-proposals/backend/schema";
+import type { ProposalListResponse } from "@/features/admin-llm-proposals/lib/dto";
 import type { ProposalStatusFilter } from "@/features/admin-llm-proposals/hooks/adminLlmQueueReducer";
 
 /** 쿼리 키 prefix — `invalidateQueries({ queryKey: PROPOSAL_LIST_QUERY_KEY_PREFIX })`로 전체 무효화한다. */
