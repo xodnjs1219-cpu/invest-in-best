@@ -5,6 +5,13 @@
 
 export type SecBulkKind = "submissions" | "companyfacts";
 
+/** company_tickers.json 매핑 1건(UC-031 Phase 0 — 미국 종목 마스터 시드). */
+export interface SecTickerEntry {
+  cik: string; // 10자리 zero-pad
+  ticker: string;
+  title: string;
+}
+
 export interface SecBulkFreshness {
   lastModified: string | null;
 }
@@ -49,6 +56,9 @@ export interface SecBulkEntryError {
 }
 
 export interface SecEdgarPort {
+  /** 티커→CIK 전체 맵 1회 호출(UC-031 Phase 0 — 미국 종목 마스터 시드). */
+  fetchTickerCikMap(): Promise<SecTickerEntry[]>;
+
   /** HEAD 요청으로 Last-Modified 확인(잡이 다운로드 강행 여부 판단). */
   checkBulkFreshness(kind: SecBulkKind): Promise<SecBulkFreshness>;
 

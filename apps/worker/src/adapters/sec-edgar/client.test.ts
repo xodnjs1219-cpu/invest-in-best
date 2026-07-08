@@ -149,6 +149,27 @@ describe("createSecEdgarClient — error mapping", () => {
   });
 });
 
+describe("createSecEdgarClient — fetchTickerCikMap (UC-031 Phase 0)", () => {
+  it("fetches company_tickers.json and normalizes it to SecTickerEntry[]", async () => {
+    const { clock } = makeClock();
+    const body = {
+      "0": { cik_str: 320193, ticker: "AAPL", title: "Apple Inc." },
+      "1": { cik_str: 1577552, ticker: "BABA", title: "Alibaba Group Holding Ltd" },
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+    const client = createSecEdgarClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const result = await client.fetchTickerCikMap();
+
+    expect(result).toEqual([
+      { cik: "0000320193", ticker: "AAPL", title: "Apple Inc." },
+      { cik: "0001577552", ticker: "BABA", title: "Alibaba Group Holding Ltd" },
+    ]);
+    const [, init] = fetchImpl.mock.calls[0]!;
+    expect((init.headers as Record<string, string>)["User-Agent"]).toBe(config.secEdgarUserAgent);
+  });
+});
+
 describe("createSecEdgarClient — bulk ZIP streaming", () => {
   it("downloads a bulk file to destPath via streaming", async () => {
     const destDir = makeTmpDir();

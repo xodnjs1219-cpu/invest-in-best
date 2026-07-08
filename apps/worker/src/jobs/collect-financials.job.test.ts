@@ -40,6 +40,7 @@ function makeDart(overrides: Partial<CollectFinancialsJobDeps["dart"]> = {}): Co
 
 function makeSec(overrides: Partial<CollectFinancialsJobDeps["sec"]> = {}): CollectFinancialsJobDeps["sec"] {
   return {
+    fetchTickerCikMap: vi.fn().mockResolvedValue([]),
     checkBulkFreshness: vi.fn().mockResolvedValue({ lastModified: null }),
     downloadBulk: vi.fn().mockResolvedValue(undefined),
     readBulkEntries: vi.fn().mockImplementation(async function* () {

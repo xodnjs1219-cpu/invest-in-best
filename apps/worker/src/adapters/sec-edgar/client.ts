@@ -21,10 +21,18 @@ import {
   type SecEdgarPort,
   type SecSubmissionsEntry,
 } from "./contract";
-import { normalizeCik, parseSubmissionsResponse, toSecSubmissionsEntry } from "./dto";
+import {
+  normalizeCik,
+  parseSubmissionsResponse,
+  parseTickerCikMapResponse,
+  toSecSubmissionsEntry,
+  toSecTickerEntries,
+} from "./dto";
+import type { SecTickerEntry } from "./contract";
 
 const DATA_BASE_URL = "https://data.sec.gov";
 const WWW_BASE_URL = "https://www.sec.gov";
+const TICKER_CIK_MAP_URL = `${WWW_BASE_URL}/files/company_tickers.json`;
 
 /** SEC 차단 감지 시 보수적 백오프(공식 문서 "brief period"만 명시 — 안전하게 5분). */
 export const SEC_BLOCK_BACKOFF_MS = 5 * 60 * 1000;
@@ -111,6 +119,15 @@ export function createSecEdgarClient(options: CreateSecEdgarClientOptions): SecE
   }
 
   return {
+    async fetchTickerCikMap(): Promise<SecTickerEntry[]> {
+      const raw = await withRetry(() => requestJson(TICKER_CIK_MAP_URL), retryOptions);
+      const parsed = parseTickerCikMapResponse(raw);
+      if (!parsed.ok) {
+        throw new SecRequestError(200, `company_tickers.json 검증 실패: ${parsed.error}`);
+      }
+      return toSecTickerEntries(parsed.data);
+    },
+
     async checkBulkFreshness(kind: SecBulkKind): Promise<SecBulkFreshness> {
       await rateLimiter.acquire("SEC");
       const response = await fetchImpl(`${WWW_BASE_URL}${BULK_PATHS[kind]}`, {

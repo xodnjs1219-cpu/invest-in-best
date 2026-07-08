@@ -37,3 +37,10 @@ export type {
   TimelineMetaResponse,
   SnapshotAtResponse,
 } from "@/features/valuechains/backend/schema";
+
+/** UC-016 편집 대상 체인 최신 구성 조회(API-2) DTO. */
+export type {
+  LatestSnapshotResponse,
+  LatestSnapshotNode,
+  LatestSnapshotEdge,
+} from "@/features/valuechains/backend/schema";

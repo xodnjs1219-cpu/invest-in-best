@@ -221,7 +221,120 @@ export function chainEditorReducer(
       return { ...state, serverIssues: action.payload.issues };
     }
 
-    // 노드/엣지/그룹 전이는 UC-015~017 plan이 케이스를 추가한다(확장 지점).
+    // ── 노드 (UC-015) ───────────────────────────────────
+    case "LISTED_NODE_ADDED": {
+      const { clientNodeId, security, position } = action.payload;
+      return withDirty({
+        ...state,
+        nodes: {
+          ...state.nodes,
+          [clientNodeId]: {
+            clientNodeId,
+            nodeKind: "listed_company",
+            security,
+            groupClientId: null,
+            position,
+          },
+        },
+      });
+    }
+
+    case "FREE_SUBJECT_NODE_ADDED": {
+      const { clientNodeId, subjectType, subjectName, subjectMemo, position } = action.payload;
+      return withDirty({
+        ...state,
+        nodes: {
+          ...state.nodes,
+          [clientNodeId]: {
+            clientNodeId,
+            nodeKind: "free_subject",
+            subjectType,
+            subjectName,
+            subjectMemo,
+            groupClientId: null,
+            position,
+          },
+        },
+      });
+    }
+
+    case "NODE_MOVED": {
+      const { clientNodeId, position } = action.payload;
+      const existing = state.nodes[clientNodeId];
+      if (!existing) {
+        return state; // no-op 가드(E10)
+      }
+      return withDirty({
+        ...state,
+        nodes: { ...state.nodes, [clientNodeId]: { ...existing, position } },
+      });
+    }
+
+    case "ELEMENTS_DELETED": {
+      const { nodeIds, edgeIds } = action.payload;
+      const nodeIdSet = new Set(nodeIds);
+      const explicitEdgeIdSet = new Set(edgeIds);
+
+      const hasExistingNode = nodeIds.some((id) => state.nodes[id] !== undefined);
+      const hasExistingEdge = edgeIds.some((id) => state.edges[id] !== undefined);
+      if (!hasExistingNode && !hasExistingEdge) {
+        return state; // no-op 가드(E10) — 전부 미존재
+      }
+
+      const nextNodes = { ...state.nodes };
+      for (const nodeId of nodeIds) {
+        delete nextNodes[nodeId];
+      }
+
+      const nextEdges = { ...state.edges };
+      for (const [edgeId, edge] of Object.entries(state.edges)) {
+        const connectedToDeletedNode =
+          nodeIdSet.has(edge.sourceClientNodeId) || nodeIdSet.has(edge.targetClientNodeId);
+        if (explicitEdgeIdSet.has(edgeId) || connectedToDeletedNode) {
+          delete nextEdges[edgeId];
+        }
+      }
+
+      const nextSelection: EditorSelection = {
+        nodeIds: state.selection.nodeIds.filter((id) => !nodeIdSet.has(id)),
+        edgeIds: state.selection.edgeIds.filter(
+          (id) => nextEdges[id] !== undefined,
+        ),
+      };
+
+      return withDirty({
+        ...state,
+        nodes: nextNodes,
+        edges: nextEdges,
+        selection: nextSelection,
+      });
+    }
+
+    // ── 엣지 (UC-016) ───────────────────────────────────
+    case "EDGE_ADDED": {
+      const { clientEdgeId, sourceClientNodeId, targetClientNodeId, relationTypeId } = action.payload;
+      return withDirty({
+        ...state,
+        edges: {
+          ...state.edges,
+          [clientEdgeId]: { clientEdgeId, sourceClientNodeId, targetClientNodeId, relationTypeId },
+        },
+      });
+    }
+
+    case "EDGE_RELATION_CHANGED": {
+      const { clientEdgeId, relationTypeId } = action.payload;
+      const existing = state.edges[clientEdgeId];
+      if (!existing) {
+        return state; // no-op 가드(E10)
+      }
+      return withDirty({
+        ...state,
+        edges: { ...state.edges, [clientEdgeId]: { ...existing, relationTypeId } },
+      });
+    }
+
+    // 그룹 전이는 UC-017 plan이 케이스를 추가한다(확장 지점).
     default:
       return state;
   }

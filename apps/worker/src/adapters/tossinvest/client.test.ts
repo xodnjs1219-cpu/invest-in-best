@@ -715,3 +715,164 @@ describe("createTossInvestClient — getStockInfos (UC-027 shares_outstanding)",
     expect(result.infos).toEqual([{ symbol: "005930", sharesOutstanding: 100, status: "unknown", name: "" }]);
   });
 });
+
+describe("createTossInvestClient — getStocks (UC-031 Phase 0 seed)", () => {
+  function makeStockRateLimiter(clock: ReturnType<typeof makeClock>["clock"]) {
+    return createRateLimiter({
+      groups: { AUTH: { tps: 5 }, MARKET_DATA: { tps: 10 }, MARKET_DATA_CHART: { tps: 5 }, STOCK: { tps: 5 } },
+      clock,
+    });
+  }
+
+  it("splits symbols into 200-sized chunks acquiring the STOCK rate limit group", async () => {
+    const { clock } = makeClock();
+    const symbols = Array.from({ length: 250 }, (_, i) => `SYM${i}`);
+    const rateLimiter = makeStockRateLimiter(clock);
+    const acquireSpy = vi.spyOn(rateLimiter, "acquire");
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ stocks: [] }));
+    });
+
+    const client = createTossInvestClient({ config, rateLimiter, fetchImpl, clock });
+    await client.getStocks(symbols);
+
+    const stockCalls = fetchImpl.mock.calls.filter(([url]) => String(url).includes("/api/v1/stocks"));
+    expect(stockCalls).toHaveLength(2);
+    expect(acquireSpy).toHaveBeenCalledWith("STOCK");
+  });
+
+  it("normalizes full structured fields (name/englishName/listDate/isinCode/securityType)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(
+        jsonResponse({
+          stocks: [
+            {
+              symbol: "005930",
+              name: "삼성전자",
+              englishName: "Samsung Electronics",
+              status: "active",
+              sharesOutstanding: "5919637922",
+              listDate: "1975-06-11",
+              isinCode: "KR7005930003",
+              securityType: "EQUITY",
+            },
+          ],
+        }),
+      );
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeStockRateLimiter(clock), fetchImpl, clock });
+
+    const result = await client.getStocks(["005930"]);
+    expect(result.stocks).toEqual([
+      {
+        symbol: "005930",
+        name: "삼성전자",
+        englishName: "Samsung Electronics",
+        status: "active",
+        sharesOutstanding: 5919637922,
+        listDate: "1975-06-11",
+        delistDate: null,
+        isinCode: "KR7005930003",
+        securityType: "EQUITY",
+      },
+    ]);
+  });
+
+  it("marks a symbol missing from the response as a not_found failure (H-5 — not an error)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ stocks: [] }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeStockRateLimiter(clock), fetchImpl, clock });
+
+    const result = await client.getStocks(["999999"]);
+    expect(result.stocks).toEqual([]);
+    expect(result.failures).toEqual([{ symbol: "999999", reason: "not_found", message: "response missing symbol" }]);
+  });
+});
+
+describe("createTossInvestClient — getDailyCandlesPage (UC-031 Phase 1 backfill)", () => {
+  it("requests interval=1d, count=200, adjusted=true and forwards the before cursor", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    await client.getDailyCandlesPage("005930", "2026-07-01T00:00:00Z");
+
+    const [url] = fetchImpl.mock.calls.find(([u]) => String(u).includes("/api/v1/candles"))!;
+    const params = new URL(String(url)).searchParams;
+    expect(params.get("interval")).toBe("1d");
+    expect(params.get("count")).toBe("200");
+    expect(params.get("adjusted")).toBe("true");
+    expect(params.get("before")).toBe("2026-07-01T00:00:00Z");
+  });
+
+  it("omits the before param on the first page (no cursor yet)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    await client.getDailyCandlesPage("005930");
+
+    const [url] = fetchImpl.mock.calls.find(([u]) => String(u).includes("/api/v1/candles"))!;
+    expect(new URL(String(url)).searchParams.has("before")).toBe(false);
+  });
+
+  it("returns normalized candles and the nextBefore cursor for pagination", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(
+        jsonResponse({
+          candles: [
+            { timestamp: "2026-07-06T00:00:00Z", openPrice: 100, highPrice: 110, lowPrice: 95, closePrice: 105, volume: 1000 },
+          ],
+          nextBefore: "2026-07-05T00:00:00Z",
+        }),
+      );
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const page = await client.getDailyCandlesPage("005930", "2026-07-06T00:00:00Z");
+    expect(page.nextBefore).toBe("2026-07-05T00:00:00Z");
+    expect(page.candles).toHaveLength(1);
+    expect(page.candles[0]).toMatchObject({ symbol: "005930", open: 100, close: 105 });
+  });
+
+  it("returns nextBefore: null on an empty page (E7 — end-of-history, not an error)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
+
+    const page = await client.getDailyCandlesPage("005930", "2026-01-01T00:00:00Z");
+    expect(page.candles).toEqual([]);
+    expect(page.nextBefore).toBeNull();
+  });
+
+  it("acquires the MARKET_DATA_CHART rate limit group before requesting", async () => {
+    const { clock } = makeClock();
+    const rateLimiter = makeRateLimiter(clock);
+    const acquireSpy = vi.spyOn(rateLimiter, "acquire");
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter, fetchImpl, clock });
+
+    await client.getDailyCandlesPage("005930");
+    expect(acquireSpy).toHaveBeenCalledWith("MARKET_DATA_CHART");
+  });
+});

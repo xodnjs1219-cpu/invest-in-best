@@ -33,4 +33,14 @@ describe("ChainCanvas", () => {
     );
     expect(screen.queryByText("노드를 추가해 밸류체인을 구성하세요")).not.toBeInTheDocument();
   });
+
+  it("nodesConnectable=false면 관계 설정 불가 안내 배너를 표시한다(E6)", () => {
+    render(<ChainCanvas nodes={[]} edges={[]} nodesConnectable={false} />);
+    expect(screen.getByText(/관계 설정 불가/)).toBeInTheDocument();
+  });
+
+  it("nodesConnectable 미지정(기본 true)이면 안내 배너를 표시하지 않는다", () => {
+    render(<ChainCanvas nodes={[]} edges={[]} />);
+    expect(screen.queryByText(/관계 설정 불가/)).not.toBeInTheDocument();
+  });
 });

@@ -126,6 +126,51 @@ export async function findLatestRunByStatus(
   return repoOk({ id: row.id, startedAt: row.started_at });
 }
 
+/**
+ * 크래시 고아 running 행을 failed로 강제 종결한다(UC-031 E17 — heartbeat가 stale 임계를 초과한 경우).
+ * 백필은 장시간(며칠) 실행이 정상이라 finished_at을 지금 시각으로 채워 모니터링(UC-023)에서 식별 가능하게 한다.
+ */
+export async function markRunOrphaned(client: SupabaseClient, runId: string): Promise<RepoResult<void>> {
+  const { error } = await client
+    .from("batch_runs")
+    .update({
+      status: "failed",
+      error_log: "orphaned (heartbeat stale) — 크래시로 추정, 재실행 시 체크포인트부터 재개",
+      finished_at: new Date().toISOString(),
+    })
+    .eq("id", runId);
+
+  if (error) {
+    return repoFail(`markRunOrphaned failed: ${error.message}`);
+  }
+  return repoOk(undefined);
+}
+
+export interface RunProgressUpdate {
+  processedCount: number;
+  failedCount: number;
+}
+
+/**
+ * 진행 건수 갱신(UC-031 장시간 백필의 하트비트 겸용 — updated_at 트리거가 자동 갱신되어
+ * E17 고아 판정 소스가 된다). status/finished_at 등 다른 컬럼은 건드리지 않는다.
+ */
+export async function updateRunProgress(
+  client: SupabaseClient,
+  runId: string,
+  input: RunProgressUpdate,
+): Promise<RepoResult<void>> {
+  const { error } = await client
+    .from("batch_runs")
+    .update({ processed_count: input.processedCount, failed_count: input.failedCount })
+    .eq("id", runId);
+
+  if (error) {
+    return repoFail(`updateRunProgress failed: ${error.message}`);
+  }
+  return repoOk(undefined);
+}
+
 export interface UnresolvedFailure {
   id: string;
   securityId: string | null;

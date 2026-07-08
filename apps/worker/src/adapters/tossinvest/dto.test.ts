@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  candlePageResponseSchema,
   exchangeRateResponseSchema,
   krMarketCalendarResponseSchema,
   parsePricesResponse,
   parseTossErrorEnvelope,
   priceItemSchema,
+  stockDetailSchema,
   stockInfoSchema,
   toNormalizedCalendarDays,
   toNormalizedDailyCandle,
   toNormalizedFxRate,
   toNormalizedQuote,
+  toNormalizedStockDetail,
   toNormalizedStockInfo,
   usMarketCalendarResponseSchema,
   candleSchema,
@@ -71,6 +74,65 @@ describe("stockInfoSchema / toNormalizedStockInfo", () => {
     const parsed = stockInfoSchema.parse({ symbol: "005930" });
     const normalized = toNormalizedStockInfo(parsed);
     expect(normalized.sharesOutstanding).toBeNull();
+  });
+});
+
+describe("stockDetailSchema / toNormalizedStockDetail (UC-031 Phase 0)", () => {
+  it("normalizes the full structured fields including listDate/delistDate/isinCode/securityType", () => {
+    const parsed = stockDetailSchema.parse({
+      symbol: "005930",
+      name: "삼성전자",
+      englishName: "Samsung Electronics",
+      status: "active",
+      sharesOutstanding: "5919637922",
+      listDate: "1975-06-11",
+      delistDate: null,
+      isinCode: "KR7005930003",
+      securityType: "EQUITY",
+    });
+    const normalized = toNormalizedStockDetail(parsed);
+    expect(normalized).toEqual({
+      symbol: "005930",
+      name: "삼성전자",
+      englishName: "Samsung Electronics",
+      status: "active",
+      sharesOutstanding: 5919637922,
+      listDate: "1975-06-11",
+      delistDate: null,
+      isinCode: "KR7005930003",
+      securityType: "EQUITY",
+    });
+  });
+
+  it("defaults optional fields to null when absent", () => {
+    const parsed = stockDetailSchema.parse({ symbol: "AAPL", name: "Apple Inc.", status: "active" });
+    const normalized = toNormalizedStockDetail(parsed);
+    expect(normalized).toMatchObject({
+      englishName: null,
+      sharesOutstanding: null,
+      listDate: null,
+      delistDate: null,
+      isinCode: null,
+      securityType: null,
+    });
+  });
+});
+
+describe("candlePageResponseSchema (UC-031 Phase 1 backfill pagination)", () => {
+  it("accepts a page with candles and a nextBefore cursor", () => {
+    const parsed = candlePageResponseSchema.parse({
+      candles: [
+        { timestamp: "2026-07-06T00:00:00Z", openPrice: 100, highPrice: 110, lowPrice: 90, closePrice: 105, volume: 1000 },
+      ],
+      nextBefore: "2026-07-05T00:00:00Z",
+    });
+    expect(parsed.nextBefore).toBe("2026-07-05T00:00:00Z");
+  });
+
+  it("accepts an empty page with nextBefore: null (E7 termination signal)", () => {
+    const parsed = candlePageResponseSchema.parse({ candles: [], nextBefore: null });
+    expect(parsed.candles).toHaveLength(0);
+    expect(parsed.nextBefore).toBeNull();
   });
 });
 

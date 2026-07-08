@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { findAllForFinancials, findCollectTargets, flagSharesManualOverride, updateDartCorpCodes } from "./securities.repository";
+import {
+  findAllForFinancials,
+  findAllTickers,
+  findCollectTargets,
+  flagSharesManualOverride,
+  updateDartCorpCodes,
+  upsertSecuritySeeds,
+} from "./securities.repository";
 
 function makeClient(overrides: Record<string, unknown>): SupabaseClient {
   return overrides as unknown as SupabaseClient;
@@ -98,6 +105,61 @@ describe("updateDartCorpCodes", () => {
   });
 });
 
+describe("upsertSecuritySeeds", () => {
+  it("upserts rows with onConflict market,ticker in DB_UPSERT_CHUNK_SIZE chunks (UC-031 Phase 0 seed)", async () => {
+    const upsertedRows: unknown[] = [];
+    const upsertOptions: unknown[] = [];
+    const upsert = vi.fn((rows: unknown, options: unknown) => {
+      upsertedRows.push(rows);
+      upsertOptions.push(options);
+      return Promise.resolve({ error: null });
+    });
+    const from = vi.fn().mockReturnValue({ upsert });
+    const client = makeClient({ from });
+
+    const result = await upsertSecuritySeeds(client, [
+      { market: "KRX", ticker: "005930", name: "삼성전자", currency: "KRW", dartCorpCode: "00126380" },
+    ]);
+
+    expect(from).toHaveBeenCalledWith("securities");
+    expect(upsertOptions[0]).toMatchObject({ onConflict: "market,ticker" });
+    expect((upsertedRows[0] as unknown[])[0]).toMatchObject({
+      market: "KRX",
+      ticker: "005930",
+      name: "삼성전자",
+      currency: "KRW",
+      dart_corp_code: "00126380",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("omits keys not present on the row so partial seeding never nulls out other sources' columns", async () => {
+    const upsertedRows: unknown[] = [];
+    const upsert = vi.fn((rows: unknown) => {
+      upsertedRows.push(rows);
+      return Promise.resolve({ error: null });
+    });
+    const from = vi.fn().mockReturnValue({ upsert });
+    const client = makeClient({ from });
+
+    await upsertSecuritySeeds(client, [
+      { market: "US", ticker: "AAPL", name: "Apple Inc.", currency: "USD", cik: "0000320193" },
+    ]);
+
+    const row = (upsertedRows[0] as Record<string, unknown>[])[0]!;
+    expect(row).not.toHaveProperty("toss_symbol");
+    expect(row).not.toHaveProperty("dart_corp_code");
+  });
+
+  it("is a no-op success for an empty list", async () => {
+    const from = vi.fn();
+    const client = makeClient({ from });
+    const result = await upsertSecuritySeeds(client, []);
+    expect(from).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: true, data: undefined });
+  });
+});
+
 describe("flagSharesManualOverride", () => {
   it("sets shares_manual_override_needed=true for the given ids", async () => {
     const inFn = vi.fn().mockResolvedValue({ error: null });
@@ -118,5 +180,25 @@ describe("flagSharesManualOverride", () => {
     const result = await flagSharesManualOverride(client, []);
     expect(from).not.toHaveBeenCalled();
     expect(result).toEqual({ ok: true, data: undefined });
+  });
+});
+
+describe("findAllTickers", () => {
+  it("selects id/market/ticker for every security (Phase 0 toss_symbol confirmation lookup)", async () => {
+    const select = vi.fn().mockResolvedValue({
+      data: [{ id: "sec-1", market: "KRX", ticker: "005930" }],
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue({ select });
+    const client = makeClient({ from });
+
+    const result = await findAllTickers(client);
+
+    expect(from).toHaveBeenCalledWith("securities");
+    expect(select).toHaveBeenCalledWith("id, market, ticker");
+    expect(result).toEqual({
+      ok: true,
+      data: [{ id: "sec-1", market: "KRX", ticker: "005930" }],
+    });
   });
 });

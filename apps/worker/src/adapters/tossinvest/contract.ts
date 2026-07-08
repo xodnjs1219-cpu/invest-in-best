@@ -54,6 +54,35 @@ export interface GetStockInfosResult {
 }
 
 /**
+ * 내부 정규화 종목 정보 모델(정형 필드 전체 — UC-031 Phase 0 시드 보강용).
+ * `getStockInfos`(UC-027, 발행주식수만)와 별도 목적 — 종목명/시장/통화/상장상태/상장일까지 확정한다.
+ */
+export interface NormalizedStockDetail {
+  symbol: string;
+  name: string;
+  englishName: string | null;
+  status: string;
+  sharesOutstanding: number | null;
+  listDate: string | null;
+  delistDate: string | null;
+  isinCode: string | null;
+  securityType: string | null;
+}
+
+export interface GetStocksResult {
+  stocks: NormalizedStockDetail[];
+  failures: SymbolFailure[];
+  carriedOverSymbols: string[];
+}
+
+/** 과거 일봉 페이지(before 커서 페이지네이션, UC-031 Phase 1). */
+export interface GetDailyCandlesPageResult {
+  candles: NormalizedDailyCandle[];
+  /** null이면 과거 제공 상한 도달(E7) — 해당 종목 소급 완료 신호. */
+  nextBefore: string | null;
+}
+
+/**
  * 내부 정규화 환율 모델(UC-028 모듈 3) — `1 base = rate quote`(0009 컬럼 주석).
  * base/quote는 항상 FX_PAIR(USD/KRW) 방향으로 정규화된다.
  */
@@ -103,6 +132,18 @@ export interface TossInvestPort {
    * 종목 기본 정보(발행주식수 포함, UC-027 모듈 11). 200개 청크 순회·부분 실패 분리는 구현 책임(client.ts).
    */
   getStockInfos(symbols: string[]): Promise<GetStockInfosResult>;
+
+  /**
+   * 종목 정형 정보 전체(UC-031 Phase 0 — toss_symbol 확정용). 응답에 없는 심볼은 실패로 분리하고
+   * (H-5: 시세 수집 제외 대상이지 오류 아님) toss_symbol을 세팅하지 않는다. 200개 청크 순회.
+   */
+  getStocks(symbols: string[]): Promise<GetStocksResult>;
+
+  /**
+   * 과거 일봉 페이지(UC-031 Phase 1) — `interval=1d`·`count<=200`·`adjusted=true`·`before` 커서로
+   * 과거로 소급한다. 빈 배열 또는 `nextBefore=null`은 오류가 아닌 종료 조건(E7).
+   */
+  getDailyCandlesPage(symbol: string, before?: string): Promise<GetDailyCandlesPageResult>;
 
   /**
    * KRW↔USD 환율(UC-028 모듈 3). 404(exchange-rate-not-found)는 오류가 아닌 `not_published`

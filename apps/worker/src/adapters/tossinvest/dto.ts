@@ -10,6 +10,7 @@ import type {
   NormalizedDailyCandle,
   NormalizedFxRate,
   NormalizedQuote,
+  NormalizedStockDetail,
   NormalizedStockInfo,
 } from "./contract";
 
@@ -84,6 +85,45 @@ export function toNormalizedStockInfo(item: StockInfoItem): NormalizedStockInfo 
     sharesOutstanding: item.sharesOutstanding ?? null,
     status: item.status ?? "unknown",
     name: item.name ?? "",
+  };
+}
+
+/* ── UC-031 Phase 0(종목 마스터 시드·보강) 확장 — docs/usecases/031/plan.md 모듈 4 ── */
+
+/** 정형 필드 전체 검증(symbol/name/status 필수, 나머지는 선택 — 응답에 없으면 null 처리). */
+export const stockDetailSchema = z
+  .object({
+    symbol: z.string().min(1),
+    name: z.string().min(1),
+    englishName: z.string().nullable().optional(),
+    status: z.string().min(1),
+    sharesOutstanding: z.coerce.number().nullable().optional(),
+    listDate: z.string().nullable().optional(),
+    delistDate: z.string().nullable().optional(),
+    isinCode: z.string().nullable().optional(),
+    securityType: z.string().nullable().optional(),
+  })
+  .passthrough();
+export type StockDetailItem = z.infer<typeof stockDetailSchema>;
+
+export const stocksDetailResponseSchema = z
+  .object({
+    stocks: z.array(stockDetailSchema),
+  })
+  .passthrough();
+export type StocksDetailResponse = z.infer<typeof stocksDetailResponseSchema>;
+
+export function toNormalizedStockDetail(item: StockDetailItem): NormalizedStockDetail {
+  return {
+    symbol: item.symbol,
+    name: item.name,
+    englishName: item.englishName ?? null,
+    status: item.status,
+    sharesOutstanding: item.sharesOutstanding ?? null,
+    listDate: item.listDate ?? null,
+    delistDate: item.delistDate ?? null,
+    isinCode: item.isinCode ?? null,
+    securityType: item.securityType ?? null,
   };
 }
 

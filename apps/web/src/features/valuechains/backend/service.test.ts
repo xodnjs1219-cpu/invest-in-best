@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   checkChainAccess,
   getChainView,
+  getLatestSnapshotForEdit,
   listMyChainCards,
   listOfficialChainCards,
+  validateEdgesForSave,
   type ChainCardsRepository,
 } from "@/features/valuechains/backend/service";
 import { valuechainListErrorCodes, valuechainsErrorCodes } from "@/features/valuechains/backend/error";
@@ -572,5 +574,272 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
     if (result.ok) {
       expect(result.data.items[0].chainType).toBe("user");
     }
+  });
+});
+
+// ============================================================================
+// UC-016: 편집 대상 체인 최신 구성 조회(API-2, R-2 권한 분기)
+// ============================================================================
+
+describe("getLatestSnapshotForEdit", () => {
+  const OWNER_ID = "33333333-3333-4333-8333-333333333333";
+  const OTHER_USER_ID = "44444444-4444-4444-8444-444444444444";
+
+  const createEditRepo = (overrides: RepoOverrides = {}) => createRepo(overrides);
+
+  it("소유자 + 사용자 체인 → success, nodes[].security에 ticker/name/market 포함", async () => {
+    const repo = createEditRepo({ findChainById: async () => USER_CHAIN });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, USER_CHAIN.id, OWNER_ID);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.chainId).toBe(USER_CHAIN.id);
+      const listedNode = result.data.nodes.find((n) => n.nodeKind === "listed_company");
+      expect(listedNode?.security).toEqual({
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        ticker: "005930",
+        name: "삼성전자",
+        market: "KRX",
+        listingStatus: "listed",
+      });
+    }
+  });
+
+  it("비소유자 + 사용자 체인 → failure(404, CHAIN_NOT_FOUND)(R-2/C-2 — 존재 비노출)", async () => {
+    const repo = createEditRepo({ findChainById: async () => USER_CHAIN });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, USER_CHAIN.id, OTHER_USER_ID);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(404);
+      expect(result.error.code).toBe(valuechainsErrorCodes.chainNotFound);
+    }
+  });
+
+  it("admin + 공식 체인 → success", async () => {
+    const repo = createEditRepo({ findChainById: async () => OFFICIAL_CHAIN });
+    const findRole = vi.fn(async () => ({ role: "admin" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, OFFICIAL_CHAIN.id, "admin-1");
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("일반 사용자 + 공식 체인 → failure(403, CHAIN_FORBIDDEN)", async () => {
+    const repo = createEditRepo({ findChainById: async () => OFFICIAL_CHAIN });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, OFFICIAL_CHAIN.id, "user-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(403);
+      expect(result.error.code).toBe(valuechainsErrorCodes.editChainForbidden);
+    }
+  });
+
+  it("is_archived=true → 404", async () => {
+    const repo = createEditRepo({ findChainById: async () => ({ ...USER_CHAIN, is_archived: true }) });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, USER_CHAIN.id, OWNER_ID);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(404);
+    }
+  });
+
+  it("체인 미존재 → 404", async () => {
+    const repo = createEditRepo({ findChainById: async () => null });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, "missing-id", OWNER_ID);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(404);
+    }
+  });
+
+  it("스냅샷 0건 → failure(404, SNAPSHOT_NOT_FOUND)", async () => {
+    const repo = createEditRepo({ findChainById: async () => USER_CHAIN, findLatestSnapshot: async () => null });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, USER_CHAIN.id, OWNER_ID);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(404);
+      expect(result.error.code).toBe(valuechainsErrorCodes.editSnapshotNotFound);
+    }
+  });
+
+  it("repository 오류(findChainById throw) → failure(500, EDIT_FETCH_FAILED)", async () => {
+    const repo = createEditRepo({
+      findChainById: async () => {
+        throw new RepositoryError("db down");
+      },
+    });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, USER_CHAIN.id, OWNER_ID);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(500);
+      expect(result.error.code).toBe(valuechainsErrorCodes.editFetchFailed);
+    }
+  });
+
+  it("Row 스키마 위반 → failure(500, EDIT_VALIDATION_ERROR)", async () => {
+    const repo = createEditRepo({ findChainById: async () => ({ ...USER_CHAIN, chain_type: "invalid" as never }) });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, USER_CHAIN.id, OWNER_ID);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(500);
+      expect(result.error.code).toBe(valuechainsErrorCodes.editValidationError);
+    }
+  });
+
+  it("응답의 edges[]는 relationTypeId만 노출(방향 속성 없음, BR-5)", async () => {
+    const repo = createEditRepo({ findChainById: async () => USER_CHAIN });
+    const findRole = vi.fn(async () => ({ role: "user" as const }));
+
+    const result = await getLatestSnapshotForEdit(repo, findRole, USER_CHAIN.id, OWNER_ID);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.edges[0]).toEqual({
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        sourceNodeId: "88888888-8888-4888-8888-888888888888",
+        targetNodeId: "99999999-9999-4999-8999-999999999999",
+        relationTypeId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      });
+    }
+  });
+});
+
+// ============================================================================
+// UC-016: validateEdgesForSave (저장 service(UC-018/021)가 소비하는 엣지 검증 헬퍼, R-1/R-4)
+// ============================================================================
+
+describe("validateEdgesForSave", () => {
+  const nodes = [
+    { clientNodeId: "n1", identity: { kind: "listed_company" as const, securityId: "s1" } },
+    { clientNodeId: "n2", identity: { kind: "listed_company" as const, securityId: "s2" } },
+  ];
+  const relationTypes = new Map([
+    ["rt-active", { isDirected: true, isActive: true }],
+    ["rt-inactive", { isDirected: true, isActive: false }],
+  ]);
+
+  it("variant='user': 비활성 종류 참조 → 위반 없음(존재만 검증, UC-018 BR-8)", () => {
+    const result = validateEdgesForSave({
+      variant: "user",
+      nodes,
+      edges: [{ clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n2", relationTypeId: "rt-inactive" }],
+      relationTypes,
+      previousEdges: null,
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("variant='user': 자기 참조 → 422 INVALID_EDGE + details.reason=EDGE_SELF_REFERENCE + 엣지 식별 정보", () => {
+    const result = validateEdgesForSave({
+      variant: "user",
+      nodes,
+      edges: [{ clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n1", relationTypeId: "rt-active" }],
+      relationTypes,
+      previousEdges: null,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(422);
+      expect(result.error.code).toBe(valuechainsErrorCodes.invalidEdge);
+      expect(result.error.details).toMatchObject({
+        reason: "EDGE_SELF_REFERENCE",
+        edge: { clientEdgeId: "e1" },
+      });
+    }
+  });
+
+  it("variant='user': 미존재 relationTypeId → 422 INVALID_RELATION_TYPE", () => {
+    const result = validateEdgesForSave({
+      variant: "user",
+      nodes,
+      edges: [{ clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n2", relationTypeId: "missing" }],
+      relationTypes,
+      previousEdges: null,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(422);
+      expect(result.error.code).toBe(valuechainsErrorCodes.invalidRelationType);
+    }
+  });
+
+  it("variant='official': 비활성 신규 엣지 → 422 RELATION_TYPE_INACTIVE_FOR_NEW_EDGE(세분 코드)", () => {
+    const result = validateEdgesForSave({
+      variant: "official",
+      nodes,
+      edges: [{ clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n2", relationTypeId: "rt-inactive" }],
+      relationTypes,
+      previousEdges: [],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(422);
+      expect(result.error.code).toBe(valuechainsErrorCodes.relationTypeInactiveForNewEdge);
+    }
+  });
+
+  it("variant='official': 직전 존재 엣지(비활성 종류) → 통과", () => {
+    const result = validateEdgesForSave({
+      variant: "official",
+      nodes,
+      edges: [{ clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n2", relationTypeId: "rt-inactive" }],
+      relationTypes,
+      previousEdges: [
+        {
+          relationTypeId: "rt-inactive",
+          source: { kind: "listed_company", securityId: "s1" },
+          target: { kind: "listed_company", securityId: "s2" },
+        },
+      ],
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("variant='official': 자기 참조 → 세분 코드 EDGE_SELF_REFERENCE 그대로 사용", () => {
+    const result = validateEdgesForSave({
+      variant: "official",
+      nodes,
+      edges: [{ clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n1", relationTypeId: "rt-active" }],
+      relationTypes,
+      previousEdges: [],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe(valuechainsErrorCodes.edgeSelfReference);
+    }
+  });
+
+  it("정상 페이로드(위반 없음) → success", () => {
+    const result = validateEdgesForSave({
+      variant: "user",
+      nodes,
+      edges: [{ clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n2", relationTypeId: "rt-active" }],
+      relationTypes,
+      previousEdges: null,
+    });
+    expect(result.ok).toBe(true);
   });
 });

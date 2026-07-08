@@ -7,6 +7,11 @@ import {
   toSeoulDayEndIso,
   todayInSeoul,
   TIMESERIES_MIN_START_DATE,
+  validateEdgesPayload,
+  type EdgeSaveViolation,
+  type NodeIdentity,
+  type PreviousEdgeIdentity,
+  type SaveEdgePayload,
   type IsoDate,
 } from "@iib/domain";
 import { buildPagination } from "@/backend/http/pagination";
@@ -36,6 +41,7 @@ import {
   DailyAnnotationsRowSchema,
   DailyMetricRowSchema,
   DailyMetricsResponseSchema,
+  LatestSnapshotResponseSchema,
   NodeDetailRowSchema,
   NodeDetailResponseSchema,
   QuarterlyMetricRowSchema,
@@ -53,6 +59,7 @@ import {
   type ChainViewResponse,
   type DailyMetricsQuery,
   type DailyMetricsResponse,
+  type LatestSnapshotResponse,
   type NodeDetailResponse,
   type QuarterlyMetricsQuery,
   type QuarterlyMetricsResponse,
@@ -965,6 +972,250 @@ export const getChainSnapshotAt = async (
   }
 
   return success(responseParsed.data);
+};
+
+// ============================================================================
+// UC-016: 편집 대상 체인 최신 구성 조회(API-2 — 편집 캔버스 진입)
+// ============================================================================
+
+/** actor role 조회 최소 인터페이스 — 사용자 role(user/admin) 판별(R-2 권한 분기). */
+export type FindActorRole = (userId: string) => Promise<{ role: "user" | "admin" } | null>;
+
+const buildEditFailure = (
+  status: number,
+  code: ValuechainsServiceError,
+  message: string,
+  details?: unknown,
+): HandlerResult<LatestSnapshotResponse, ValuechainsServiceError, unknown> =>
+  failure(status, code, message, details);
+
+/**
+ * 편집 진입용 최신 구성 조회 — spec API-2, plan 모듈 M12 `getLatestSnapshot`.
+ * R-2 권한 분기: 사용자 체인 + 비소유자 → 404(CHAIN_NOT_FOUND, 존재 비노출).
+ *               공식 체인 + 비Admin → 403(CHAIN_FORBIDDEN).
+ */
+export const getLatestSnapshotForEdit = async (
+  repo: ValuechainsViewRepository,
+  findActorRole: FindActorRole,
+  chainId: string,
+  currentUserId: string,
+): Promise<HandlerResult<LatestSnapshotResponse, ValuechainsServiceError, unknown>> => {
+  try {
+    const chainRow = await repo.findChainById(chainId);
+    if (!chainRow) {
+      return buildEditFailure(404, valuechainsErrorCodes.chainNotFound, "체인을 찾을 수 없습니다.");
+    }
+
+    const chainParsed = ValueChainRowSchema.safeParse(chainRow);
+    if (!chainParsed.success) {
+      return buildEditFailure(
+        500,
+        valuechainsErrorCodes.editValidationError,
+        "체인 데이터 형식이 올바르지 않습니다.",
+        chainParsed.error.format(),
+      );
+    }
+    const chain = chainParsed.data;
+
+    if (chain.is_archived) {
+      return buildEditFailure(404, valuechainsErrorCodes.chainNotFound, "체인을 찾을 수 없습니다.");
+    }
+
+    if (chain.chain_type === "user") {
+      if (chain.owner_id !== currentUserId) {
+        // R-2/C-2: 존재 자체 비노출 — 404로 통일.
+        return buildEditFailure(404, valuechainsErrorCodes.chainNotFound, "체인을 찾을 수 없습니다.");
+      }
+    } else {
+      // official: Admin만 편집 진입 가능.
+      const actorRole = await findActorRole(currentUserId);
+      if (!actorRole || actorRole.role !== "admin") {
+        return buildEditFailure(403, valuechainsErrorCodes.editChainForbidden, "관리자 권한이 필요합니다.");
+      }
+    }
+
+    const snapshotRow = await repo.findLatestSnapshot(chainId);
+    if (!snapshotRow) {
+      return buildEditFailure(
+        404,
+        valuechainsErrorCodes.editSnapshotNotFound,
+        "체인 구성 스냅샷을 찾을 수 없습니다.",
+      );
+    }
+    const snapshotParsed = ChainSnapshotRowSchema.safeParse(snapshotRow);
+    if (!snapshotParsed.success) {
+      return buildEditFailure(
+        500,
+        valuechainsErrorCodes.editValidationError,
+        "스냅샷 데이터 형식이 올바르지 않습니다.",
+        snapshotParsed.error.format(),
+      );
+    }
+    const snapshot = snapshotParsed.data;
+
+    const [groupRows, nodeRows, edgeRows] = await Promise.all([
+      repo.findSnapshotGroups(snapshot.id),
+      repo.findSnapshotNodes(snapshot.id),
+      repo.findSnapshotEdges(snapshot.id),
+    ]);
+
+    const groupsParsed = SnapshotGroupRowSchema.array().safeParse(groupRows);
+    if (!groupsParsed.success) {
+      return buildEditFailure(
+        500,
+        valuechainsErrorCodes.editValidationError,
+        "그룹 데이터 형식이 올바르지 않습니다.",
+        groupsParsed.error.format(),
+      );
+    }
+    const nodesParsed = SnapshotNodeRowSchema.array().safeParse(nodeRows);
+    if (!nodesParsed.success) {
+      return buildEditFailure(
+        500,
+        valuechainsErrorCodes.editValidationError,
+        "노드 데이터 형식이 올바르지 않습니다.",
+        nodesParsed.error.format(),
+      );
+    }
+    const edgesParsed = SnapshotEdgeRowSchema.array().safeParse(edgeRows);
+    if (!edgesParsed.success) {
+      return buildEditFailure(
+        500,
+        valuechainsErrorCodes.editValidationError,
+        "엣지 데이터 형식이 올바르지 않습니다.",
+        edgesParsed.error.format(),
+      );
+    }
+
+    const dto: LatestSnapshotResponse = {
+      chainId: chain.id,
+      chainType: chain.chain_type,
+      name: chain.name,
+      focusType: chain.focus_type,
+      focusSecurity:
+        chain.focus_type === "company" && chain.focus_security
+          ? {
+              id: chain.focus_security.id,
+              ticker: chain.focus_security.ticker,
+              name: chain.focus_security.name,
+              market: chain.focus_security.market,
+            }
+          : null,
+      snapshotId: snapshot.id,
+      effectiveAt: snapshot.effective_at,
+      groups: groupsParsed.data.map((g) => ({ id: g.id, name: g.name })),
+      nodes: nodesParsed.data.map((node) => ({
+        id: node.id,
+        nodeKind: node.node_kind,
+        groupId: node.group_id,
+        security: node.security
+          ? {
+              id: node.security.id,
+              ticker: node.security.ticker,
+              name: node.security.name,
+              market: node.security.market,
+              listingStatus: node.security.listing_status,
+            }
+          : null,
+        subjectName: node.subject_name,
+        subjectType: node.subject_type,
+        subjectMemo: node.subject_memo,
+        positionX: node.position_x,
+        positionY: node.position_y,
+      })),
+      edges: edgesParsed.data.map((edge) => ({
+        id: edge.id,
+        sourceNodeId: edge.source_node_id,
+        targetNodeId: edge.target_node_id,
+        relationTypeId: edge.relation_type.id,
+      })),
+    };
+
+    const responseParsed = LatestSnapshotResponseSchema.safeParse(dto);
+    if (!responseParsed.success) {
+      return buildEditFailure(
+        500,
+        valuechainsErrorCodes.editValidationError,
+        "응답 데이터 형식이 올바르지 않습니다.",
+        responseParsed.error.format(),
+      );
+    }
+
+    return success(responseParsed.data);
+  } catch (err) {
+    if (err instanceof RepositoryError) {
+      return buildEditFailure(500, valuechainsErrorCodes.editFetchFailed, err.message);
+    }
+    return buildEditFailure(
+      500,
+      valuechainsErrorCodes.editFetchFailed,
+      err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.",
+    );
+  }
+};
+
+// ============================================================================
+// UC-016: 저장 시 엣지 검증 헬퍼(R-4 매핑 — UC-018/021 저장 service가 호출)
+// ============================================================================
+
+/** R-4 매핑: 세분 사유(EdgeSaveViolation.reason) → 응답 코드(variant별). */
+const EDGE_VIOLATION_CODE_MAP: Record<
+  "user" | "official",
+  Record<EdgeSaveViolation["reason"], ValuechainsServiceError>
+> = {
+  user: {
+    EDGE_SELF_REFERENCE: valuechainsErrorCodes.invalidEdge,
+    EDGE_DUPLICATE_RELATION: valuechainsErrorCodes.invalidEdge,
+    EDGE_NODE_REF_INVALID: valuechainsErrorCodes.invalidEdge,
+    RELATION_TYPE_NOT_FOUND: valuechainsErrorCodes.invalidRelationType,
+    RELATION_TYPE_INACTIVE_FOR_NEW_EDGE: valuechainsErrorCodes.invalidRelationType,
+  },
+  official: {
+    EDGE_SELF_REFERENCE: valuechainsErrorCodes.edgeSelfReference,
+    EDGE_DUPLICATE_RELATION: valuechainsErrorCodes.edgeDuplicateRelation,
+    EDGE_NODE_REF_INVALID: valuechainsErrorCodes.edgeNodeRefInvalid,
+    RELATION_TYPE_NOT_FOUND: valuechainsErrorCodes.relationTypeNotFound,
+    RELATION_TYPE_INACTIVE_FOR_NEW_EDGE: valuechainsErrorCodes.relationTypeInactiveForNewEdge,
+  },
+};
+
+export interface ValidateEdgesForSaveInput {
+  variant: "user" | "official";
+  nodes: ReadonlyArray<{ clientNodeId: string; identity: NodeIdentity }>;
+  edges: ReadonlyArray<SaveEdgePayload>;
+  relationTypes: ReadonlyMap<string, { isDirected: boolean; isActive: boolean }>;
+  /** null = 직전 스냅샷 없음(신규 저장). 사용자 체인은 조회 자체를 생략할 수 있다(R-1 불필요 쿼리 제거). */
+  previousEdges: ReadonlyArray<PreviousEdgeIdentity> | null;
+}
+
+/**
+ * 저장 엣지 검증 헬퍼(plan 모듈 M12) — `edgeSaveValidation.validateEdgesPayload`(도메인)에 위임하고,
+ * 위반 목록을 R-4 규칙으로 HTTP 응답 코드에 매핑한다.
+ * `variant`가 `enforceActiveForNewEdges`(official=true/user=false, R-1)와 응답 코드 셋(통합/세분)을 결정한다.
+ */
+export const validateEdgesForSave = (
+  input: ValidateEdgesForSaveInput,
+): HandlerResult<{ ok: true }, ValuechainsServiceError, unknown> => {
+  const violations = validateEdgesPayload({
+    nodes: input.nodes,
+    edges: input.edges,
+    relationTypes: input.relationTypes,
+    previousEdges: input.previousEdges,
+    enforceActiveForNewEdges: input.variant === "official",
+  });
+
+  if (violations.length === 0) {
+    return success({ ok: true });
+  }
+
+  const first = violations[0]!;
+  const code = EDGE_VIOLATION_CODE_MAP[input.variant][first.reason];
+
+  return failure(422, code, "엣지 규칙을 위반했습니다.", {
+    reason: first.reason,
+    edge: first.edge,
+    violations,
+  });
 };
 
 // findNodeDetailRowRepo는 route.ts에서 repository 팩토리 조립 시 재노출용으로 참조된다.

@@ -3,6 +3,7 @@ import {
   ANNUAL_PERIOD_DAYS,
   DART_ACCOUNT_MAP,
   DART_REPORT_CODES,
+  DEFAULT_KRX_SETTLEMENT_MONTH,
   FINANCIALS_MIN_FISCAL_YEAR,
   QUARTER_PERIOD_DAYS,
   SEC_SHARES_TAG_CHAIN,
@@ -46,5 +47,9 @@ describe("financials constants", () => {
     expect(DART_ACCOUNT_MAP.revenue.length).toBeGreaterThan(0);
     expect(DART_ACCOUNT_MAP.operatingIncome.length).toBeGreaterThan(0);
     expect(DART_ACCOUNT_MAP.netIncome.length).toBeGreaterThan(0);
+  });
+
+  it("DEFAULT_KRX_SETTLEMENT_MONTH is December (UC-031 fallback when company profile is unavailable)", () => {
+    expect(DEFAULT_KRX_SETTLEMENT_MONTH).toBe(12);
   });
 });

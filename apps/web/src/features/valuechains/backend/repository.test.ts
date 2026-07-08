@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createValuechainsViewRepository,
   findChainCards,
+  findLatestEdgeIdentities,
   RepositoryError,
 } from "@/features/valuechains/backend/repository";
 
@@ -311,5 +312,57 @@ describe("findChainCards (UC-007 체인 카드 목록)", () => {
 
     // Assert
     expect(result).toEqual({ rows: [], error: null });
+  });
+});
+
+// ============================================================================
+// UC-016: findLatestEdgeIdentities (BR-4 대조용 — 저장 service(UC-018/021)가 소비)
+// ============================================================================
+
+describe("findLatestEdgeIdentities", () => {
+  it("최신 스냅샷 없음 → null 반환", async () => {
+    // Arrange
+    const { builder } = createQueryBuilderMock({ data: null, error: null });
+    const client = { from: vi.fn(() => builder) };
+
+    // Act
+    const result = await findLatestEdgeIdentities(client as never, "chain-1");
+
+    // Assert
+    expect(result).toBeNull();
+  });
+
+  it("최신 스냅샷 존재 시 상장기업 노드는 securityId, 자유 주체 노드는 subjectName+subjectType으로 매핑", async () => {
+    // Arrange
+    const snapshotBuilder = createQueryBuilderMock({
+      data: { id: "snap-1" },
+      error: null,
+    });
+    const edgesBuilder = createQueryBuilderMock({
+      data: [
+        {
+          relation_type_id: "rt1",
+          source_node: { node_kind: "listed_company", security_id: "s1", subject_name: null, subject_type: null },
+          target_node: { node_kind: "free_subject", security_id: null, subject_name: "소비자", subject_type: "consumer" },
+        },
+      ],
+      error: null,
+    });
+
+    const client = {
+      from: vi.fn((table: string) => (table === "chain_snapshots" ? snapshotBuilder.builder : edgesBuilder.builder)),
+    };
+
+    // Act
+    const result = await findLatestEdgeIdentities(client as never, "chain-1");
+
+    // Assert
+    expect(result).toEqual([
+      {
+        relationTypeId: "rt1",
+        source: { kind: "listed_company", securityId: "s1" },
+        target: { kind: "free_subject", subjectName: "소비자", subjectType: "consumer" },
+      },
+    ]);
   });
 });

@@ -1221,6 +1221,18 @@ export type Database = {
       }
     }
     Functions: {
+      admin_list_relation_types: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_directed: boolean
+          is_in_use: boolean
+          name: string
+          updated_at: string
+        }[]
+      }
       approve_llm_proposal: {
         Args: { p_proposal_id: string; p_reviewer_id: string }
         Returns: {

@@ -106,3 +106,47 @@ export const BATCH_RUNNING_STALE_HOURS = 6;
 
 /** 대량 캐치업 시 체인×일자 처리를 창 단위로 분할하는 일수(E13·메모리 상한). */
 export const AGGREGATION_DATE_WINDOW_DAYS = 370;
+
+/* ── UC-031 backfill-all 확장 (docs/usecases/031/plan.md 모듈 5) ── */
+
+/** batch_runs.job_type enum 리터럴. */
+export const BACKFILL_JOB_TYPE = "backfill_all";
+
+/** 토스 candles 백필 페이지 크기(외부 계약 상한 200, tossinvest-openapi.md §6). */
+export const BACKFILL_CANDLE_PAGE_COUNT = 200;
+
+/**
+ * 백필의 OpenDART 일일 호출 예산(H-7) — 전체 한도 20,000건 중 정기 수집(027)분을 남겨두기 위한
+ * 상한. 020(전체 한도 초과) 도달 전에 백필이 스스로 멈춰 정기 잡의 몫을 보존한다.
+ */
+export const OPENDART_BACKFILL_DAILY_CALL_BUDGET = 15_000;
+
+/** 분당 호출 상한(안전마진, OpenDART 분당 1,000회 미만 요구사항 대비). */
+export const OPENDART_MAX_CALLS_PER_MINUTE = 600;
+
+/** 정기 잡(H-7 경합 대상)이 running인 동안 백필이 재확인하는 폴링 주기(ms). */
+export const BACKFILL_REGULAR_JOB_POLL_MS = 30_000;
+
+/** running 상태가 이 시간(ms) 초과하면 크래시 고아로 간주한다(E17, 백필 전용 — 장시간 잡이라 026/027보다 길게 잡음). */
+export const BACKFILL_HEARTBEAT_STALE_MS = 600_000;
+
+/** 이 처리 단위 수마다 batch_runs 진행 건수를 갱신한다(하트비트 겸용). */
+export const BACKFILL_PROGRESS_UPDATE_EVERY_N_UNITS = 10;
+
+/** 국내 과거 공시 백필 소급 개월 수(H-10 — 공시 백필은 최근 N개월만, 전 구간 아님). */
+export const BACKFILL_KRX_DISCLOSURE_MONTHS = 12;
+
+/** OpenDART list.json 기간 조회 상한(3개월) 내로 분할하는 일수(공시 소급 윈도우 분할). */
+export const OPENDART_LIST_WINDOW_DAYS = 85;
+
+/**
+ * 백필이 기동 시 경합을 확인해야 하는 정기(비백필) 잡 목록(H-7).
+ * 이 잡들이 running이면 백필은 체크포인트 처리 단위 사이마다 대기한다(regular-job-guard).
+ */
+export const BACKFILL_CONFLICT_JOB_TYPES = [
+  "collect_quotes",
+  "collect_financials",
+  "collect_fx_market_hours",
+  "aggregate_daily_metrics",
+  "analyze_disclosures",
+] as const;

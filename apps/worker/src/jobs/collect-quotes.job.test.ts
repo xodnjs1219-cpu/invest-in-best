@@ -34,6 +34,8 @@ function makeToss(overrides: Partial<CollectQuotesJobDeps["toss"]> = {}): Collec
     getPrices: vi.fn().mockResolvedValue({ quotes: [], failures: [], carriedOverSymbols: [] }),
     getConfirmedDailyCandle: vi.fn().mockResolvedValue(null),
     getStockInfos: vi.fn().mockResolvedValue({ infos: [], failures: [], carriedOverSymbols: [] }),
+    getStocks: vi.fn().mockResolvedValue({ stocks: [], failures: [], carriedOverSymbols: [] }),
+    getDailyCandlesPage: vi.fn().mockResolvedValue({ candles: [], nextBefore: null }),
     getExchangeRate: vi.fn().mockResolvedValue({ kind: "not_published" }),
     getMarketCalendar: vi.fn().mockResolvedValue([]),
     ...overrides,

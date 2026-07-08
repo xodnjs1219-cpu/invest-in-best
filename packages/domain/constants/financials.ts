@@ -87,3 +87,9 @@ export const US_DISCLOSURE_FORMS = ["10-K", "10-Q", "8-K", "20-F", "40-F", "6-K"
 /** 정상 분기/연간 기간 길이(일) 검증 범위 — E14 스텁 기간 검출(sec-edgar-api.md §8.4). */
 export const QUARTER_PERIOD_DAYS = { min: 75, max: 100 } as const;
 export const ANNUAL_PERIOD_DAYS = { min: 340, max: 390 } as const;
+
+/**
+ * 국내 결산월 기본값(UC-031 Phase 2 — 기업개황 확보 실패 corp의 안전 기본값, 대부분 12월 결산).
+ * 결산월 미보유 corp는 이 값으로 간주하고 경고 로그를 남긴다(plan.md 모듈 17.4).
+ */
+export const DEFAULT_KRX_SETTLEMENT_MONTH = 12;

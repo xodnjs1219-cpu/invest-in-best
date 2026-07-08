@@ -70,3 +70,43 @@ export async function completeCheckpoint(
   }
   return repoOk(undefined);
 }
+
+export interface IncompleteCheckpoint {
+  checkpointKey: string;
+  cursor: unknown;
+}
+
+/**
+ * UC-031 백필 재개 지점 조회(docs/usecases/031/plan.md 모듈 12) — job_type의 미완료
+ * (is_completed=false) 체크포인트 전체를 key/cursor 쌍으로 반환한다(idx_batch_checkpoints_incomplete 활용).
+ */
+export async function findIncompleteCheckpoints(
+  client: SupabaseClient,
+  jobType: string,
+): Promise<RepoResult<IncompleteCheckpoint[]>> {
+  const { data, error } = await client
+    .from("batch_checkpoints")
+    .select("checkpoint_key, cursor")
+    .eq("job_type", jobType)
+    .eq("is_completed", false);
+
+  if (error || !data) {
+    return repoFail(`findIncompleteCheckpoints failed: ${error?.message ?? "no data returned"}`);
+  }
+  return repoOk(
+    (data as Array<{ checkpoint_key: string; cursor: unknown }>).map((row) => ({
+      checkpointKey: row.checkpoint_key,
+      cursor: row.cursor,
+    })),
+  );
+}
+
+/** UC-031 H-8(재백필 전체 리셋) 전용 — job_type 조건 밖의 다른 잡 체크포인트는 절대 건드리지 않는다. */
+export async function deleteAllCheckpoints(client: SupabaseClient, jobType: string): Promise<RepoResult<void>> {
+  const { error } = await client.from("batch_checkpoints").delete().eq("job_type", jobType);
+
+  if (error) {
+    return repoFail(`deleteAllCheckpoints failed: ${error.message}`);
+  }
+  return repoOk(undefined);
+}

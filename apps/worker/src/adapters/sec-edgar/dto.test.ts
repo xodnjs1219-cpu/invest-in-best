@@ -4,7 +4,9 @@ import {
   normalizeCik,
   parseCompanyFactsResponse,
   parseSubmissionsResponse,
+  parseTickerCikMapResponse,
   toSecSubmissionsEntry,
+  toSecTickerEntries,
 } from "./dto";
 
 describe("normalizeCik", () => {
@@ -135,6 +137,29 @@ describe("parseCompanyFactsResponse", () => {
 
   it("fails when facts key is missing entirely", () => {
     const result = parseCompanyFactsResponse({ cik: 320193 });
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("parseTickerCikMapResponse / toSecTickerEntries", () => {
+  it("parses the company_tickers.json object-of-index-keys shape (UC-031 Phase 0 US seed)", () => {
+    const raw = {
+      "0": { cik_str: 320193, ticker: "AAPL", title: "Apple Inc." },
+      "1": { cik_str: 1577552, ticker: "BABA", title: "Alibaba Group Holding Ltd" },
+    };
+    const result = parseTickerCikMapResponse(raw);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const entries = toSecTickerEntries(result.data);
+    expect(entries).toEqual([
+      { cik: "0000320193", ticker: "AAPL", title: "Apple Inc." },
+      { cik: "0001577552", ticker: "BABA", title: "Alibaba Group Holding Ltd" },
+    ]);
+  });
+
+  it("fails validation when an entry is missing the ticker field", () => {
+    const raw = { "0": { cik_str: 320193, title: "Apple Inc." } };
+    const result = parseTickerCikMapResponse(raw);
     expect(result.ok).toBe(false);
   });
 });

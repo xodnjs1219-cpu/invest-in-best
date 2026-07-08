@@ -608,3 +608,44 @@ export const SnapshotAtResponseSchema = z.object({
   }),
 });
 export type SnapshotAtResponse = z.infer<typeof SnapshotAtResponseSchema>;
+
+// ============================================================================
+// UC-016: 편집 대상 체인 최신 구성 조회 (`GET /valuechains/:chainId/snapshots/latest`)
+// ============================================================================
+
+/** 편집 진입용 노드 DTO — `NodeDtoSchema`(뷰 전용)와 달리 `positionX/positionY`를 분리 보존한다. */
+const LatestSnapshotNodeDtoSchema = z.object({
+  id: z.string(),
+  nodeKind: z.enum(["listed_company", "free_subject"]),
+  groupId: z.string().nullable(),
+  security: SecurityDtoSchema.nullable(),
+  subjectName: z.string().nullable(),
+  subjectType: z.enum(["consumer", "government", "private_company", "other"]).nullable(),
+  subjectMemo: z.string().nullable(),
+  positionX: z.number().nullable(),
+  positionY: z.number().nullable(),
+});
+
+/** 편집 진입용 엣지 DTO — `relationTypeId`만 노출(방향 속성은 관계 종류 마스터에서 파생, BR-5). */
+const LatestSnapshotEdgeDtoSchema = z.object({
+  id: z.string(),
+  sourceNodeId: z.string(),
+  targetNodeId: z.string(),
+  relationTypeId: z.string(),
+});
+
+export const LatestSnapshotResponseSchema = z.object({
+  chainId: z.string(),
+  chainType: z.enum(["official", "user"]),
+  name: z.string(),
+  focusType: z.enum(["industry", "company"]),
+  focusSecurity: FocusSecurityDtoSchema.nullable(),
+  snapshotId: z.string(),
+  effectiveAt: z.string(),
+  groups: z.array(GroupDtoSchema),
+  nodes: z.array(LatestSnapshotNodeDtoSchema),
+  edges: z.array(LatestSnapshotEdgeDtoSchema),
+});
+export type LatestSnapshotResponse = z.infer<typeof LatestSnapshotResponseSchema>;
+export type LatestSnapshotNode = z.infer<typeof LatestSnapshotNodeDtoSchema>;
+export type LatestSnapshotEdge = z.infer<typeof LatestSnapshotEdgeDtoSchema>;

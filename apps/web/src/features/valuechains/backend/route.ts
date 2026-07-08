@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 import { todayInSeoul, isValidIsoDate, isWithinTimelineRange, type IsoDate } from "@iib/domain";
 import { failure, respond, type ErrorResult } from "@/backend/http/response";
 import { getLogger, getSupabase, getUser, type AppEnv } from "@/backend/hono/context";
+import { findRoleByUserId } from "@/features/account/backend/repository";
 import {
   valuechainListErrorCodes,
   valuechainsErrorCodes,
@@ -31,6 +32,7 @@ import {
   getChainSnapshotAt,
   getChainTimelineMeta,
   getDailyMetrics,
+  getLatestSnapshotForEdit,
   getNodeDetail,
   getQuarterlyMetrics,
   listMyChainCards,
@@ -339,6 +341,44 @@ export const registerValuechainsRoutes = (app: Hono<AppEnv>) => {
       }
     }
 
+    return respond(c, result);
+  });
+
+  // ==========================================================================
+  // UC-016: 편집 대상 체인 최신 구성 조회(API-2 — 편집 캔버스 진입)
+  // ==========================================================================
+
+  app.get("/valuechains/:chainId/snapshots/latest", async (c) => {
+    // 1. 인증 확인(E9)
+    const currentUser = getUser(c);
+    if (!currentUser) {
+      return respond(c, failure(401, valuechainsErrorCodes.editUnauthorized, "로그인이 필요합니다."));
+    }
+
+    // 2. Path param 검증
+    const paramsParsed = ChainIdParamSchema.safeParse({ chainId: c.req.param("chainId") });
+    if (!paramsParsed.success) {
+      return respond(c, failure(400, valuechainsErrorCodes.invalidChainId, "잘못된 밸류체인 경로입니다."));
+    }
+
+    // 3. 의존성 획득
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+    const repo = createValuechainsViewRepository(supabase);
+    const findActorRole = (userId: string) => findRoleByUserId(supabase, userId);
+
+    // 4. 서비스 호출
+    const result = await getLatestSnapshotForEdit(repo, findActorRole, paramsParsed.data.chainId, currentUser.id);
+
+    // 5. 로깅(500류만)
+    if (!result.ok) {
+      const errorResult = result as ErrorResult<ValuechainsServiceError, unknown>;
+      if (result.status >= 500) {
+        logger.error("[valuechains/snapshots/latest] failed", errorResult.error);
+      }
+    }
+
+    // 6. 응답
     return respond(c, result);
   });
 };

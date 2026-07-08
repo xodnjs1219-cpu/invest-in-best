@@ -52,4 +52,24 @@ describe("RelationEdge", () => {
     expect(screen.getByText("경쟁")).toBeInTheDocument();
     expect(baseEdgeMock).toHaveBeenCalledWith(expect.objectContaining({ markerEnd: undefined }));
   });
+
+  it("isHighlighted=true — 오류 하이라이트 스타일 적용(422 위치 표시)", () => {
+    // Arrange & Act
+    render(<RelationEdge {...buildProps({ label: "공급", isDirected: true, isHighlighted: true })} />);
+
+    // Assert
+    expect(baseEdgeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ style: expect.objectContaining({ stroke: expect.any(String) }) }),
+    );
+  });
+
+  it("isInactiveType=true — 비활성 시각 구분 스타일(점선) 적용", () => {
+    // Arrange & Act
+    render(<RelationEdge {...buildProps({ label: "구관계", isDirected: true, isInactiveType: true })} />);
+
+    // Assert
+    expect(baseEdgeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ style: expect.objectContaining({ strokeDasharray: expect.any(String) }) }),
+    );
+  });
 });

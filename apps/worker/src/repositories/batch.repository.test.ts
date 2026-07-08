@@ -7,7 +7,9 @@ import {
   finishRun,
   insertItemFailures,
   insertRun,
+  markRunOrphaned,
   resolveFailures,
+  updateRunProgress,
 } from "./batch.repository";
 
 function makeClient(overrides: Record<string, unknown>): SupabaseClient {
@@ -203,6 +205,47 @@ describe("findLatestRunByStatus", () => {
 
     const result = await findLatestRunByStatus(client, "aggregate_daily_metrics", "success");
     expect(result).toEqual({ ok: true, data: null });
+  });
+});
+
+describe("markRunOrphaned", () => {
+  it("finishes a stale running row as failed with an orphan reason (UC-031 E17)", async () => {
+    const updatedRows: unknown[] = [];
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn((row: unknown) => {
+      updatedRows.push(row);
+      return { eq };
+    });
+    const from = vi.fn().mockReturnValue({ update });
+    const client = makeClient({ from });
+
+    const result = await markRunOrphaned(client, "run-stale-1");
+
+    expect(from).toHaveBeenCalledWith("batch_runs");
+    expect(updatedRows[0]).toMatchObject({ status: "failed" });
+    expect((updatedRows[0] as { error_log: string }).error_log).toMatch(/orphan/i);
+    expect(eq).toHaveBeenCalledWith("id", "run-stale-1");
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe("updateRunProgress", () => {
+  it("updates only processed_count/failed_count (updated_at trigger doubles as heartbeat)", async () => {
+    const updatedRows: unknown[] = [];
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn((row: unknown) => {
+      updatedRows.push(row);
+      return { eq };
+    });
+    const from = vi.fn().mockReturnValue({ update });
+    const client = makeClient({ from });
+
+    const result = await updateRunProgress(client, "run-1", { processedCount: 42, failedCount: 3 });
+
+    expect(from).toHaveBeenCalledWith("batch_runs");
+    expect(updatedRows[0]).toEqual({ processed_count: 42, failed_count: 3 });
+    expect(eq).toHaveBeenCalledWith("id", "run-1");
+    expect(result.ok).toBe(true);
   });
 });
 

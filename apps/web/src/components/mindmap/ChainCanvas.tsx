@@ -1,15 +1,26 @@
 "use client";
 
-import { ReactFlow, ReactFlowProvider, type Edge, type Node } from "@xyflow/react";
+import { ReactFlow, ReactFlowProvider, type Edge, type Node, type NodeTypes, type EdgeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { CompanyNode } from "@/components/mindmap/CompanyNode";
+import { FreeSubjectNode } from "@/components/mindmap/FreeSubjectNode";
+import { RelationEdge } from "@/components/mindmap/RelationEdge";
 
 /**
- * 공용 React Flow 캔버스 프레젠테이션 (UC-013 plan 모듈 21).
+ * 공용 React Flow 캔버스 프레젠테이션 (UC-013 plan 모듈 21, UC-015/016 확장).
  * 뷰(UC-009~012, `MindmapCanvas`)와 편집(UC-015~018 `ChainEditorPage`) 공용 — 콜백은 전부 optional,
  * 도메인 타입 비의존(React Flow `Node[]`/`Edge[]`만 수용).
- * 본 plan에서는 **빈 캔버스 장착만** 수행한다 — 커스텀 노드 타입·엣지 라벨·그룹(Sub Flow) 매핑은
- * UC-015~017 plan이 `nodeTypes`/`edgeTypes` props 확장으로 이어받는다.
+ * `nodeTypes`/`edgeTypes`는 뷰/편집 공용 프레젠터(`CompanyNode`/`FreeSubjectNode`/`RelationEdge`)를 등록한다.
  */
+
+const NODE_TYPES: NodeTypes = {
+  companyNode: CompanyNode,
+  freeSubjectNode: FreeSubjectNode,
+};
+
+const EDGE_TYPES: EdgeTypes = {
+  relationEdge: RelationEdge,
+};
 
 export interface ChainCanvasProps {
   nodes?: Node[];
@@ -17,11 +28,24 @@ export interface ChainCanvasProps {
   onNodeDragStop?: (nodeId: string, position: { x: number; y: number }) => void;
   onSelectionChange?: (params: { nodeIds: string[]; edgeIds: string[] }) => void;
   onConnect?: (params: { source: string; target: string }) => void;
+  /** 노드/엣지 선택 삭제(Delete 키·컨텍스트 액션) — 확인 다이얼로그는 호출측 책임(UC-015 E7). */
+  onElementsDelete?: (params: { nodeIds: string[]; edgeIds: string[] }) => void;
+  /** false면 연결 제스처 비활성 + 안내 배너(E6 — 활성 관계 종류 0개, E10 — 마스터 로드 실패). */
+  nodesConnectable?: boolean;
 }
 
 const EMPTY_STATE_MESSAGE = "노드를 추가해 밸류체인을 구성하세요";
+const CONNECT_DISABLED_MESSAGE = "관계 설정 불가 — 활성화된 관계 종류가 없습니다";
 
-function ChainCanvasInner({ nodes = [], edges = [], onNodeDragStop, onSelectionChange, onConnect }: ChainCanvasProps) {
+function ChainCanvasInner({
+  nodes = [],
+  edges = [],
+  onNodeDragStop,
+  onSelectionChange,
+  onConnect,
+  onElementsDelete,
+  nodesConnectable = true,
+}: ChainCanvasProps) {
   const isEmpty = nodes.length === 0;
 
   return (
@@ -29,6 +53,10 @@ function ChainCanvasInner({ nodes = [], edges = [], onNodeDragStop, onSelectionC
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
+        nodesConnectable={nodesConnectable}
+        deleteKeyCode={onElementsDelete ? null : undefined}
         onNodeDragStop={
           onNodeDragStop ? (_, n) => onNodeDragStop(n.id, n.position) : undefined
         }
@@ -50,6 +78,7 @@ function ChainCanvasInner({ nodes = [], edges = [], onNodeDragStop, onSelectionC
               }
             : undefined
         }
+        isValidConnection={(connection) => connection.source !== connection.target}
         onlyRenderVisibleElements
         fitView
       />
@@ -57,6 +86,13 @@ function ChainCanvasInner({ nodes = [], edges = [], onNodeDragStop, onSelectionC
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="rounded-md bg-white/80 px-4 py-2 text-sm text-gray-500">
             {EMPTY_STATE_MESSAGE}
+          </p>
+        </div>
+      )}
+      {!nodesConnectable && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center p-2">
+          <p className="rounded-md bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+            {CONNECT_DISABLED_MESSAGE}
           </p>
         </div>
       )}

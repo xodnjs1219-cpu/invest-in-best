@@ -11,6 +11,7 @@ const ADMIN_ENTRY_PATH = "/admin/llm-proposals";
 const ADMIN_NAV_ITEMS = [
   { href: "/admin/llm-proposals", label: "LLM 검토 큐" },
   { href: "/admin/batches", label: "배치 모니터링" },
+  { href: "/admin/relation-types", label: "관계 종류 관리" },
 ] as const;
 
 /**

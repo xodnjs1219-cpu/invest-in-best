@@ -3,14 +3,17 @@
 import type { EditorMode, EditorVariant } from "@iib/domain";
 import {
   ChainEditorProvider,
+  useChainEditorActions,
   useChainEditorState,
 } from "@/features/valuechains/editor/context/ChainEditorContext";
 import { useUnsavedChangesGuard } from "@/features/valuechains/editor/hooks/useUnsavedChangesGuard";
 import { EntryBlockedScreen } from "@/features/valuechains/editor/components/EntryBlockedScreen";
 import { EditorToolbar } from "@/features/valuechains/editor/components/EditorToolbar";
 import { ChainMetaPanel } from "@/features/valuechains/editor/components/ChainMetaPanel";
+import { NodeAddPanel } from "@/features/valuechains/editor/components/NodeAddPanel";
+import { EditorCanvasContainer } from "@/features/valuechains/editor/components/EditorCanvasContainer";
 import { UnsavedLeaveDialog } from "@/features/valuechains/editor/components/UnsavedLeaveDialog";
-import { ChainCanvas } from "@/components/mindmap/ChainCanvas";
+import { selectUsedSecurityIds } from "@/features/valuechains/editor/state/chainEditorSelectors";
 
 export interface ChainEditorPageProps {
   mode: EditorMode;
@@ -19,7 +22,8 @@ export interface ChainEditorPageProps {
 }
 
 function ChainEditorPageBody() {
-  const { state, async: asyncState } = useChainEditorState();
+  const { state, computed, async: asyncState } = useChainEditorState();
+  const { addListedCompanyNode, addFreeSubjectNode } = useChainEditorActions();
   const { isLeaveDialogOpen, confirmLeave, cancelLeave } = useUnsavedChangesGuard(state.isDirty);
 
   if (asyncState.isBootstrapping) {
@@ -84,8 +88,20 @@ function ChainEditorPageBody() {
     <div className="flex h-full flex-col">
       <EditorToolbar />
       <ChainMetaPanel />
-      <div className="flex-1 px-4 py-4">
-        <ChainCanvas nodes={[]} edges={[]} />
+      <div className="flex flex-1 gap-4 px-4 py-4">
+        <div className="w-80 shrink-0">
+          <NodeAddPanel
+            nodeCount={computed.nodeCount}
+            isNearNodeLimit={computed.isNearNodeLimit}
+            remainingNodeCapacity={computed.remainingNodeCapacity}
+            onAddListedCompanyNode={(security) => addListedCompanyNode(security)}
+            onAddFreeSubjectNode={(input) => addFreeSubjectNode(input)}
+            usedSecurityIds={selectUsedSecurityIds(state)}
+          />
+        </div>
+        <div className="flex-1">
+          <EditorCanvasContainer />
+        </div>
       </div>
       <UnsavedLeaveDialog open={isLeaveDialogOpen} onConfirm={confirmLeave} onCancel={cancelLeave} />
     </div>

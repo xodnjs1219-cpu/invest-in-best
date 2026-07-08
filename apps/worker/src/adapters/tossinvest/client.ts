@@ -4,7 +4,7 @@
  * 토큰 관리·청크 분할·레이트리밋·재시도·오류 코드 매핑·Zod 검증을 이 파일에 격리한다.
  * 잡은 contract.ts(TossInvestPort)에만 의존한다.
  */
-import { MARKET_TIMEZONES, TOSS_SYMBOLS_CHUNK_SIZE, type MarketCode } from "@iib/domain";
+import { BACKFILL_CANDLE_PAGE_COUNT, MARKET_TIMEZONES, TOSS_SYMBOLS_CHUNK_SIZE, type MarketCode } from "@iib/domain";
 import { formatInTimeZone } from "date-fns-tz";
 import type { WorkerConfig } from "../../runtime/config";
 import type { RateLimiter } from "../../runtime/rate-limiter";
@@ -12,11 +12,14 @@ import { withRetry, type RetryOptions } from "../../runtime/retry";
 import {
   TossAuthError,
   TossRequestError,
+  type GetDailyCandlesPageResult,
   type GetExchangeRateResult,
   type GetPricesResult,
   type GetStockInfosResult,
+  type GetStocksResult,
   type NormalizedCalendarDay,
   type NormalizedDailyCandle,
+  type NormalizedStockDetail,
   type NormalizedStockInfo,
   type SymbolFailure,
   type TossInvestPort,
@@ -28,11 +31,13 @@ import {
   oauthTokenResponseSchema,
   parseTossErrorEnvelope,
   priceItemSchema,
+  stockDetailSchema,
   stockInfoSchema,
   toNormalizedCalendarDays,
   toNormalizedDailyCandle,
   toNormalizedFxRate,
   toNormalizedQuote,
+  toNormalizedStockDetail,
   toNormalizedStockInfo,
   usMarketCalendarResponseSchema,
 } from "./dto";
@@ -273,6 +278,56 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
       return { infos, failures, carriedOverSymbols };
     },
 
+    async getStocks(symbols: string[]): Promise<GetStocksResult> {
+      const chunks = chunk(symbols, TOSS_SYMBOLS_CHUNK_SIZE);
+      const stocks: NormalizedStockDetail[] = [];
+      const failures: SymbolFailure[] = [];
+      const carriedOverSymbols: string[] = [];
+
+      for (const chunkSymbols of chunks) {
+        try {
+          const response = await withRetry(
+            () => requestStocksDetailChunk(chunkSymbols),
+            { ...retryOptions, shouldRetry: shouldRetryTossError },
+          );
+          const requestedSet = new Set(chunkSymbols);
+          const seenSet = new Set<string>();
+
+          for (const item of response.stocks) {
+            const validated = stockDetailSchema.safeParse(item);
+            const symbol = typeof (item as { symbol?: unknown }).symbol === "string"
+              ? (item as { symbol: string }).symbol
+              : "unknown";
+            if (!validated.success) {
+              failures.push({ symbol, reason: "validation_failed", message: validated.error.message });
+              seenSet.add(symbol);
+              continue;
+            }
+            seenSet.add(validated.data.symbol);
+            stocks.push(toNormalizedStockDetail(validated.data));
+          }
+
+          for (const requested of requestedSet) {
+            if (!seenSet.has(requested)) {
+              failures.push({ symbol: requested, reason: "not_found", message: "response missing symbol" });
+            }
+          }
+        } catch (error) {
+          if (error instanceof TossAuthError) throw error;
+          carriedOverSymbols.push(...chunkSymbols);
+        }
+      }
+
+      return { stocks, failures, carriedOverSymbols };
+    },
+
+    async getDailyCandlesPage(symbol: string, before?: string): Promise<GetDailyCandlesPageResult> {
+      return withRetry(
+        () => requestDailyCandlesPage(symbol, before),
+        { ...retryOptions, shouldRetry: shouldRetryTossError },
+      );
+    },
+
     async getExchangeRate(now: Date): Promise<GetExchangeRateResult> {
       return withRetry(
         () => requestExchangeRate(now),
@@ -351,6 +406,52 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
     }
     const raw = (await response.json()) as { stocks?: unknown[] };
     return { stocks: Array.isArray(raw.stocks) ? raw.stocks : [] };
+  }
+
+  /** UC-031 Phase 0 — 정형 필드 전체 조회(getStockInfos와 동일 엔드포인트, 검증 스키마만 확장). */
+  async function requestStocksDetailChunk(symbols: string[]): Promise<{ stocks: unknown[] }> {
+    const params = new URLSearchParams({ symbols: symbols.join(",") });
+    const response = await authorizedFetch(
+      `/api/v1/stocks?${params.toString()}`,
+      { method: "GET" },
+      "STOCK",
+    );
+    if (!response.ok) {
+      throw await toTossRequestError(response);
+    }
+    const raw = (await response.json()) as { stocks?: unknown[] };
+    return { stocks: Array.isArray(raw.stocks) ? raw.stocks : [] };
+  }
+
+  /** UC-031 Phase 1 — before 커서 페이지네이션으로 과거 일봉 소급(count=200, adjusted=true). */
+  async function requestDailyCandlesPage(symbol: string, before?: string): Promise<GetDailyCandlesPageResult> {
+    const params = new URLSearchParams({
+      symbol,
+      interval: "1d",
+      count: String(BACKFILL_CANDLE_PAGE_COUNT),
+      adjusted: "true",
+    });
+    if (before !== undefined) {
+      params.set("before", before);
+    }
+    const response = await authorizedFetch(
+      `/api/v1/candles?${params.toString()}`,
+      { method: "GET" },
+      "MARKET_DATA_CHART",
+    );
+    if (!response.ok) {
+      throw await toTossRequestError(response);
+    }
+    const raw: unknown = await response.json();
+    const parsed = candlePageResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new TossRequestError({ code: "validation_failed", status: response.status, message: parsed.error.message });
+    }
+    const candles = parsed.data.candles.map((candle) => {
+      const localDate = candle.timestamp.slice(0, 10); // yyyy-MM-dd prefix of the ISO timestamp
+      return toNormalizedDailyCandle(symbol, candle, localDate);
+    });
+    return { candles, nextBefore: parsed.data.nextBefore ?? null };
   }
 
   async function requestConfirmedDailyCandle(

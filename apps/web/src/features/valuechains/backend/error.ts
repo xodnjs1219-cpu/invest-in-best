@@ -25,6 +25,24 @@ export const valuechainsErrorCodes = {
   dateOutOfRange: "DATE_OUT_OF_RANGE", // 400 (최소 시작 시점 이전 또는 미래)
   snapshotNotFound: "SNAPSHOT_NOT_FOUND", // 404 (첫 스냅샷 이전 날짜)
   timelineQueryFailed: "TIMELINE_QUERY_FAILED", // 500 (조회 처리 중 서버/DB 오류)
+
+  // ── UC-016: 편집 대상 체인 최신 구성 조회(`GET /valuechains/:chainId/snapshots/latest`) ──
+  editUnauthorized: "EDIT_UNAUTHORIZED", // 401 — 미로그인(E9)
+  editChainForbidden: "EDIT_CHAIN_FORBIDDEN", // 403 — 공식 체인 + 비Admin(R-2)
+  editSnapshotNotFound: "EDIT_SNAPSHOT_NOT_FOUND", // 404 — 스냅샷 0건(정합 위반 방어)
+  editFetchFailed: "EDIT_FETCH_FAILED", // 500
+  editValidationError: "EDIT_VALIDATION_ERROR", // 500
+
+  // ── UC-016: 저장 시 엣지 검증(R-4 매핑 — 저장 service(UC-018/021)가 세분/통합 코드로 사용) ──
+  // 사용자 체인 저장(UC-018) 통합 코드: 세분 사유는 error.details.reason에 포함.
+  invalidEdge: "VALUECHAINS.INVALID_EDGE",
+  invalidRelationType: "VALUECHAINS.INVALID_RELATION_TYPE",
+  // 공식 체인 저장(UC-021) 세분 코드.
+  edgeSelfReference: "VALUECHAINS.EDGE_SELF_REFERENCE",
+  edgeDuplicateRelation: "VALUECHAINS.EDGE_DUPLICATE_RELATION",
+  edgeNodeRefInvalid: "VALUECHAINS.EDGE_NODE_REF_INVALID",
+  relationTypeNotFound: "VALUECHAINS.RELATION_TYPE_NOT_FOUND",
+  relationTypeInactiveForNewEdge: "VALUECHAINS.RELATION_TYPE_INACTIVE_FOR_NEW_EDGE",
 } as const;
 
 export type ValuechainsServiceError =

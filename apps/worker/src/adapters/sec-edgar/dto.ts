@@ -3,7 +3,7 @@
  * 필수 최소 필드만 엄격 검증 + passthrough. columnar(filings.recent) → 행 배열 변환 유틸 포함.
  */
 import { z } from "zod";
-import type { SecSubmissionsEntry } from "./contract";
+import type { SecSubmissionsEntry, SecTickerEntry } from "./contract";
 
 /** CIK 정규화 — 10자리 zero-pad, 문자열 유지(앞자리 0 유실 방지). */
 export function normalizeCik(input: string | number): string {
@@ -113,6 +113,35 @@ export function parseCompanyFactsResponse(raw: unknown): ParseResult<CompanyFact
     return { ok: false, error: result.error.message };
   }
   return { ok: true, data: result.data };
+}
+
+/** company_tickers.json — {"0": {cik_str, ticker, title}, "1": {...}, ...} 인덱스 키 객체 맵(UC-031 Phase 0). */
+const tickerEntrySchema = z
+  .object({
+    cik_str: z.coerce.number(),
+    ticker: z.string().min(1),
+    title: z.string().min(1),
+  })
+  .passthrough();
+
+export const tickerCikMapResponseSchema = z.record(z.string(), tickerEntrySchema);
+export type TickerCikMapResponse = z.infer<typeof tickerCikMapResponseSchema>;
+
+export function parseTickerCikMapResponse(raw: unknown): ParseResult<TickerCikMapResponse> {
+  const result = tickerCikMapResponseSchema.safeParse(raw);
+  if (!result.success) {
+    return { ok: false, error: result.error.message };
+  }
+  return { ok: true, data: result.data };
+}
+
+/** 인덱스 키 객체 맵 → 내부 모델 배열(CIK 10자리 zero-pad 정규화). */
+export function toSecTickerEntries(dto: TickerCikMapResponse): SecTickerEntry[] {
+  return Object.values(dto).map((entry) => ({
+    cik: normalizeCik(entry.cik_str),
+    ticker: entry.ticker,
+    title: entry.title,
+  }));
 }
 
 export const companyConceptResponseSchema = z

@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   AGGREGATE_DAILY_METRICS_CRON,
   AGGREGATION_DATE_WINDOW_DAYS,
+  BACKFILL_CANDLE_PAGE_COUNT,
+  BACKFILL_CONFLICT_JOB_TYPES,
+  BACKFILL_HEARTBEAT_STALE_MS,
+  BACKFILL_JOB_TYPE,
+  BACKFILL_KRX_DISCLOSURE_MONTHS,
+  BACKFILL_PROGRESS_UPDATE_EVERY_N_UNITS,
+  BACKFILL_REGULAR_JOB_POLL_MS,
   BATCH_CRON_TIMEZONE,
   BATCH_JOB_TYPES,
   BATCH_JOB_TYPE_AGGREGATE_DAILY_METRICS,
@@ -16,6 +23,7 @@ import {
   DART_MULTI_ACNT_CHUNK_SIZE,
   DB_UPSERT_CHUNK_SIZE,
   DISCLOSURE_LOOKBACK_DAYS,
+  OPENDART_BACKFILL_DAILY_CALL_BUDGET,
   QUOTE_TICKS_RETENTION_DAYS,
   TOSS_SYMBOLS_CHUNK_SIZE,
 } from "./batch";
@@ -84,5 +92,38 @@ describe("batch constants", () => {
   it("BATCH_RUNNING_STALE_HOURS and AGGREGATION_DATE_WINDOW_DAYS are positive", () => {
     expect(BATCH_RUNNING_STALE_HOURS).toBeGreaterThan(0);
     expect(AGGREGATION_DATE_WINDOW_DAYS).toBeGreaterThan(0);
+  });
+
+  it("BACKFILL_JOB_TYPE matches the batch_job_type enum literal for UC-031", () => {
+    expect(BACKFILL_JOB_TYPE).toBe("backfill_all");
+    expect(BATCH_JOB_TYPES).toContain(BACKFILL_JOB_TYPE);
+  });
+
+  it("BACKFILL_CANDLE_PAGE_COUNT respects the tossinvest candles external cap (<=200)", () => {
+    expect(BACKFILL_CANDLE_PAGE_COUNT).toBeGreaterThan(0);
+    expect(BACKFILL_CANDLE_PAGE_COUNT).toBeLessThanOrEqual(200);
+  });
+
+  it("OPENDART_BACKFILL_DAILY_CALL_BUDGET reserves headroom under the 20,000/day hard limit (H-7)", () => {
+    expect(OPENDART_BACKFILL_DAILY_CALL_BUDGET).toBeGreaterThan(0);
+    expect(OPENDART_BACKFILL_DAILY_CALL_BUDGET).toBeLessThan(20_000);
+  });
+
+  it("BACKFILL_REGULAR_JOB_POLL_MS and BACKFILL_HEARTBEAT_STALE_MS are positive, poll << stale (H-7/E17)", () => {
+    expect(BACKFILL_REGULAR_JOB_POLL_MS).toBeGreaterThan(0);
+    expect(BACKFILL_HEARTBEAT_STALE_MS).toBeGreaterThan(0);
+    expect(BACKFILL_REGULAR_JOB_POLL_MS).toBeLessThan(BACKFILL_HEARTBEAT_STALE_MS);
+  });
+
+  it("BACKFILL_CONFLICT_JOB_TYPES lists the regular (non-backfill) jobs it must yield to (H-7)", () => {
+    expect(BACKFILL_CONFLICT_JOB_TYPES).not.toContain(BACKFILL_JOB_TYPE);
+    for (const jobType of BACKFILL_CONFLICT_JOB_TYPES) {
+      expect(BATCH_JOB_TYPES).toContain(jobType);
+    }
+  });
+
+  it("BACKFILL_KRX_DISCLOSURE_MONTHS and BACKFILL_PROGRESS_UPDATE_EVERY_N_UNITS are positive (H-10)", () => {
+    expect(BACKFILL_KRX_DISCLOSURE_MONTHS).toBeGreaterThan(0);
+    expect(BACKFILL_PROGRESS_UPDATE_EVERY_N_UNITS).toBeGreaterThan(0);
   });
 });

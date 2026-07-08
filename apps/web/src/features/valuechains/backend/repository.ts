@@ -392,6 +392,77 @@ export const findSnapshotStructureAt = async (
   return { ok: true, data: data ?? null };
 };
 
+// ============================================================================
+// UC-016: findLatestEdgeIdentities (BR-4 대조용 — 저장 service(UC-018/021)가 소비)
+// ============================================================================
+
+/** 순수 데이터 형태 — service/domain 계층(`NodeIdentity`/`PreviousEdgeIdentity`)과 구조적으로 호환. */
+export type LatestEdgeIdentityRow = {
+  relationTypeId: string;
+  source: { kind: "listed_company"; securityId: string } | { kind: "free_subject"; subjectName: string; subjectType: string };
+  target: { kind: "listed_company"; securityId: string } | { kind: "free_subject"; subjectName: string; subjectType: string };
+};
+
+type SnapshotNodeIdentityRow = {
+  node_kind: "listed_company" | "free_subject";
+  security_id: string | null;
+  subject_name: string | null;
+  subject_type: string | null;
+};
+
+function toNodeIdentity(row: SnapshotNodeIdentityRow): LatestEdgeIdentityRow["source"] {
+  if (row.node_kind === "listed_company") {
+    return { kind: "listed_company", securityId: row.security_id as string };
+  }
+  return { kind: "free_subject", subjectName: row.subject_name as string, subjectType: row.subject_type as string };
+}
+
+/**
+ * 최신 스냅샷의 엣지를 노드 정체성(BR-4·D-7)으로 매핑해 반환 — 저장 시 비활성 관계 종류의
+ * "기존 엣지 유지" 판별(공식 체인 저장, UC-021)에 사용된다. 최신 스냅샷 없으면 `null`(신규 저장 신호).
+ */
+export const findLatestEdgeIdentities = async (
+  client: SupabaseClient,
+  chainId: string,
+): Promise<LatestEdgeIdentityRow[] | null> => {
+  const { data: snapshot, error: snapshotError } = await client
+    .from(CHAIN_SNAPSHOTS_TABLE)
+    .select("id")
+    .eq("chain_id", chainId)
+    .order("effective_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (snapshotError || !snapshot) {
+    return null;
+  }
+
+  const { data, error } = await client
+    .from(SNAPSHOT_EDGES_TABLE)
+    .select(
+      "relation_type_id, " +
+        "source_node:snapshot_nodes!snapshot_edges_source_node_id_fkey(node_kind, security_id, subject_name, subject_type), " +
+        "target_node:snapshot_nodes!snapshot_edges_target_node_id_fkey(node_kind, security_id, subject_name, subject_type)",
+    )
+    .eq("snapshot_id", (snapshot as { id: string }).id);
+
+  if (error || !data) {
+    return null;
+  }
+
+  return (
+    data as unknown as Array<{
+      relation_type_id: string;
+      source_node: SnapshotNodeIdentityRow;
+      target_node: SnapshotNodeIdentityRow;
+    }>
+  ).map((row) => ({
+    relationTypeId: row.relation_type_id,
+    source: toNodeIdentity(row.source_node),
+    target: toNodeIdentity(row.target_node),
+  }));
+};
+
 /** 해당 일자 이하 최신 일별 지표 1건(이월 규칙, database §4.5 패턴). */
 export const findDailyMetricAt = async (
   client: SupabaseClient,
