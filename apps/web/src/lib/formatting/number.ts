@@ -51,3 +51,40 @@ export const formatKrwCompactOrNull = (value: number | string | null, nullLabel:
   }
   return formatKrwCompact(String(value));
 };
+
+const USD_BILLION = 1_000_000_000;
+const USD_MILLION = 1_000_000;
+
+/** USD 축약 표기: |value| >= 1B → "$N.NB", >= 1M → "$N.NM", 그 외 "$N,NNN"(정수 콤마). */
+const formatUsdCompact = (value: number): string => {
+  const isNegative = value < 0;
+  const abs = Math.abs(value);
+  const sign = isNegative ? "-" : "";
+
+  if (abs >= USD_BILLION) {
+    return `${sign}$${(abs / USD_BILLION).toFixed(1)}B`;
+  }
+  if (abs >= USD_MILLION) {
+    return `${sign}$${(abs / USD_MILLION).toFixed(1)}M`;
+  }
+  return `${sign}$${Math.round(abs).toLocaleString("en-US")}`;
+};
+
+/**
+ * 통화 인지 금액 축약 포맷터 (UC-020 plan 모듈 10) — KRW는 `formatKrwCompact` 위임(조/억),
+ * USD는 B/M 축약 + `$` 표기. `null`(미제공/미매핑)과 `0`(값 0)을 구분해 표기한다(spec §6.1).
+ * 기존 `formatKrwCompact`/`formatKrwCompactOrNull` 시그니처는 변경하지 않는다(UC-010 사용처 무영향).
+ */
+export const formatCurrencyAmount = (
+  value: number | null,
+  currency: "KRW" | "USD",
+  nullLabel: string,
+): string => {
+  if (value === null) {
+    return nullLabel;
+  }
+  if (currency === "KRW") {
+    return formatKrwCompact(String(value));
+  }
+  return formatUsdCompact(value);
+};

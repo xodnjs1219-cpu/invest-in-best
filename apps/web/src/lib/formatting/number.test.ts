@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatKrwCompact, formatKrwCompactOrNull } from "@/lib/formatting/number";
+import { formatCurrencyAmount, formatKrwCompact, formatKrwCompactOrNull } from "@/lib/formatting/number";
 
 describe("formatKrwCompact", () => {
   it("조 단위 값을 '조' 단위로 축약한다", () => {
@@ -43,5 +43,39 @@ describe("formatKrwCompactOrNull", () => {
 
   it("string 입력도 처리한다(정밀도 보존 경로)", () => {
     expect(formatKrwCompactOrNull("123456789012", "미제공")).toBe("1,234억원");
+  });
+});
+
+describe("formatCurrencyAmount (UC-020 plan 모듈 10)", () => {
+  it("KRW는 기존 formatKrwCompact와 동일 결과(조/억 축약)", () => {
+    expect(formatCurrencyAmount(1_234_500_000_000, "KRW", "미제공")).toBe(
+      formatKrwCompact("1234500000000"),
+    );
+  });
+
+  it("USD는 10억 이상이면 $N.NB 형식으로 축약한다", () => {
+    expect(formatCurrencyAmount(1_500_000_000, "USD", "미제공")).toBe("$1.5B");
+  });
+
+  it("USD는 백만 이상 10억 미만이면 $N.NM 형식으로 축약한다", () => {
+    expect(formatCurrencyAmount(2_500_000, "USD", "미제공")).toBe("$2.5M");
+  });
+
+  it("USD는 백만 미만이면 콤마 표기($N,NNN)", () => {
+    expect(formatCurrencyAmount(1234, "USD", "미제공")).toBe("$1,234");
+  });
+
+  it("null이면 nullLabel을 반환한다", () => {
+    expect(formatCurrencyAmount(null, "USD", "미제공")).toBe("미제공");
+    expect(formatCurrencyAmount(null, "KRW", "미산출")).toBe("미산출");
+  });
+
+  it("0은 nullLabel이 아닌 0 표기를 반환한다(null과 구분)", () => {
+    expect(formatCurrencyAmount(0, "KRW", "미제공")).toBe("0원");
+    expect(formatCurrencyAmount(0, "USD", "미제공")).toBe("$0");
+  });
+
+  it("음수 USD도 부호를 보존한다", () => {
+    expect(formatCurrencyAmount(-1_500_000_000, "USD", "미제공")).toBe("-$1.5B");
   });
 });

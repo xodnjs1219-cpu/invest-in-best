@@ -94,6 +94,38 @@ export async function findRunningRun(
   return repoOk({ id: rows[0]!.id, startedAt: rows[0]!.started_at });
 }
 
+export interface LatestRunByStatus {
+  id: string;
+  startedAt: string;
+}
+
+/**
+ * 해당 잡·상태의 최신 실행 1건 (docs/usecases/029/plan.md 모듈 7 확장).
+ * 직전 성공 실행 조회(대상 범위·정정 감지 기준 시각) — `idx(job_type, started_at DESC)` 활용.
+ */
+export async function findLatestRunByStatus(
+  client: SupabaseClient,
+  jobType: string,
+  status: "running" | "success" | "partial_success" | "failed",
+): Promise<RepoResult<LatestRunByStatus | null>> {
+  const { data, error } = await client
+    .from("batch_runs")
+    .select("id, started_at")
+    .eq("job_type", jobType)
+    .eq("status", status)
+    .order("started_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    return repoFail(`findLatestRunByStatus failed: ${error.message}`);
+  }
+  const [row] = (data ?? []) as Array<{ id: string; started_at: string }>;
+  if (row === undefined) {
+    return repoOk(null);
+  }
+  return repoOk({ id: row.id, startedAt: row.started_at });
+}
+
 export interface UnresolvedFailure {
   id: string;
   securityId: string | null;

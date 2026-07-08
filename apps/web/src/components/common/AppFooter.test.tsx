@@ -11,16 +11,32 @@ describe("AppFooter", () => {
     ).toBeInTheDocument();
   });
 
-  it("이용약관 링크가 /terms를 가리킨다", () => {
+  it("이용약관 링크가 /legal/terms를 가리킨다(R-1)", () => {
     render(<AppFooter />);
-    expect(screen.getByRole("link", { name: "이용약관" })).toHaveAttribute("href", "/terms");
+    expect(screen.getByRole("link", { name: "이용약관" })).toHaveAttribute(
+      "href",
+      "/legal/terms",
+    );
   });
 
-  it("개인정보처리방침 링크가 /privacy를 가리킨다", () => {
+  it("개인정보처리방침 링크가 /legal/privacy를 가리킨다(R-1)", () => {
     render(<AppFooter />);
     expect(screen.getByRole("link", { name: "개인정보처리방침" })).toHaveAttribute(
       "href",
-      "/privacy",
+      "/legal/privacy",
     );
+  });
+
+  it("투자 면책 문구 링크가 /legal/disclaimer를 가리킨다(spec Main 2, 3종 완성)", () => {
+    render(<AppFooter />);
+    expect(screen.getByRole("link", { name: "투자 면책 문구" })).toHaveAttribute(
+      "href",
+      "/legal/disclaimer",
+    );
+  });
+
+  it("정책 링크가 정확히 3종이다(BR-5)", () => {
+    render(<AppFooter />);
+    expect(screen.getAllByRole("link")).toHaveLength(3);
   });
 });

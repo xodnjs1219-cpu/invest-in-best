@@ -27,3 +27,10 @@ export const MARKET_REGULAR_SESSION_LOCAL: Record<MarketCode, { open: string; cl
   KRX: { open: "09:00", close: "15:30" },
   US: { open: "09:30", close: "16:00" },
 };
+
+/**
+ * 상장주식수 소스 우선순위(docs/usecases/029/plan.md 모듈 1) — `fn_latest_shares_outstanding`(RPC)의
+ * ORDER BY와 일치해야 하는 tie-break 순서. UC-020(`constants/company-detail.ts`)이 이미 정의한
+ * `SHARES_SOURCE_PRIORITY`(database.md §3.5)를 재노출한다(SOT 이원화 금지).
+ */
+export { SHARES_SOURCE_PRIORITY } from "./company-detail";

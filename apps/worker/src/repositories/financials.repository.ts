@@ -1,9 +1,10 @@
 /**
- * 재무 리포지토리 (docs/usecases/027/plan.md 모듈 12).
- * fn_upsert_quarterly_financials RPC 청크 호출, 기존 (year,quarter) 적재 여부 조회(폴백 판정용).
+ * 재무 리포지토리 (docs/usecases/027/plan.md 모듈 12, docs/usecases/029/plan.md 모듈 7 확장).
+ * fn_upsert_quarterly_financials RPC 청크 호출, 기존 (year,quarter) 적재 여부 조회(폴백 판정용),
+ * 역년 축 분기 매출 조회·연간 전용 판별·정정 워터마크 조회(집계 배치 029 입력).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DB_UPSERT_CHUNK_SIZE } from "@iib/domain";
+import { DB_UPSERT_CHUNK_SIZE, type IsoDate } from "@iib/domain";
 import { repoFail, repoOk, type RepoResult } from "./result";
 
 export interface FinancialsRow {
@@ -105,4 +106,96 @@ export async function findExistingPeriodKeys(
     return repoFail(`findExistingPeriodKeys failed: ${error?.message ?? "no data returned"}`);
   }
   return repoOk(new Set((data as Array<{ security_id: string }>).map((r) => r.security_id)));
+}
+
+export interface QuarterRevenueRow {
+  securityId: string;
+  revenue: number | null;
+  currency: "KRW" | "USD";
+  isRevenueTagUnmapped: boolean;
+}
+
+/**
+ * 역년 축(calendar_year/calendar_quarter) 분기 매출 조회(BR 6.1 — 회계 축 아님, UC-029 모듈 7).
+ * `period_type='quarter'` 행만 대상.
+ */
+export async function findQuarterRevenues(
+  client: SupabaseClient,
+  securityIds: string[],
+  year: number,
+  quarter: number,
+): Promise<RepoResult<QuarterRevenueRow[]>> {
+  if (securityIds.length === 0) return repoOk([]);
+
+  const { data, error } = await client
+    .from("quarterly_financials")
+    .select("security_id, revenue, currency, is_revenue_tag_unmapped")
+    .in("security_id", securityIds)
+    .eq("period_type", "quarter")
+    .eq("calendar_year", year)
+    .eq("calendar_quarter", quarter);
+
+  if (error || !data) {
+    return repoFail(`findQuarterRevenues failed: ${error?.message ?? "no data returned"}`);
+  }
+  return repoOk(
+    (data as Array<{ security_id: string; revenue: number | null; currency: "KRW" | "USD"; is_revenue_tag_unmapped: boolean }>).map(
+      (row) => ({
+        securityId: row.security_id,
+        revenue: row.revenue,
+        currency: row.currency,
+        isRevenueTagUnmapped: row.is_revenue_tag_unmapped,
+      }),
+    ),
+  );
+}
+
+/**
+ * 연간 전용(20-F 등, `period_type='annual'`) 판별 — 해당 분기와 기간이 겹치는 행의 security_id 집합(E8).
+ * 기간 결측 행(`period_start_date`/`period_end_date` NULL)은 `fiscal_year=year` 폴백으로 판별한다.
+ */
+export async function findAnnualOnlySecurities(
+  client: SupabaseClient,
+  securityIds: string[],
+  year: number,
+  quarterStart: IsoDate,
+  quarterEnd: IsoDate,
+): Promise<RepoResult<Set<string>>> {
+  if (securityIds.length === 0) return repoOk(new Set());
+
+  const { data, error } = await client
+    .from("quarterly_financials")
+    .select("security_id, period_start_date, period_end_date, fiscal_year")
+    .in("security_id", securityIds)
+    .eq("period_type", "annual")
+    .or(
+      `and(period_start_date.lte.${quarterEnd},period_end_date.gte.${quarterStart}),and(period_start_date.is.null,period_end_date.is.null,fiscal_year.eq.${year})`,
+    );
+
+  if (error || !data) {
+    return repoFail(`findAnnualOnlySecurities failed: ${error?.message ?? "no data returned"}`);
+  }
+  return repoOk(new Set((data as Array<{ security_id: string }>).map((r) => r.security_id)));
+}
+
+/** 직전 성공 실행 이후 정정된 quarterly_financials(period_type='quarter') 최소 영향 (year,quarter)(E6 워터마크). */
+export async function findMinCorrectedQuarterSince(
+  client: SupabaseClient,
+  sinceIso: string,
+): Promise<RepoResult<{ year: number; quarter: number } | null>> {
+  const { data, error } = await client
+    .from("quarterly_financials")
+    .select("calendar_year, calendar_quarter")
+    .eq("period_type", "quarter")
+    .gt("updated_at", sinceIso)
+    .order("calendar_year", { ascending: true })
+    .order("calendar_quarter", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ calendar_year: number; calendar_quarter: number }>();
+
+  if (error) {
+    return repoFail(`findMinCorrectedQuarterSince failed: ${error.message}`);
+  }
+  if (!data) return repoOk(null);
+  return repoOk({ year: data.calendar_year, quarter: data.calendar_quarter });
 }

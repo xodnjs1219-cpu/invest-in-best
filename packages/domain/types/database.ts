@@ -1242,6 +1242,37 @@ export type Database = {
         Args: { p_as_of: string; p_chain_id: string }
         Returns: Json
       }
+      fn_latest_daily_closes_before: {
+        Args: { p_before: string; p_security_ids: string[] }
+        Returns: {
+          close_price: number
+          security_id: string
+          trade_date: string
+        }[]
+      }
+      fn_latest_shares_outstanding: {
+        Args: { p_security_ids: string[] }
+        Returns: {
+          as_of_date: string
+          security_id: string
+          shares: number
+          source: Database["public"]["Enums"]["data_source"]
+        }[]
+      }
+      fn_security_belonging_chains: {
+        Args: { p_owner_id?: string; p_security_id: string }
+        Returns: {
+          chain_id: string
+          chain_type: Database["public"]["Enums"]["chain_type"]
+          covered_node_count: number
+          focus_type: Database["public"]["Enums"]["chain_focus_type"]
+          metric_date: string
+          name: string
+          node_count: number
+          total_market_cap_krw: string
+          total_node_count: number
+        }[]
+      }
       fn_upsert_provisional_daily_quotes: {
         Args: {
           p_from: string

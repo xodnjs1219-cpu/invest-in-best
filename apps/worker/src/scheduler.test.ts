@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { registerSchedules } from "./scheduler";
 import {
+  AGGREGATE_DAILY_METRICS_CRON,
   BATCH_CRON_TIMEZONE,
   BATCH_TIMEZONE,
   COLLECT_FINANCIALS_CRON,
@@ -13,12 +14,14 @@ function makeDeps() {
   const collectQuotesJob = { run: vi.fn().mockResolvedValue(undefined) };
   const collectFinancialsJob = { run: vi.fn().mockResolvedValue(undefined) };
   const collectFxMarketHoursJob = { run: vi.fn().mockResolvedValue(undefined) };
+  const aggregateDailyMetricsJob = { run: vi.fn().mockResolvedValue(undefined) };
   const cronSchedule = vi.fn();
   return {
     jobLock,
     collectQuotesJob,
     collectFinancialsJob,
     collectFxMarketHoursJob,
+    aggregateDailyMetricsJob,
     cronSchedule,
   };
 }
@@ -91,10 +94,10 @@ describe("registerSchedules", () => {
     );
   });
 
-  it("collect-fx-market-hours registration coexists with collect-quotes and collect-financials (no regression)", () => {
+  it("collect-fx-market-hours registration coexists with collect-quotes, collect-financials, and aggregate-daily-metrics (no regression)", () => {
     const deps = makeDeps();
     registerSchedules(deps);
-    expect(deps.cronSchedule).toHaveBeenCalledTimes(3);
+    expect(deps.cronSchedule).toHaveBeenCalledTimes(4);
   });
 
   it("collect-fx-market-hours handler skips when the lock is held, and releases the lock on job exception", async () => {
@@ -119,5 +122,64 @@ describe("registerSchedules", () => {
     await handler();
 
     expect(deps.collectFxMarketHoursJob.run).not.toHaveBeenCalled();
+  });
+
+  it("registers the aggregate-daily-metrics handler under AGGREGATE_DAILY_METRICS_CRON with the KST timezone (UC-029)", () => {
+    const deps = makeDeps();
+    registerSchedules(deps);
+    expect(deps.cronSchedule).toHaveBeenCalledWith(
+      AGGREGATE_DAILY_METRICS_CRON,
+      expect.any(Function),
+      { timezone: BATCH_CRON_TIMEZONE },
+    );
+  });
+
+  it("aggregate-daily-metrics handler invokes run() and releases the lock on success", async () => {
+    const deps = makeDeps();
+    registerSchedules(deps);
+
+    const aggCall = deps.cronSchedule.mock.calls.find(([expr]) => expr === AGGREGATE_DAILY_METRICS_CRON);
+    const handler = aggCall?.[1] as () => Promise<void>;
+    await handler();
+
+    expect(deps.aggregateDailyMetricsJob.run).toHaveBeenCalled();
+    expect(deps.jobLock.release).toHaveBeenCalledWith("aggregate_daily_metrics");
+  });
+
+  it("aggregate-daily-metrics handler skips when the lock is held, and releases the lock on job exception", async () => {
+    const deps = makeDeps();
+    deps.aggregateDailyMetricsJob.run.mockRejectedValue(new Error("boom"));
+    registerSchedules(deps);
+
+    const aggCall = deps.cronSchedule.mock.calls.find(([expr]) => expr === AGGREGATE_DAILY_METRICS_CRON);
+    const handler = aggCall?.[1] as () => Promise<void>;
+    await expect(handler()).resolves.toBeUndefined();
+
+    expect(deps.jobLock.release).toHaveBeenCalledWith("aggregate_daily_metrics");
+  });
+
+  it("does not invoke aggregate-daily-metrics when its lock is already held", async () => {
+    const deps = makeDeps();
+    deps.jobLock.tryAcquire.mockImplementation((jobType: string) => jobType !== "aggregate_daily_metrics");
+    registerSchedules(deps);
+
+    const aggCall = deps.cronSchedule.mock.calls.find(([expr]) => expr === AGGREGATE_DAILY_METRICS_CRON);
+    const handler = aggCall?.[1] as () => Promise<void>;
+    await handler();
+
+    expect(deps.aggregateDailyMetricsJob.run).not.toHaveBeenCalled();
+  });
+
+  it("aggregate-daily-metrics registration is optional — omitting it does not register a 4th cron entry", () => {
+    const deps = makeDeps();
+    const depsWithoutAgg = {
+      jobLock: deps.jobLock,
+      collectQuotesJob: deps.collectQuotesJob,
+      collectFinancialsJob: deps.collectFinancialsJob,
+      collectFxMarketHoursJob: deps.collectFxMarketHoursJob,
+      cronSchedule: deps.cronSchedule,
+    };
+    registerSchedules(depsWithoutAgg);
+    expect(depsWithoutAgg.cronSchedule).toHaveBeenCalledTimes(3);
   });
 });

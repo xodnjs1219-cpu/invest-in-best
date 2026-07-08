@@ -88,3 +88,21 @@ export type BatchJobType = (typeof BATCH_JOB_TYPES)[number];
 export const BATCH_RUN_STATUSES = ["running", "success", "partial_success", "failed"] as const;
 
 export type BatchRunStatus = (typeof BATCH_RUN_STATUSES)[number];
+
+/* ── UC-029 aggregate-daily-metrics 확장 (docs/usecases/029/plan.md 모듈 1) ── */
+
+/** aggregate-daily-metrics 잡 스케줄: 1일 1회 08:00 KST(026 시세 확정·027 재무·028 환율 수집 이후). */
+export const AGGREGATE_DAILY_METRICS_CRON = "0 8 * * *";
+
+/** batch_runs.job_type enum 리터럴. */
+export const BATCH_JOB_TYPE_AGGREGATE_DAILY_METRICS = "aggregate_daily_metrics";
+
+/**
+ * running 상태가 이 시간(h) 초과하면 크래시 고아로 간주하고 중복 판정에서 무시(E10/E11 2차 방어).
+ * UC-026의 `BATCH_STALE_RUNNING_HOURS`(24h)는 하루 단위 잡을 전제한 값이라 재사용하지 않고,
+ * 본 잡(1일 1회, 짧은 실행)에 맞춘 별도 상수를 둔다.
+ */
+export const BATCH_RUNNING_STALE_HOURS = 6;
+
+/** 대량 캐치업 시 체인×일자 처리를 창 단위로 분할하는 일수(E13·메모리 상한). */
+export const AGGREGATION_DATE_WINDOW_DAYS = 370;

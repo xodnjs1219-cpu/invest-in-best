@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  AGGREGATE_DAILY_METRICS_CRON,
+  AGGREGATION_DATE_WINDOW_DAYS,
   BATCH_CRON_TIMEZONE,
   BATCH_JOB_TYPES,
+  BATCH_JOB_TYPE_AGGREGATE_DAILY_METRICS,
   BATCH_MAX_RETRY,
+  BATCH_RUNNING_STALE_HOURS,
   BATCH_RUN_STATUSES,
   BATCH_STALE_RUNNING_HOURS,
   BATCH_TIMEZONE,
@@ -63,5 +67,22 @@ describe("batch constants", () => {
 
   it("BATCH_RUN_STATUSES matches docs/database.md §5 batch_run_status enum (4 kinds)", () => {
     expect(BATCH_RUN_STATUSES).toEqual(["running", "success", "partial_success", "failed"]);
+  });
+
+  it("AGGREGATE_DAILY_METRICS_CRON is a well-formed 5-field cron expression", () => {
+    const fields = AGGREGATE_DAILY_METRICS_CRON.split(" ");
+    expect(fields).toHaveLength(5);
+    expect(fields.every((f) => /^(\*|[\d,/*-]+)$/.test(f))).toBe(true);
+  });
+
+  it("AGGREGATE_DAILY_METRICS_CRON runs after collect_quotes/financials/fx (026~028) same-day jobs", () => {
+    expect(BATCH_JOB_TYPE_AGGREGATE_DAILY_METRICS).toBe("aggregate_daily_metrics");
+    const hourField = Number(AGGREGATE_DAILY_METRICS_CRON.split(" ")[1]);
+    expect(hourField).toBeGreaterThanOrEqual(8);
+  });
+
+  it("BATCH_RUNNING_STALE_HOURS and AGGREGATION_DATE_WINDOW_DAYS are positive", () => {
+    expect(BATCH_RUNNING_STALE_HOURS).toBeGreaterThan(0);
+    expect(AGGREGATION_DATE_WINDOW_DAYS).toBeGreaterThan(0);
   });
 });

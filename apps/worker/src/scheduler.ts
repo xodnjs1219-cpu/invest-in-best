@@ -5,6 +5,7 @@
  */
 import cron from "node-cron";
 import {
+  AGGREGATE_DAILY_METRICS_CRON,
   BATCH_CRON_TIMEZONE,
   BATCH_TIMEZONE,
   COLLECT_FINANCIALS_CRON,
@@ -22,6 +23,7 @@ import { createSecEdgarClient } from "./adapters/sec-edgar/client";
 import { createCollectQuotesJob } from "./jobs/collect-quotes.job";
 import { createCollectFinancialsJob } from "./jobs/collect-financials.job";
 import { createCollectFxMarketHoursJob } from "./jobs/collect-fx-market-hours.job";
+import { createAggregateDailyMetricsJob } from "./jobs/aggregate-daily-metrics.job";
 import { findByMarketDate, upsertDays } from "./repositories/market-calendar.repository";
 import {
   findAllForFinancials,
@@ -39,13 +41,33 @@ import {
 import { completeCheckpoint, getCheckpoint, upsertCheckpoint } from "./repositories/checkpoints.repository";
 import { upsertProfiles, findProfileFreshness } from "./repositories/company-profiles.repository";
 import { upsertDisclosures } from "./repositories/disclosures.repository";
-import { findExistingPeriodKeys, upsertFinancials } from "./repositories/financials.repository";
+import {
+  findAnnualOnlySecurities,
+  findExistingPeriodKeys,
+  findMinCorrectedQuarterSince,
+  findQuarterRevenues,
+  upsertFinancials,
+} from "./repositories/financials.repository";
 import { findLatestBySource, upsertShares } from "./repositories/shares.repository";
 import { findLatestRate, upsertRate } from "./repositories/fx.repository";
+import { findActiveChains } from "./repositories/chains.repository";
+import { findNodesBySnapshotIds, findSnapshotsByChain } from "./repositories/snapshots.repository";
+import {
+  findDailyCloses,
+  findFxRates,
+  findLatestClosesBefore,
+  findLatestFxBefore,
+  findLatestShares,
+  findMinCorrectedFxDateSince,
+  findMinCorrectedQuoteDateSince,
+} from "./repositories/market-data.repository";
+import { upsertDailyMetrics, upsertQuarterlyMetrics } from "./repositories/chain-metrics.repository";
+import { findLatestRunByStatus } from "./repositories/batch.repository";
 
 const JOB_TYPE_COLLECT_QUOTES = "collect_quotes";
 const JOB_TYPE_COLLECT_FINANCIALS = "collect_financials";
 const JOB_TYPE_COLLECT_FX_MARKET_HOURS = "collect_fx_market_hours";
+const JOB_TYPE_AGGREGATE_DAILY_METRICS = "aggregate_daily_metrics";
 
 export interface CollectQuotesJobPort {
   run(now?: Date): Promise<void>;
@@ -59,6 +81,10 @@ export interface CollectFxMarketHoursJobPort {
   run(now?: Date): Promise<void>;
 }
 
+export interface AggregateDailyMetricsJobPort {
+  run(now?: Date): Promise<void>;
+}
+
 export interface CronScheduleOptions {
   timezone?: string;
 }
@@ -68,6 +94,7 @@ export interface SchedulerDeps {
   collectQuotesJob: CollectQuotesJobPort;
   collectFinancialsJob?: CollectFinancialsJobPort;
   collectFxMarketHoursJob?: CollectFxMarketHoursJobPort;
+  aggregateDailyMetricsJob?: AggregateDailyMetricsJobPort;
   cronSchedule: (
     expression: string,
     handler: () => void | Promise<void>,
@@ -134,6 +161,27 @@ export function registerSchedules(deps: SchedulerDeps): void {
           console.error(`[scheduler] ${JOB_TYPE_COLLECT_FX_MARKET_HOURS} job crashed unexpectedly:`, error);
         } finally {
           deps.jobLock.release(JOB_TYPE_COLLECT_FX_MARKET_HOURS);
+        }
+      },
+      { timezone: BATCH_CRON_TIMEZONE },
+    );
+  }
+
+  if (deps.aggregateDailyMetricsJob) {
+    const aggregateDailyMetricsJob = deps.aggregateDailyMetricsJob;
+    deps.cronSchedule(
+      AGGREGATE_DAILY_METRICS_CRON,
+      async () => {
+        if (!deps.jobLock.tryAcquire(JOB_TYPE_AGGREGATE_DAILY_METRICS)) {
+          console.warn(`[scheduler] ${JOB_TYPE_AGGREGATE_DAILY_METRICS} already running — skip this tick`);
+          return;
+        }
+        try {
+          await aggregateDailyMetricsJob.run();
+        } catch (error) {
+          console.error(`[scheduler] ${JOB_TYPE_AGGREGATE_DAILY_METRICS} job crashed unexpectedly:`, error);
+        } finally {
+          deps.jobLock.release(JOB_TYPE_AGGREGATE_DAILY_METRICS);
         }
       },
       { timezone: BATCH_CRON_TIMEZONE },
@@ -219,11 +267,47 @@ export function startScheduler(): void {
     },
   });
 
+  const aggregateDailyMetricsJob = createAggregateDailyMetricsJob({
+    batchLog,
+    repos: {
+      batch: {
+        findLatestRunByStatus: (jobType, status) => findLatestRunByStatus(supabase, jobType, status),
+      },
+      chains: {
+        findActiveChains: () => findActiveChains(supabase),
+      },
+      snapshots: {
+        findSnapshotsByChain: (chainId, untilIso) => findSnapshotsByChain(supabase, chainId, untilIso),
+        findNodesBySnapshotIds: (snapshotIds) => findNodesBySnapshotIds(supabase, snapshotIds),
+      },
+      marketData: {
+        findDailyCloses: (securityIds, from, to) => findDailyCloses(supabase, securityIds, from, to),
+        findLatestClosesBefore: (securityIds, before) => findLatestClosesBefore(supabase, securityIds, before),
+        findLatestShares: (securityIds) => findLatestShares(supabase, securityIds),
+        findFxRates: (pair, from, to) => findFxRates(supabase, pair, from, to),
+        findLatestFxBefore: (pair, before) => findLatestFxBefore(supabase, pair, before),
+        findMinCorrectedQuoteDateSince: (sinceIso) => findMinCorrectedQuoteDateSince(supabase, sinceIso),
+        findMinCorrectedFxDateSince: (sinceIso) => findMinCorrectedFxDateSince(supabase, sinceIso),
+      },
+      financials: {
+        findQuarterRevenues: (securityIds, year, quarter) => findQuarterRevenues(supabase, securityIds, year, quarter),
+        findAnnualOnlySecurities: (securityIds, year, quarterStart, quarterEnd) =>
+          findAnnualOnlySecurities(supabase, securityIds, year, quarterStart, quarterEnd),
+        findMinCorrectedQuarterSince: (sinceIso) => findMinCorrectedQuarterSince(supabase, sinceIso),
+      },
+      chainMetrics: {
+        upsertDailyMetrics: (rows) => upsertDailyMetrics(supabase, rows),
+        upsertQuarterlyMetrics: (rows) => upsertQuarterlyMetrics(supabase, rows),
+      },
+    },
+  });
+
   registerSchedules({
     jobLock,
     collectQuotesJob,
     collectFinancialsJob,
     collectFxMarketHoursJob,
+    aggregateDailyMetricsJob,
     cronSchedule: (expression, handler, options) => cron.schedule(expression, handler, options),
   });
 

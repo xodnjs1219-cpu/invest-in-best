@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  findLatestRunByStatus,
   findRunningRun,
   findUnresolvedFailures,
   finishRun,
@@ -164,6 +165,43 @@ describe("findRunningRun", () => {
     const client = makeClient({ from });
 
     const result = await findRunningRun(client, "collect_financials");
+    expect(result).toEqual({ ok: true, data: null });
+  });
+});
+
+describe("findLatestRunByStatus", () => {
+  it("filters by job_type and the given status, ordered by started_at desc, limited to 1", async () => {
+    const limitFn = vi.fn().mockResolvedValue({
+      data: [{ id: "run-9", started_at: "2026-07-05T23:00:00Z" }],
+      error: null,
+    });
+    const orderFn = vi.fn().mockReturnValue({ limit: limitFn });
+    const eqStatus = vi.fn().mockReturnValue({ order: orderFn });
+    const eqJobType = vi.fn().mockReturnValue({ eq: eqStatus });
+    const select = vi.fn().mockReturnValue({ eq: eqJobType });
+    const from = vi.fn().mockReturnValue({ select });
+    const client = makeClient({ from });
+
+    const result = await findLatestRunByStatus(client, "aggregate_daily_metrics", "success");
+
+    expect(from).toHaveBeenCalledWith("batch_runs");
+    expect(eqJobType).toHaveBeenCalledWith("job_type", "aggregate_daily_metrics");
+    expect(eqStatus).toHaveBeenCalledWith("status", "success");
+    expect(orderFn).toHaveBeenCalledWith("started_at", { ascending: false });
+    expect(limitFn).toHaveBeenCalledWith(1);
+    expect(result).toEqual({ ok: true, data: { id: "run-9", startedAt: "2026-07-05T23:00:00Z" } });
+  });
+
+  it("returns null when no matching run exists (first run — full catch-up)", async () => {
+    const limitFn = vi.fn().mockResolvedValue({ data: [], error: null });
+    const orderFn = vi.fn().mockReturnValue({ limit: limitFn });
+    const eqStatus = vi.fn().mockReturnValue({ order: orderFn });
+    const eqJobType = vi.fn().mockReturnValue({ eq: eqStatus });
+    const select = vi.fn().mockReturnValue({ eq: eqJobType });
+    const from = vi.fn().mockReturnValue({ select });
+    const client = makeClient({ from });
+
+    const result = await findLatestRunByStatus(client, "aggregate_daily_metrics", "success");
     expect(result).toEqual({ ok: true, data: null });
   });
 });

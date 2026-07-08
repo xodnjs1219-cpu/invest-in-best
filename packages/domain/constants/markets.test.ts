@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FX_PAIR, MARKETS, MARKET_REGULAR_SESSION_LOCAL, MARKET_TIMEZONES } from "./markets";
+import { FX_PAIR, MARKETS, MARKET_REGULAR_SESSION_LOCAL, MARKET_TIMEZONES, SHARES_SOURCE_PRIORITY } from "./markets";
 
 describe("markets constants", () => {
   it("MARKET_TIMEZONES keys match MARKETS exactly", () => {
@@ -24,5 +24,9 @@ describe("markets constants", () => {
   it("defines the standard regular-session local wall-clock times", () => {
     expect(MARKET_REGULAR_SESSION_LOCAL.KRX).toEqual({ open: "09:00", close: "15:30" });
     expect(MARKET_REGULAR_SESSION_LOCAL.US).toEqual({ open: "09:30", close: "16:00" });
+  });
+
+  it("SHARES_SOURCE_PRIORITY lists toss first (0008 §3.5 priority order)", () => {
+    expect(SHARES_SOURCE_PRIORITY).toEqual(["toss", "dart", "sec"]);
   });
 });
