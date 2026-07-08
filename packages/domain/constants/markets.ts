@@ -12,3 +12,18 @@ export const MARKET_TIMEZONES: Record<MarketCode, string> = {
   KRX: "Asia/Seoul",
   US: "America/New_York",
 };
+
+/**
+ * 환율 통화쌍(docs/usecases/028/plan.md 모듈 1) — `fx_rates` 적재 방향의 단일 SOT.
+ * DB enum `currency_code`('KRW'|'USD') 리터럴과 일치. 1 base = rate quote (0009 컬럼 주석).
+ */
+export const FX_PAIR = { base: "USD", quote: "KRW" } as const;
+
+/**
+ * 시장별 표준 정규장 현지 벽시계 시각(docs/usecases/028/plan.md 모듈 1).
+ * 조기 마감 판정(calculations/market-calendar.ts)과 캘린더 검증의 기준값.
+ */
+export const MARKET_REGULAR_SESSION_LOCAL: Record<MarketCode, { open: string; close: string }> = {
+  KRX: { open: "09:00", close: "15:30" },
+  US: { open: "09:30", close: "16:00" },
+};

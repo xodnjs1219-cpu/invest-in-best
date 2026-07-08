@@ -6,6 +6,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BATCH_ERROR_LOG_MAX_LENGTH } from "@iib/domain";
 import {
+  findRunningRun,
   finishRun,
   findUnresolvedFailures,
   insertItemFailures,
@@ -22,6 +23,11 @@ export interface BatchLogger {
   itemFailures(runId: string, failures: ItemFailureInput[]): Promise<void>;
   resolve(failureIds: string[]): Promise<void>;
   unresolvedFailures(jobType: string): Promise<UnresolvedFailure[]>;
+  /**
+   * 동일 잡의 running 실행이 있는지 DB 레벨로 검사한다(E16 2차 방어).
+   * 크래시 고아 행으로 영구 스킵되지 않도록 staleHours 초과한 running 행은 무시(경고 로그)한다.
+   */
+  isRunning(jobType: string, staleHours: number): Promise<boolean>;
 }
 
 /** error_log 요약 문자열 길이 상한 적용. */
@@ -74,6 +80,25 @@ export function createBatchLogger(client: SupabaseClient): BatchLogger {
         return [];
       }
       return result.data;
+    },
+
+    async isRunning(jobType: string, staleHours: number): Promise<boolean> {
+      const result = await findRunningRun(client, jobType);
+      if (!result.ok) {
+        console.error(`[batch-log] isRunning(${jobType}) failed: ${result.error}`);
+        return false;
+      }
+      if (result.data === null) return false;
+
+      const startedAtMs = new Date(result.data.startedAt).getTime();
+      const ageHours = (Date.now() - startedAtMs) / (60 * 60 * 1000);
+      if (ageHours > staleHours) {
+        console.warn(
+          `[batch-log] ${jobType} has a stale running row (started ${ageHours.toFixed(1)}h ago) — treating as crash orphan, ignoring`,
+        );
+        return false;
+      }
+      return true;
     },
   };
 }

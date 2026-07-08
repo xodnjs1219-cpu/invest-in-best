@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  findRunningRun,
   findUnresolvedFailures,
   finishRun,
   insertItemFailures,
@@ -124,6 +125,46 @@ describe("insertItemFailures", () => {
       },
     ]);
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("findRunningRun", () => {
+  it("filters by job_type and status='running', ordered by started_at desc, limited to 1", async () => {
+    const limitFn = vi.fn().mockResolvedValue({
+      data: [{ id: "run-1", started_at: "2026-07-08T10:00:00Z" }],
+      error: null,
+    });
+    const orderFn = vi.fn().mockReturnValue({ limit: limitFn });
+    const eqStatus = vi.fn().mockReturnValue({ order: orderFn });
+    const eqJobType = vi.fn().mockReturnValue({ eq: eqStatus });
+    const select = vi.fn().mockReturnValue({ eq: eqJobType });
+    const from = vi.fn().mockReturnValue({ select });
+    const client = makeClient({ from });
+
+    const result = await findRunningRun(client, "collect_financials");
+
+    expect(from).toHaveBeenCalledWith("batch_runs");
+    expect(eqJobType).toHaveBeenCalledWith("job_type", "collect_financials");
+    expect(eqStatus).toHaveBeenCalledWith("status", "running");
+    expect(orderFn).toHaveBeenCalledWith("started_at", { ascending: false });
+    expect(limitFn).toHaveBeenCalledWith(1);
+    expect(result).toEqual({
+      ok: true,
+      data: { id: "run-1", startedAt: "2026-07-08T10:00:00Z" },
+    });
+  });
+
+  it("returns null data when no running row exists", async () => {
+    const limitFn = vi.fn().mockResolvedValue({ data: [], error: null });
+    const orderFn = vi.fn().mockReturnValue({ limit: limitFn });
+    const eqStatus = vi.fn().mockReturnValue({ order: orderFn });
+    const eqJobType = vi.fn().mockReturnValue({ eq: eqStatus });
+    const select = vi.fn().mockReturnValue({ eq: eqJobType });
+    const from = vi.fn().mockReturnValue({ select });
+    const client = makeClient({ from });
+
+    const result = await findRunningRun(client, "collect_financials");
+    expect(result).toEqual({ ok: true, data: null });
   });
 });
 

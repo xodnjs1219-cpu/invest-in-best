@@ -39,5 +39,7 @@ export const respond = <T, E extends string, M>(c: Context, result: HandlerResul
   if (result.ok) {
     return c.json({ data: result.data }, result.status as never);
   }
-  return c.json({ error: result.error }, result.status as never);
+  // `details`는 내부 진단 정보(Zod 이슈 등)를 담을 수 있어 응답에는 절대 포함하지 않는다(로깅 전용).
+  const { code, message } = result.error;
+  return c.json({ error: { code, message } }, result.status as never);
 };

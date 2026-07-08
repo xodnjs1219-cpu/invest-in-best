@@ -11,6 +11,12 @@ const workerEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   TOSSINVEST_CLIENT_ID: z.string().min(1),
   TOSSINVEST_CLIENT_SECRET: z.string().min(1),
+  // UC-027(collect-financials) 확장 — OpenDART/SEC 자격 정보. 기동 시점 조기 검증(E7).
+  OPENDART_API_KEY: z.string().length(40, "OPENDART_API_KEY는 40자리 인증키여야 합니다"),
+  SEC_EDGAR_USER_AGENT: z
+    .string()
+    .refine((v) => v.includes("@"), "SEC_EDGAR_USER_AGENT는 '서비스명 연락이메일' 형식(이메일 포함)이어야 합니다"),
+  WORKER_TMP_DIR: z.string().min(1).optional(),
 });
 
 export interface WorkerConfig {
@@ -18,6 +24,9 @@ export interface WorkerConfig {
   supabaseServiceRoleKey: string;
   tossClientId: string;
   tossClientSecret: string;
+  opendartApiKey: string;
+  secEdgarUserAgent: string;
+  workerTmpDir: string | undefined;
 }
 
 /**
@@ -52,6 +61,9 @@ export function loadWorkerConfig(env: Record<string, string | undefined> = proce
     supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY,
     tossClientId: parsed.data.TOSSINVEST_CLIENT_ID,
     tossClientSecret: parsed.data.TOSSINVEST_CLIENT_SECRET,
+    opendartApiKey: parsed.data.OPENDART_API_KEY,
+    secEdgarUserAgent: parsed.data.SEC_EDGAR_USER_AGENT,
+    workerTmpDir: parsed.data.WORKER_TMP_DIR,
   };
 }
 

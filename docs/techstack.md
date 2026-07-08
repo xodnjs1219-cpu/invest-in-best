@@ -34,6 +34,7 @@
 | 날짜/시간대 | `date-fns` + `date-fns-tz` | **4.4.0** / **3.2.0** | KRX/US 장 운영시간·서머타임(DST) 계산에 필수 |
 | 배치 스케줄러 | `node-cron` | **4.5.0** | 상시 실행 워커 프로세스 내 cron 등록. 서버리스 실행시간 제한 없음 |
 | ZIP 스트리밍 | `yauzl` | **3.4.0** | SEC EDGAR 벌크 ZIP(1GB+)에서 필요한 CIK 엔트리만 스트리밍 추출 |
+| XML 파싱 | `fast-xml-parser` | **5.9.3** | OpenDART `corpCode.xml`(전체 매핑) 파싱. zero-dep, 활발히 유지보수되는 고채택 라이브러리(UC-027 구현 시 추가) |
 | LLM (공시 분석) | **미정 (어댑터로 추상화)** — 후보: Anthropic Claude / OpenAI | `@anthropic-ai/sdk` **0.110.0** / `openai` **6.45.0** | 사용자 결정: LLM 기능 구현 직전에 확정. 워커의 LLM 호출은 어댑터 인터페이스 뒤에 격리하고, SDK 설치도 확정 후에 진행 |
 | 단위/통합 테스트 | Vitest | **4.1.9** | ESM/TS 네이티브, 빠른 실행 |
 | E2E 테스트 | `@playwright/test` | **1.61.1** | Microsoft 유지보수, 크로스브라우저 표준 |

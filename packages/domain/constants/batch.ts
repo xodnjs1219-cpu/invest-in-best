@@ -29,3 +29,40 @@ export const WORKER_HTTP_TIMEOUT_MS = 60_000;
 
 /** batch_runs.error_log 요약 문자열 길이 상한 (모듈 7). */
 export const BATCH_ERROR_LOG_MAX_LENGTH = 2_000;
+
+/* ── UC-027 collect-financials 확장 (docs/usecases/027/plan.md 모듈 1) ── */
+
+/** collect-financials 잡 스케줄: 1일 1회 19:00 KST(양 시장 마감·공시 갱신 이후). */
+export const COLLECT_FINANCIALS_CRON = "0 19 * * *";
+
+/** batch_runs.job_type enum 리터럴. */
+export const BATCH_JOB_TYPE_COLLECT_FINANCIALS = "collect_financials";
+
+/** cron 실행 타임존(KST) — node-cron timezone 옵션에 사용. */
+export const BATCH_TIMEZONE = "Asia/Seoul";
+
+/** running 상태가 이 시간(h) 초과하면 크래시 고아로 간주하고 무시(2차 방어, E16). */
+export const BATCH_STALE_RUNNING_HOURS = 24;
+
+/** OpenDART 다중회사 주요계정 조회 청크 크기(외부 계약 상한 100사, status 021 방지). */
+export const DART_MULTI_ACNT_CHUNK_SIZE = 100;
+
+/** 공시 조회 룩백 일수 — bgn_de = 당일 - N (전일 마감 이후 접수분 누락 방지). */
+export const DISCLOSURE_LOOKBACK_DAYS = 1;
+
+/** OpenDART list.json 페이지당 최대 건수(외부 계약 상한). */
+export const DART_PAGE_COUNT = 100;
+
+/** SEC EDGAR 벌크 ZIP 종류. */
+export const SEC_BULK_KINDS = ["submissions", "companyfacts"] as const;
+
+/* ── UC-028 collect-fx-market-hours 확장 (docs/usecases/028/plan.md 모듈 1) ── */
+
+/** collect-fx-market-hours 잡 스케줄: 1일 1회 08:30 KST(026 시세 수집보다 선행). */
+export const COLLECT_FX_MARKET_HOURS_CRON = "30 8 * * *";
+
+/** batch_runs.job_type enum 리터럴. */
+export const BATCH_JOB_TYPE_COLLECT_FX_MARKET_HOURS = "collect_fx_market_hours";
+
+/** cron 실행 타임존(KST) — 026 COLLECT_QUOTES_CRON은 시간대 무관이라 영향 없음. */
+export const BATCH_CRON_TIMEZONE = "Asia/Seoul";

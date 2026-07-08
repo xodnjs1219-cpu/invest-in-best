@@ -12,24 +12,38 @@ import { withRetry, type RetryOptions } from "../../runtime/retry";
 import {
   TossAuthError,
   TossRequestError,
+  type GetExchangeRateResult,
   type GetPricesResult,
+  type GetStockInfosResult,
+  type NormalizedCalendarDay,
   type NormalizedDailyCandle,
+  type NormalizedStockInfo,
   type SymbolFailure,
   type TossInvestPort,
 } from "./contract";
 import {
   candlePageResponseSchema,
+  exchangeRateResponseSchema,
+  krMarketCalendarResponseSchema,
   oauthTokenResponseSchema,
   parseTossErrorEnvelope,
   priceItemSchema,
+  stockInfoSchema,
+  toNormalizedCalendarDays,
   toNormalizedDailyCandle,
+  toNormalizedFxRate,
   toNormalizedQuote,
+  toNormalizedStockInfo,
+  usMarketCalendarResponseSchema,
 } from "./dto";
 
 const BASE_URL = "https://openapi.tossinvest.com";
 
 /** 토큰 만료 이 시간(ms) 전부터 선제 재발급한다. */
 const TOKEN_REFRESH_MARGIN_MS = 60_000;
+
+/** UC-028 모듈 5 — 시장 코드(DB enum) -> 토스 경로 세그먼트 매핑(외부 계약 종속, DB enum과 혼동 방지 위해 모듈 스코프에 위치). */
+const MARKET_TO_TOSS_PATH: Record<MarketCode, string> = { KRX: "KR", US: "US" };
 
 export interface TossInvestClock {
   now(): number;
@@ -215,7 +229,100 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
         { ...retryOptions, shouldRetry: shouldRetryTossError },
       );
     },
+
+    async getStockInfos(symbols: string[]): Promise<GetStockInfosResult> {
+      const chunks = chunk(symbols, TOSS_SYMBOLS_CHUNK_SIZE);
+      const infos: NormalizedStockInfo[] = [];
+      const failures: SymbolFailure[] = [];
+      const carriedOverSymbols: string[] = [];
+
+      for (const chunkSymbols of chunks) {
+        try {
+          const response = await withRetry(
+            () => requestStockInfosChunk(chunkSymbols),
+            { ...retryOptions, shouldRetry: shouldRetryTossError },
+          );
+          const requestedSet = new Set(chunkSymbols);
+          const seenSet = new Set<string>();
+
+          for (const item of response.stocks) {
+            const validated = stockInfoSchema.safeParse(item);
+            const symbol = typeof (item as { symbol?: unknown }).symbol === "string"
+              ? (item as { symbol: string }).symbol
+              : "unknown";
+            if (!validated.success) {
+              failures.push({ symbol, reason: "validation_failed", message: validated.error.message });
+              seenSet.add(symbol);
+              continue;
+            }
+            seenSet.add(validated.data.symbol);
+            infos.push(toNormalizedStockInfo(validated.data));
+          }
+
+          for (const requested of requestedSet) {
+            if (!seenSet.has(requested)) {
+              failures.push({ symbol: requested, reason: "not_found", message: "response missing symbol" });
+            }
+          }
+        } catch (error) {
+          if (error instanceof TossAuthError) throw error;
+          carriedOverSymbols.push(...chunkSymbols);
+        }
+      }
+
+      return { infos, failures, carriedOverSymbols };
+    },
+
+    async getExchangeRate(now: Date): Promise<GetExchangeRateResult> {
+      return withRetry(
+        () => requestExchangeRate(now),
+        { ...retryOptions, shouldRetry: shouldRetryTossError },
+      );
+    },
+
+    async getMarketCalendar(market: MarketCode, now: Date): Promise<NormalizedCalendarDay[]> {
+      return withRetry(
+        () => requestMarketCalendar(market, now),
+        { ...retryOptions, shouldRetry: shouldRetryTossError },
+      );
+    },
   };
+
+  async function requestExchangeRate(now: Date): Promise<GetExchangeRateResult> {
+    const response = await authorizedFetch("/api/v1/exchange-rate", { method: "GET" }, "MARKET_INFO");
+
+    if (response.status === 404) {
+      const envelope = await tryParseErrorEnvelope(response);
+      if (envelope?.error.code === "exchange-rate-not-found") {
+        return { kind: "not_published" }; // 정상 흐름(공휴일 등 결측) — 재시도 없음
+      }
+    }
+    if (!response.ok) {
+      throw await toTossRequestError(response);
+    }
+    const raw: unknown = await response.json();
+    const parsed = exchangeRateResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new TossRequestError({ code: "validation_failed", status: response.status, message: parsed.error.message });
+    }
+    return { kind: "ok", rate: toNormalizedFxRate(parsed.data, now) };
+  }
+
+  async function requestMarketCalendar(market: MarketCode, now: Date): Promise<NormalizedCalendarDay[]> {
+    void now; // 캘린더 조회는 현재 시각에 의존하지 않음(응답이 제공하는 일자를 그대로 반환) — 시그니처 일관성 유지용 파라미터.
+    const path = `/api/v1/market-calendar/${MARKET_TO_TOSS_PATH[market]}`;
+    const response = await authorizedFetch(path, { method: "GET" }, "MARKET_INFO");
+    if (!response.ok) {
+      throw await toTossRequestError(response);
+    }
+    const raw: unknown = await response.json();
+    const schema = market === "US" ? usMarketCalendarResponseSchema : krMarketCalendarResponseSchema;
+    const parsed = schema.safeParse(raw);
+    if (!parsed.success) {
+      throw new TossRequestError({ code: "validation_failed", status: response.status, message: parsed.error.message });
+    }
+    return toNormalizedCalendarDays(market, parsed.data);
+  }
 
   async function requestPricesChunk(symbols: string[]): Promise<{ prices: unknown[] }> {
     const params = new URLSearchParams({ symbols: symbols.join(",") });
@@ -229,6 +336,21 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
     }
     const raw = (await response.json()) as { prices?: unknown[] };
     return { prices: Array.isArray(raw.prices) ? raw.prices : [] };
+  }
+
+  /** UC-027 모듈 11 — 026 getPrices와 동일 파이프(청크·레이트리밋·재시도·부분실패 분리)를 STOCK 그룹으로 재사용. */
+  async function requestStockInfosChunk(symbols: string[]): Promise<{ stocks: unknown[] }> {
+    const params = new URLSearchParams({ symbols: symbols.join(",") });
+    const response = await authorizedFetch(
+      `/api/v1/stocks?${params.toString()}`,
+      { method: "GET" },
+      "STOCK",
+    );
+    if (!response.ok) {
+      throw await toTossRequestError(response);
+    }
+    const raw = (await response.json()) as { stocks?: unknown[] };
+    return { stocks: Array.isArray(raw.stocks) ? raw.stocks : [] };
   }
 
   async function requestConfirmedDailyCandle(

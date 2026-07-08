@@ -37,3 +37,45 @@ export async function findByMarketDate(
     closeAt: data.close_at ? new Date(data.close_at) : null,
   });
 }
+
+/**
+ * 캘린더 적재 입력(docs/usecases/028/plan.md 모듈 7) — UC-028 collect-fx-market-hours 전용 쓰기 경로.
+ * 026(findByMarketDate)은 읽기 전용, 본 잡이 유일한 쓰기 주체.
+ */
+export interface UpsertCalendarDayInput {
+  market: MarketCode;
+  calendarDate: string;
+  isTradingDay: boolean;
+  openAt: Date | null;
+  closeAt: Date | null;
+  isEarlyClose: boolean;
+}
+
+/**
+ * market_calendar 값 갱신형 UPSERT(onConflict:'market,calendar_date') — 당일·익일 캐시 갱신(spec Main 8).
+ * 빈 배열이면 DB 호출 없이 {ok:true, count:0}.
+ */
+export async function upsertDays(
+  client: SupabaseClient,
+  rows: UpsertCalendarDayInput[],
+): Promise<RepoResult<{ count: number }>> {
+  if (rows.length === 0) return repoOk({ count: 0 });
+
+  const { error } = await client.from("market_calendar").upsert(
+    rows.map((row) => ({
+      market: row.market,
+      calendar_date: row.calendarDate,
+      is_trading_day: row.isTradingDay,
+      open_at: row.openAt ? row.openAt.toISOString() : null,
+      close_at: row.closeAt ? row.closeAt.toISOString() : null,
+      is_early_close: row.isEarlyClose,
+      source: "toss",
+    })),
+    { onConflict: "market,calendar_date" },
+  );
+
+  if (error) {
+    return repoFail(`upsertDays failed: ${error.message}`);
+  }
+  return repoOk({ count: rows.length });
+}

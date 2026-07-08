@@ -66,6 +66,34 @@ export async function finishRun(
   return repoOk(undefined);
 }
 
+export interface RunningRun {
+  id: string;
+  startedAt: string;
+}
+
+/** 동일 잡의 running 실행 최신 1건(E16 2차 방어 — DB 레벨 중복 실행 검사). */
+export async function findRunningRun(
+  client: SupabaseClient,
+  jobType: string,
+): Promise<RepoResult<RunningRun | null>> {
+  const { data, error } = await client
+    .from("batch_runs")
+    .select("id, started_at")
+    .eq("job_type", jobType)
+    .eq("status", "running")
+    .order("started_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    return repoFail(`findRunningRun failed: ${error.message}`);
+  }
+  const rows = (data ?? []) as Array<{ id: string; started_at: string }>;
+  if (rows.length === 0) {
+    return repoOk(null);
+  }
+  return repoOk({ id: rows[0]!.id, startedAt: rows[0]!.started_at });
+}
+
 export interface UnresolvedFailure {
   id: string;
   securityId: string | null;

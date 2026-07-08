@@ -12,6 +12,7 @@ function makeBatchLog() {
     itemFailures: vi.fn().mockResolvedValue(undefined),
     resolve: vi.fn().mockResolvedValue(undefined),
     unresolvedFailures: vi.fn().mockResolvedValue([]),
+    isRunning: vi.fn().mockResolvedValue(false),
   };
 }
 
@@ -32,6 +33,9 @@ function makeToss(overrides: Partial<CollectQuotesJobDeps["toss"]> = {}): Collec
   return {
     getPrices: vi.fn().mockResolvedValue({ quotes: [], failures: [], carriedOverSymbols: [] }),
     getConfirmedDailyCandle: vi.fn().mockResolvedValue(null),
+    getStockInfos: vi.fn().mockResolvedValue({ infos: [], failures: [], carriedOverSymbols: [] }),
+    getExchangeRate: vi.fn().mockResolvedValue({ kind: "not_published" }),
+    getMarketCalendar: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

@@ -1174,6 +1174,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_llm_proposal: {
+        Args: { p_proposal_id: string; p_reviewer_id: string }
+        Returns: {
+          conflict_reason: string
+          effective_at: string
+          outcome: string
+          resulting_snapshot_id: string
+        }[]
+      }
       fn_upsert_provisional_daily_quotes: {
         Args: {
           p_from: string
@@ -1182,6 +1191,75 @@ export type Database = {
           p_trade_date: string
         }
         Returns: number
+      }
+      fn_upsert_quarterly_financials: {
+        Args: { p_rows: Json }
+        Returns: number
+      }
+      list_llm_proposals: {
+        Args: {
+          p_limit: number
+          p_offset: number
+          p_status: Database["public"]["Enums"]["llm_proposal_status"]
+        }
+        Returns: {
+          applicability_reason: string
+          based_on_snapshot_id: string
+          chain_id: string
+          chain_name: string
+          created_at: string
+          disclosure_date: string
+          disclosure_id: string
+          disclosure_source: Database["public"]["Enums"]["data_source"]
+          disclosure_title: string
+          disclosure_url: string
+          is_applicable: boolean
+          proposal_id: string
+          proposal_type: Database["public"]["Enums"]["llm_proposal_type"]
+          rationale: string
+          relation_type_id: string
+          relation_type_is_active: boolean
+          relation_type_name: string
+          resulting_snapshot_id: string
+          reviewed_at: string
+          reviewed_by: string
+          source_display_name: string
+          source_node_id: string
+          source_node_kind: Database["public"]["Enums"]["node_kind"]
+          source_ticker: string
+          status: Database["public"]["Enums"]["llm_proposal_status"]
+          target_display_name: string
+          target_node_id: string
+          target_node_kind: Database["public"]["Enums"]["node_kind"]
+          target_ticker: string
+        }[]
+      }
+      llm_proposal_applicability: {
+        Args: { p_proposal_id: string }
+        Returns: {
+          is_applicable: boolean
+          latest_snapshot_id: string
+          reason: string
+          remapped_source_node_id: string
+          remapped_target_node_id: string
+          target_edge_id: string
+        }[]
+      }
+      search_securities: {
+        Args: {
+          p_limit: number
+          p_market?: Database["public"]["Enums"]["market_code"]
+          p_offset: number
+          p_query: string
+        }
+        Returns: {
+          english_name: string
+          id: string
+          listing_status: Database["public"]["Enums"]["listing_status"]
+          market: Database["public"]["Enums"]["market_code"]
+          name: string
+          ticker: string
+        }[]
       }
     }
     Enums: {

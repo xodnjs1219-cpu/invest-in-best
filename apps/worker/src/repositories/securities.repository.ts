@@ -43,3 +43,96 @@ export async function findCollectTargets(
     })),
   );
 }
+
+/**
+ * UC-027(collect-financials) 모듈 12 확장.
+ * 전 종목 로드(밸류체인 편입 여부 무관, BR-2) — delisted는 제외, suspended는 포함(E20).
+ */
+export interface FinancialsTargetSecurity {
+  id: string;
+  ticker: string;
+  market: MarketCode;
+  listingStatus: string;
+  dartCorpCode: string | null;
+  cik: string | null;
+  tossSymbol: string | null;
+  sharesManualOverrideNeeded: boolean;
+}
+
+interface FinancialsTargetRow {
+  id: string;
+  ticker: string;
+  market: MarketCode;
+  listing_status: string;
+  dart_corp_code: string | null;
+  cik: string | null;
+  toss_symbol: string | null;
+  shares_manual_override_needed: boolean;
+}
+
+export async function findAllForFinancials(
+  client: SupabaseClient,
+): Promise<RepoResult<FinancialsTargetSecurity[]>> {
+  const { data, error } = await client
+    .from("securities")
+    .select("id, ticker, market, listing_status, dart_corp_code, cik, toss_symbol, shares_manual_override_needed")
+    .neq("listing_status", "delisted");
+
+  if (error || !data) {
+    return repoFail(`findAllForFinancials failed: ${error?.message ?? "no data returned"}`);
+  }
+  return repoOk(
+    (data as FinancialsTargetRow[]).map((row) => ({
+      id: row.id,
+      ticker: row.ticker,
+      market: row.market,
+      listingStatus: row.listing_status,
+      dartCorpCode: row.dart_corp_code,
+      cik: row.cik,
+      tossSymbol: row.toss_symbol,
+      sharesManualOverrideNeeded: row.shares_manual_override_needed,
+    })),
+  );
+}
+
+export interface DartCorpCodeUpdate {
+  ticker: string;
+  dartCorpCode: string;
+}
+
+/** KRX 종목 dart_corp_code 매핑 갱신(변경분만 — 잡이 사전 diff). */
+export async function updateDartCorpCodes(
+  client: SupabaseClient,
+  rows: DartCorpCodeUpdate[],
+): Promise<RepoResult<void>> {
+  if (rows.length === 0) return repoOk(undefined);
+
+  for (const row of rows) {
+    const { error } = await client
+      .from("securities")
+      .update({ dart_corp_code: row.dartCorpCode })
+      .eq("ticker", row.ticker);
+    if (error) {
+      return repoFail(`updateDartCorpCodes failed for ticker ${row.ticker}: ${error.message}`);
+    }
+  }
+  return repoOk(undefined);
+}
+
+/** SEC 상장주식수 폴백 4단계 전부 실패한 종목 표식(E12) — 자동 수집 제외 대상. */
+export async function flagSharesManualOverride(
+  client: SupabaseClient,
+  securityIds: string[],
+): Promise<RepoResult<void>> {
+  if (securityIds.length === 0) return repoOk(undefined);
+
+  const { error } = await client
+    .from("securities")
+    .update({ shares_manual_override_needed: true })
+    .in("id", securityIds);
+
+  if (error) {
+    return repoFail(`flagSharesManualOverride failed: ${error.message}`);
+  }
+  return repoOk(undefined);
+}

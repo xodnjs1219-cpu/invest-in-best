@@ -62,4 +62,36 @@ describe("createBatchLogger", () => {
     await logger.resolve(["f-1"]);
     expect(spy).toHaveBeenCalledWith({}, ["f-1"]);
   });
+
+  it("isRunning() returns true when a running row is fresher than the stale threshold", async () => {
+    const startedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString(); // 1h ago
+    vi.spyOn(batchRepo, "findRunningRun").mockResolvedValue({
+      ok: true,
+      data: { id: "run-1", startedAt },
+    });
+    const logger = createBatchLogger({} as SupabaseClient);
+
+    expect(await logger.isRunning("collect_financials", 24)).toBe(true);
+  });
+
+  it("isRunning() ignores a stale running row older than the threshold (crash orphan, E16)", async () => {
+    const startedAt = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(); // 25h ago
+    vi.spyOn(batchRepo, "findRunningRun").mockResolvedValue({
+      ok: true,
+      data: { id: "run-1", startedAt },
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const logger = createBatchLogger({} as SupabaseClient);
+
+    expect(await logger.isRunning("collect_financials", 24)).toBe(false);
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it("isRunning() returns false when there is no running row", async () => {
+    vi.spyOn(batchRepo, "findRunningRun").mockResolvedValue({ ok: true, data: null });
+    const logger = createBatchLogger({} as SupabaseClient);
+
+    expect(await logger.isRunning("collect_financials", 24)).toBe(false);
+  });
 });

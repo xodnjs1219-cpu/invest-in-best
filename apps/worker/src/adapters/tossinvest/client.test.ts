@@ -9,6 +9,9 @@ const config: WorkerConfig = {
   supabaseServiceRoleKey: "service-role-key",
   tossClientId: "client-id",
   tossClientSecret: "client-secret",
+  opendartApiKey: "a".repeat(40),
+  secEdgarUserAgent: "InvestInBest admin@example.com",
+  workerTmpDir: undefined,
 };
 
 function makeClock() {
@@ -428,5 +431,287 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
     const candle = await client.getConfirmedDailyCandle("005930", "2026-07-06", "KRX");
     expect(candle).not.toBeNull();
     expect(sleeps.length).toBeGreaterThan(0);
+  });
+});
+
+describe("createTossInvestClient — getExchangeRate / getMarketCalendar (UC-028)", () => {
+  function makeMarketInfoRateLimiter(clock: ReturnType<typeof makeClock>["clock"]) {
+    return createRateLimiter({
+      groups: { AUTH: { tps: 5 }, MARKET_DATA: { tps: 10 }, MARKET_DATA_CHART: { tps: 5 }, MARKET_INFO: { tps: 3 } },
+      clock,
+    });
+  }
+
+  it("getExchangeRate acquires MARKET_INFO and returns {kind:'ok'} with the normalized rate", async () => {
+    const { clock } = makeClock();
+    const rateLimiter = makeMarketInfoRateLimiter(clock);
+    const acquireSpy = vi.spyOn(rateLimiter, "acquire");
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ baseCurrency: "USD", quoteCurrency: "KRW", rate: 1350.5 }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter, fetchImpl, clock });
+
+    const result = await client.getExchangeRate(new Date("2026-07-07T08:30:00+09:00"));
+
+    expect(acquireSpy).toHaveBeenCalledWith("MARKET_INFO");
+    expect(result).toEqual({
+      kind: "ok",
+      rate: { baseCurrency: "USD", quoteCurrency: "KRW", rate: 1350.5, rateDate: "2026-07-07" },
+    });
+  });
+
+  it("getExchangeRate returns {kind:'not_published'} on 404 exchange-rate-not-found without retrying", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(
+        jsonResponse({ error: { code: "exchange-rate-not-found", message: "no rate" } }, { status: 404 }),
+      );
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeMarketInfoRateLimiter(clock), fetchImpl, clock });
+
+    const result = await client.getExchangeRate(new Date("2026-07-07T08:30:00+09:00"));
+    expect(result).toEqual({ kind: "not_published" });
+    expect(fetchImpl.mock.calls.filter(([url]) => String(url).includes("/api/v1/exchange-rate"))).toHaveLength(1);
+  });
+
+  it("getExchangeRate retries on 429 with Retry-After and eventually succeeds", async () => {
+    const { clock, sleeps } = makeClock();
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(tokenBody()))
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { error: { code: "rate-limit-exceeded", message: "slow down" } },
+          { status: 429, headers: { "Retry-After": "2" } },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ baseCurrency: "USD", quoteCurrency: "KRW", rate: 1300 }));
+
+    const client = createTossInvestClient({
+      config,
+      rateLimiter: makeMarketInfoRateLimiter(clock),
+      fetchImpl,
+      clock,
+      retryOptions: { retries: 3, sleep: clock.sleep },
+    });
+
+    const result = await client.getExchangeRate(new Date("2026-07-07T08:30:00+09:00"));
+    expect(sleeps.some((ms) => ms === 2_000)).toBe(true);
+    expect(result).toEqual({ kind: "ok", rate: expect.objectContaining({ rate: 1300 }) });
+  });
+
+  it("getExchangeRate throws a non-retryable error on schema validation failure", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ rate: -1 })); // invalid: negative + missing currencies
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeMarketInfoRateLimiter(clock), fetchImpl, clock });
+
+    await expect(client.getExchangeRate(new Date())).rejects.toThrow();
+    expect(fetchImpl.mock.calls.filter(([url]) => String(url).includes("/api/v1/exchange-rate"))).toHaveLength(1);
+  });
+
+  it("getExchangeRate re-issues the token on 401 expired-token and retries", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(tokenBody()))
+      .mockResolvedValueOnce(jsonResponse({ error: { code: "expired-token", message: "expired" } }, { status: 401 }))
+      .mockResolvedValueOnce(jsonResponse(tokenBody({ access_token: "token-2" })))
+      .mockResolvedValueOnce(jsonResponse({ baseCurrency: "USD", quoteCurrency: "KRW", rate: 1300 }));
+
+    const client = createTossInvestClient({ config, rateLimiter: makeMarketInfoRateLimiter(clock), fetchImpl, clock });
+    const result = await client.getExchangeRate(new Date());
+    expect(result).toEqual({ kind: "ok", rate: expect.objectContaining({ rate: 1300 }) });
+  });
+
+  it("getMarketCalendar('KRX') calls /api/v1/market-calendar/KR", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(
+        jsonResponse({
+          days: [{ date: "2026-07-07", isTradingDay: true, regularMarketSession: { openTime: "09:00", closeTime: "15:30" } }],
+        }),
+      );
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeMarketInfoRateLimiter(clock), fetchImpl, clock });
+
+    await client.getMarketCalendar("KRX", new Date());
+
+    const calendarCalls = fetchImpl.mock.calls.filter(([url]) => String(url).includes("/api/v1/market-calendar/"));
+    expect(calendarCalls).toHaveLength(1);
+    expect(String(calendarCalls[0]![0])).toContain("/api/v1/market-calendar/KR");
+  });
+
+  it("getMarketCalendar('US') calls /api/v1/market-calendar/US and returns normalized days with absolute times", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(
+        jsonResponse({
+          days: [
+            { date: "2026-07-07", isTradingDay: true, regularMarketSession: { openTime: "09:30", closeTime: "16:00" } },
+            { date: "2026-07-08", isTradingDay: false },
+          ],
+        }),
+      );
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeMarketInfoRateLimiter(clock), fetchImpl, clock });
+
+    const days = await client.getMarketCalendar("US", new Date());
+    expect(String(fetchImpl.mock.calls.find(([url]) => String(url).includes("market-calendar"))?.[0])).toContain(
+      "/api/v1/market-calendar/US",
+    );
+    expect(days).toHaveLength(2);
+    expect(days[0]?.isTradingDay).toBe(true);
+    expect(days[1]).toMatchObject({ isTradingDay: false, openAt: null, closeAt: null });
+  });
+
+  it("getMarketCalendar throws a non-retryable error on validation/conversion failure", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ notDays: [] }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeMarketInfoRateLimiter(clock), fetchImpl, clock });
+
+    await expect(client.getMarketCalendar("KRX", new Date())).rejects.toThrow();
+  });
+
+  it("shares the MARKET_INFO bucket across the three calls without exceeding 3 TPS", async () => {
+    const { clock } = makeClock();
+    const rateLimiter = makeMarketInfoRateLimiter(clock);
+    const acquireSpy = vi.spyOn(rateLimiter, "acquire");
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      if (String(url).includes("exchange-rate")) {
+        return Promise.resolve(jsonResponse({ baseCurrency: "USD", quoteCurrency: "KRW", rate: 1300 }));
+      }
+      return Promise.resolve(jsonResponse({ days: [] }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter, fetchImpl, clock });
+
+    await client.getExchangeRate(new Date());
+    await client.getMarketCalendar("KRX", new Date());
+    await client.getMarketCalendar("US", new Date());
+
+    const marketInfoCalls = acquireSpy.mock.calls.filter(([group]) => group === "MARKET_INFO");
+    expect(marketInfoCalls).toHaveLength(3);
+  });
+});
+
+describe("createTossInvestClient — getStockInfos (UC-027 shares_outstanding)", () => {
+  function makeStockRateLimiter(clock: ReturnType<typeof makeClock>["clock"]) {
+    return createRateLimiter({
+      groups: { AUTH: { tps: 5 }, MARKET_DATA: { tps: 10 }, MARKET_DATA_CHART: { tps: 5 }, STOCK: { tps: 5 } },
+      clock,
+    });
+  }
+
+  it("splits 450 symbols into 200/200/50 chunks, each preceded by acquire('STOCK')", async () => {
+    const { clock } = makeClock();
+    const symbols = Array.from({ length: 450 }, (_, i) => `SYM${i}`);
+    const rateLimiter = makeStockRateLimiter(clock);
+    const acquireSpy = vi.spyOn(rateLimiter, "acquire");
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ stocks: [] }));
+    });
+
+    const client = createTossInvestClient({ config, rateLimiter, fetchImpl, clock });
+    await client.getStockInfos(symbols);
+
+    const stockCalls = fetchImpl.mock.calls.filter(([url]) => String(url).includes("/api/v1/stocks"));
+    expect(stockCalls).toHaveLength(3);
+    const sizes = stockCalls.map(([url]) => new URL(String(url)).searchParams.get("symbols")!.split(",").length);
+    expect(sizes).toEqual([200, 200, 50]);
+    expect(acquireSpy).toHaveBeenCalledWith("STOCK");
+  });
+
+  it("coerces a large sharesOutstanding string to a number", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(
+        jsonResponse({ stocks: [{ symbol: "005930", name: "삼성전자", status: "active", sharesOutstanding: "5919637922" }] }),
+      );
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeStockRateLimiter(clock), fetchImpl, clock });
+
+    const result = await client.getStockInfos(["005930"]);
+    expect(result.infos).toEqual([
+      { symbol: "005930", sharesOutstanding: 5919637922, status: "active", name: "삼성전자" },
+    ]);
+  });
+
+  it("includes a missing sharesOutstanding item as null (not a failure — 029 decides exclusion)", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      return Promise.resolve(jsonResponse({ stocks: [{ symbol: "005930" }] }));
+    });
+    const client = createTossInvestClient({ config, rateLimiter: makeStockRateLimiter(clock), fetchImpl, clock });
+
+    const result = await client.getStockInfos(["005930"]);
+    expect(result.infos).toEqual([{ symbol: "005930", sharesOutstanding: null, status: "unknown", name: "" }]);
+    expect(result.failures).toEqual([]);
+  });
+
+  it("carries over a chunk that keeps failing with 429 (E10) and continues with the next chunk", async () => {
+    const { clock, sleeps } = makeClock();
+    const symbols = [...Array.from({ length: 200 }, (_, i) => `A${i}`), "B0"];
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
+      const u = new URL(url);
+      const requested = u.searchParams.get("symbols")!.split(",");
+      if (requested[0] === "A0") {
+        return Promise.resolve(
+          jsonResponse(
+            { error: { code: "rate-limit-exceeded", message: "too many requests" } },
+            { status: 429, headers: { "Retry-After": "2" } },
+          ),
+        );
+      }
+      return Promise.resolve(jsonResponse({ stocks: [{ symbol: "B0", sharesOutstanding: "50" }] }));
+    });
+
+    const client = createTossInvestClient({
+      config,
+      rateLimiter: makeStockRateLimiter(clock),
+      fetchImpl,
+      clock,
+      retryOptions: { retries: 3, sleep: clock.sleep },
+    });
+
+    const result = await client.getStockInfos(symbols);
+    expect(sleeps.some((ms) => ms === 2_000)).toBe(true);
+    expect(result.carriedOverSymbols).toEqual(expect.arrayContaining(symbols.slice(0, 200)));
+    expect(result.infos).toEqual(expect.arrayContaining([{ symbol: "B0", sharesOutstanding: 50, status: "unknown", name: "" }]));
+  });
+
+  it("re-issues the token on 401 expired-token and retries", async () => {
+    const { clock } = makeClock();
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(tokenBody()))
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: "expired-token", message: "expired" } }, { status: 401 }),
+      )
+      .mockResolvedValueOnce(jsonResponse(tokenBody({ access_token: "token-2" })))
+      .mockResolvedValueOnce(jsonResponse({ stocks: [{ symbol: "005930", sharesOutstanding: "100" }] }));
+
+    const client = createTossInvestClient({
+      config,
+      rateLimiter: makeStockRateLimiter(clock),
+      fetchImpl,
+      clock,
+    });
+
+    const result = await client.getStockInfos(["005930"]);
+    expect(result.infos).toEqual([{ symbol: "005930", sharesOutstanding: 100, status: "unknown", name: "" }]);
   });
 });

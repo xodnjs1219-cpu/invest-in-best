@@ -6,16 +6,21 @@ const validEnv = {
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
   TOSSINVEST_CLIENT_ID: "client-id",
   TOSSINVEST_CLIENT_SECRET: "client-secret",
+  OPENDART_API_KEY: "a".repeat(40),
+  SEC_EDGAR_USER_AGENT: "InvestInBest admin@example.com",
 };
 
 describe("loadWorkerConfig", () => {
-  it("parses successfully when all 4 required keys exist", () => {
+  it("parses successfully when all required keys exist", () => {
     const config = loadWorkerConfig(validEnv);
     expect(config).toEqual({
       supabaseUrl: "https://example.supabase.co",
       supabaseServiceRoleKey: "service-role-key",
       tossClientId: "client-id",
       tossClientSecret: "client-secret",
+      opendartApiKey: "a".repeat(40),
+      secEdgarUserAgent: "InvestInBest admin@example.com",
+      workerTmpDir: undefined,
     });
   });
 
@@ -29,6 +34,23 @@ describe("loadWorkerConfig", () => {
     expect(() =>
       loadWorkerConfig({ ...validEnv, NEXT_PUBLIC_SUPABASE_URL: "not-a-url" }),
     ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL/);
+  });
+
+  it("fails when OPENDART_API_KEY is not exactly 40 characters (E7-adjacent config gate)", () => {
+    expect(() =>
+      loadWorkerConfig({ ...validEnv, OPENDART_API_KEY: "a".repeat(39) }),
+    ).toThrowError(/OPENDART_API_KEY/);
+  });
+
+  it("fails when SEC_EDGAR_USER_AGENT does not include an '@' email (E7 startup gate)", () => {
+    expect(() =>
+      loadWorkerConfig({ ...validEnv, SEC_EDGAR_USER_AGENT: "NoEmailHere" }),
+    ).toThrowError(/SEC_EDGAR_USER_AGENT/);
+  });
+
+  it("accepts an optional WORKER_TMP_DIR override", () => {
+    const config = loadWorkerConfig({ ...validEnv, WORKER_TMP_DIR: "/tmp/custom" });
+    expect(config.workerTmpDir).toBe("/tmp/custom");
   });
 });
 
