@@ -155,8 +155,9 @@ export const RelationEdge = ({
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            // 관계 타이틀 박스가 엣지 선보다 위에 오도록 z-index를 부여한다(강조/하이라이트 라벨은 더 위로).
-            zIndex: isHighlighted || isEmphasized ? 20 : 10,
+            // 관계 타이틀 박스는 강조·dim 여부와 무관하게 항상 엣지 선보다 위에 온다(hover·클릭 모두).
+            // dim 라벨도 선 아래로 내려가지 않도록 충분히 높은 base(20)를 두고, 강조/하이라이트는 더 위(30)로.
+            zIndex: isHighlighted || isEmphasized ? 30 : 20,
           }}
           className={`nodrag nopan relative ${edgeClass} ${isInactiveType ? "opacity-60" : ""}`}
         >
