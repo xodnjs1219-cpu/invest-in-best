@@ -282,6 +282,17 @@ body {
   opacity: 1;
 }
 
+/* 관계 타이틀(라벨)이 항상 모든 엣지 선(강조된 굵은 선 포함) 위에 오도록 레이어 z를 못박는다.
+   React Flow는 엣지를 `.react-flow__edges` SVG에, 라벨을 `.react-flow__edgelabel-renderer`에
+   나눠 그리는데 기본값이 둘 다 z-auto라, 노드 클릭으로 강조된 굵은 선이 자기/다른 엣지의
+   라벨 위로 그려진다. 두 레이어의 z-index를 명시적으로 분리해 라벨을 항상 위로 올린다. */
+.react-flow__edges {
+  z-index: 1;
+}
+.react-flow__edgelabel-renderer {
+  z-index: 6;
+}
+
 /* 접근성: 모션 최소화 선호 시 진입/장식 애니메이션 정지 */
 @media (prefers-reduced-motion: reduce) {
   [data-animate-landing],
