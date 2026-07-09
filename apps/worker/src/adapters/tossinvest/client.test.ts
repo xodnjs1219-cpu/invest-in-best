@@ -49,8 +49,17 @@ function tokenBody(overrides: Partial<{ access_token: string; expires_in: number
   };
 }
 
+// 토스 응답은 모두 { result: ... } envelope로 감싸여 온다(실 API 확인). 목도 동일 구조로 만든다.
 function pricesBody(items: Array<{ symbol: string; lastPrice: number | string; volume?: number; currency?: string }>) {
-  return { prices: items };
+  return { result: items };
+}
+
+function candlesBody(candles: unknown[], nextBefore: string | null = null) {
+  return { result: { candles, nextBefore } };
+}
+
+function stocksBody(stocks: unknown[]) {
+  return { result: stocks };
 }
 
 function makeRateLimiter(clock: ReturnType<typeof makeClock>["clock"]) {
@@ -242,12 +251,12 @@ describe("createTossInvestClient — getPrices chunking & rate limit", () => {
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
       return Promise.resolve(
-        jsonResponse({
-          prices: [
+        jsonResponse(
+          pricesBody([
             { symbol: "005930", lastPrice: 100 },
-            { symbol: "000660" }, // missing lastPrice -> validation_failed
-          ],
-        }),
+            { symbol: "000660" } as { symbol: string; lastPrice: number }, // missing lastPrice -> validation_failed
+          ]),
+        ),
       );
     });
 
@@ -275,8 +284,8 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
       return Promise.resolve(
-        jsonResponse({
-          candles: [
+        jsonResponse(
+          candlesBody([
             {
               timestamp: "2026-07-06T00:00:00Z", // 09:00 KST
               openPrice: 100,
@@ -285,9 +294,8 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
               closePrice: 105,
               volume: 1000,
             },
-          ],
-          nextBefore: null,
-        }),
+          ]),
+        ),
       );
     });
 
@@ -310,8 +318,8 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
       return Promise.resolve(
-        jsonResponse({
-          candles: [
+        jsonResponse(
+          candlesBody([
             {
               timestamp: "2026-07-05T00:00:00Z", // previous local day
               openPrice: 100,
@@ -320,9 +328,8 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
               closePrice: 105,
               volume: 1000,
             },
-          ],
-          nextBefore: null,
-        }),
+          ]),
+        ),
       );
     });
 
@@ -335,7 +342,7 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
     const { clock } = makeClock();
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+      return Promise.resolve(jsonResponse(candlesBody([])));
     });
 
     const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
@@ -363,8 +370,8 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
       return Promise.resolve(
-        jsonResponse({
-          candles: [
+        jsonResponse(
+          candlesBody([
             {
               // 2026-07-06T01:00:00Z is 2026-07-05 21:00 in New York (EDT) but 2026-07-06 10:00 KST.
               // A KST-based comparison would wrongly match "2026-07-06"; US tz correctly resolves "2026-07-05".
@@ -375,9 +382,8 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
               closePrice: 205,
               volume: 500,
             },
-          ],
-          nextBefore: null,
-        }),
+          ]),
+        ),
       );
     });
 
@@ -407,8 +413,8 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
         jsonResponse({ error: { code: "internal-error", message: "oops" } }, { status: 500 }),
       )
       .mockResolvedValueOnce(
-        jsonResponse({
-          candles: [
+        jsonResponse(
+          candlesBody([
             {
               timestamp: "2026-07-06T00:00:00Z",
               openPrice: 1,
@@ -417,9 +423,8 @@ describe("createTossInvestClient — getConfirmedDailyCandle", () => {
               closePrice: 1.5,
               volume: 10,
             },
-          ],
-          nextBefore: null,
-        }),
+          ]),
+        ),
       );
 
     const client = createTossInvestClient({
@@ -621,7 +626,7 @@ describe("createTossInvestClient — getStockInfos (UC-027 shares_outstanding)",
     const acquireSpy = vi.spyOn(rateLimiter, "acquire");
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ stocks: [] }));
+      return Promise.resolve(jsonResponse(stocksBody([])));
     });
 
     const client = createTossInvestClient({ config, rateLimiter, fetchImpl, clock });
@@ -639,7 +644,7 @@ describe("createTossInvestClient — getStockInfos (UC-027 shares_outstanding)",
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
       return Promise.resolve(
-        jsonResponse({ stocks: [{ symbol: "005930", name: "삼성전자", status: "active", sharesOutstanding: "5919637922" }] }),
+        jsonResponse(stocksBody([{ symbol: "005930", name: "삼성전자", status: "active", sharesOutstanding: "5919637922" }])),
       );
     });
     const client = createTossInvestClient({ config, rateLimiter: makeStockRateLimiter(clock), fetchImpl, clock });
@@ -654,7 +659,7 @@ describe("createTossInvestClient — getStockInfos (UC-027 shares_outstanding)",
     const { clock } = makeClock();
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ stocks: [{ symbol: "005930" }] }));
+      return Promise.resolve(jsonResponse(stocksBody([{ symbol: "005930" }])));
     });
     const client = createTossInvestClient({ config, rateLimiter: makeStockRateLimiter(clock), fetchImpl, clock });
 
@@ -678,7 +683,7 @@ describe("createTossInvestClient — getStockInfos (UC-027 shares_outstanding)",
           ),
         );
       }
-      return Promise.resolve(jsonResponse({ stocks: [{ symbol: "B0", sharesOutstanding: "50" }] }));
+      return Promise.resolve(jsonResponse(stocksBody([{ symbol: "B0", sharesOutstanding: "50" }])));
     });
 
     const client = createTossInvestClient({
@@ -704,7 +709,7 @@ describe("createTossInvestClient — getStockInfos (UC-027 shares_outstanding)",
         jsonResponse({ error: { code: "expired-token", message: "expired" } }, { status: 401 }),
       )
       .mockResolvedValueOnce(jsonResponse(tokenBody({ access_token: "token-2" })))
-      .mockResolvedValueOnce(jsonResponse({ stocks: [{ symbol: "005930", sharesOutstanding: "100" }] }));
+      .mockResolvedValueOnce(jsonResponse(stocksBody([{ symbol: "005930", sharesOutstanding: "100" }])));
 
     const client = createTossInvestClient({
       config,
@@ -733,7 +738,7 @@ describe("createTossInvestClient — getStocks (UC-031 Phase 0 seed)", () => {
     const acquireSpy = vi.spyOn(rateLimiter, "acquire");
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ stocks: [] }));
+      return Promise.resolve(jsonResponse(stocksBody([])));
     });
 
     const client = createTossInvestClient({ config, rateLimiter, fetchImpl, clock });
@@ -749,8 +754,8 @@ describe("createTossInvestClient — getStocks (UC-031 Phase 0 seed)", () => {
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
       return Promise.resolve(
-        jsonResponse({
-          stocks: [
+        jsonResponse(
+          stocksBody([
             {
               symbol: "005930",
               name: "삼성전자",
@@ -761,8 +766,8 @@ describe("createTossInvestClient — getStocks (UC-031 Phase 0 seed)", () => {
               isinCode: "KR7005930003",
               securityType: "EQUITY",
             },
-          ],
-        }),
+          ]),
+        ),
       );
     });
     const client = createTossInvestClient({ config, rateLimiter: makeStockRateLimiter(clock), fetchImpl, clock });
@@ -787,7 +792,7 @@ describe("createTossInvestClient — getStocks (UC-031 Phase 0 seed)", () => {
     const { clock } = makeClock();
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ stocks: [] }));
+      return Promise.resolve(jsonResponse(stocksBody([])));
     });
     const client = createTossInvestClient({ config, rateLimiter: makeStockRateLimiter(clock), fetchImpl, clock });
 
@@ -802,7 +807,7 @@ describe("createTossInvestClient — getDailyCandlesPage (UC-031 Phase 1 backfil
     const { clock } = makeClock();
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+      return Promise.resolve(jsonResponse(candlesBody([])));
     });
     const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
 
@@ -820,7 +825,7 @@ describe("createTossInvestClient — getDailyCandlesPage (UC-031 Phase 1 backfil
     const { clock } = makeClock();
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+      return Promise.resolve(jsonResponse(candlesBody([])));
     });
     const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
 
@@ -835,12 +840,14 @@ describe("createTossInvestClient — getDailyCandlesPage (UC-031 Phase 1 backfil
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
       return Promise.resolve(
-        jsonResponse({
-          candles: [
-            { timestamp: "2026-07-06T00:00:00Z", openPrice: 100, highPrice: 110, lowPrice: 95, closePrice: 105, volume: 1000 },
-          ],
-          nextBefore: "2026-07-05T00:00:00Z",
-        }),
+        jsonResponse(
+          candlesBody(
+            [
+              { timestamp: "2026-07-06T00:00:00Z", openPrice: 100, highPrice: 110, lowPrice: 95, closePrice: 105, volume: 1000 },
+            ],
+            "2026-07-05T00:00:00Z",
+          ),
+        ),
       );
     });
     const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
@@ -855,7 +862,7 @@ describe("createTossInvestClient — getDailyCandlesPage (UC-031 Phase 1 backfil
     const { clock } = makeClock();
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+      return Promise.resolve(jsonResponse(candlesBody([])));
     });
     const client = createTossInvestClient({ config, rateLimiter: makeRateLimiter(clock), fetchImpl, clock });
 
@@ -870,7 +877,7 @@ describe("createTossInvestClient — getDailyCandlesPage (UC-031 Phase 1 backfil
     const acquireSpy = vi.spyOn(rateLimiter, "acquire");
     const fetchImpl = vi.fn().mockImplementation((url: string) => {
       if (String(url).includes("/oauth2/token")) return Promise.resolve(jsonResponse(tokenBody()));
-      return Promise.resolve(jsonResponse({ candles: [], nextBefore: null }));
+      return Promise.resolve(jsonResponse(candlesBody([])));
     });
     const client = createTossInvestClient({ config, rateLimiter, fetchImpl, clock });
 

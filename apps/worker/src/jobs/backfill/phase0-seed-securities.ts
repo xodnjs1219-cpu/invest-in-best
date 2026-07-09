@@ -3,7 +3,7 @@
  * corpCode.xml(KRX)+company_tickers.json(US) 시드, 토스 stocks 200청크 보강(toss_symbol·주식수), H-5 준수.
  * 완료 체크포인트면 스킵. 재개 시 cursor.step부터 이어서 진행(dart/sec 재호출 없음).
  */
-import { TOSS_SYMBOLS_CHUNK_SIZE } from "@iib/domain";
+import { TOSS_SYMBOLS_CHUNK_SIZE, isSpacName } from "@iib/domain";
 import type { CorpCodeMapping } from "../../adapters/opendart/contract";
 import type { SecTickerEntry } from "../../adapters/sec-edgar/contract";
 import type { NormalizedStockDetail } from "../../adapters/tossinvest/contract";
@@ -85,15 +85,18 @@ export function createPhase0SeedSecurities(deps: Phase0Deps): Phase0Job {
       // [dart] KRX 상장 법인 전체 매핑 — 1회 호출.
       if (cursor.step === "dart") {
         const mappings = await dart.fetchCorpCodeMappings();
-        if (mappings.length > 0) {
-          const rows: SecuritySeedRow[] = mappings.map((m) => ({
+        // 스팩(기업인수목적회사)은 실체 사업이 없어 분석 대상에서 제외 — 시드 단계에서 걸러낸다.
+        const nonSpacMappings = mappings.filter((m) => !isSpacName(m.corpName));
+        if (nonSpacMappings.length > 0) {
+          const rows: SecuritySeedRow[] = nonSpacMappings.map((m) => ({
             market: "KRX" as const,
             ticker: m.stockCode,
             name: m.corpName,
             currency: "KRW" as const,
             dartCorpCode: m.corpCode,
           }));
-          await repos.upsertSecuritySeeds(rows);
+          const dartResult = await repos.upsertSecuritySeeds(rows);
+          if (!dartResult.ok) console.error(`[phase0/dart] upsertSecuritySeeds 실패: ${dartResult.error}`);
           processed += rows.length;
         }
         cursor = { step: "sec", tossChunkIndex: 0 };
@@ -105,8 +108,10 @@ export function createPhase0SeedSecurities(deps: Phase0Deps): Phase0Job {
       // [sec] US 티커-CIK 전체 맵 — 1회 호출. SEC 전체를 마스터로 유지(H-5).
       if (cursor.step === "sec") {
         const entries = await sec.fetchTickerCikMap();
-        if (entries.length > 0) {
-          const rows: SecuritySeedRow[] = entries.map((e) => ({
+        // 스팩 상호 패턴은 시드 단계에서 제외(한국 상호 관례 기반 — 미국 SPAC은 대부분 잡히지 않으나 보수적으로 적용).
+        const nonSpacEntries = entries.filter((e) => !isSpacName(e.title));
+        if (nonSpacEntries.length > 0) {
+          const rows: SecuritySeedRow[] = nonSpacEntries.map((e) => ({
             market: "US" as const,
             ticker: e.ticker,
             name: e.title,
@@ -114,7 +119,8 @@ export function createPhase0SeedSecurities(deps: Phase0Deps): Phase0Job {
             currency: "USD" as const,
             cik: e.cik,
           }));
-          await repos.upsertSecuritySeeds(rows);
+          const secResult = await repos.upsertSecuritySeeds(rows);
+          if (!secResult.ok) console.error(`[phase0/sec] upsertSecuritySeeds 실패: ${secResult.error}`);
           processed += rows.length;
         }
         cursor = { step: "toss", tossChunkIndex: 0 };
@@ -139,20 +145,34 @@ export function createPhase0SeedSecurities(deps: Phase0Deps): Phase0Job {
           const chunkSymbols = chunks[i]!;
           const result = await toss.getStocks(chunkSymbols);
 
-          const matched = result.stocks.filter((s) => byTicker.has(s.symbol));
+          // 스팩은 시드 대상이 아니다. 토스는 한글명("A 스팩 애퀴지션")·영문명을 모두 주므로
+          // 둘 중 하나라도 스팩이면 제외 — sec 시드에서 놓친 잔존 스팩이 여기서 되살아나는 것을 막는다.
+          const matched = result.stocks.filter(
+            (s) => byTicker.has(s.symbol) && !isSpacName(s.name) && !isSpacName(s.englishName),
+          );
           if (matched.length > 0) {
-            const seedRows: SecuritySeedRow[] = matched.map((s) => ({
-              market: byTicker.get(s.symbol)!.market,
-              ticker: s.symbol,
-              tossSymbol: s.symbol,
-              name: s.name,
-              englishName: s.englishName ?? undefined,
-              isinCode: s.isinCode ?? undefined,
-              securityType: s.securityType ?? undefined,
-              listDate: s.listDate,
-              delistDate: s.delistDate,
-            }));
-            await repos.upsertSecuritySeeds(seedRows);
+            const seedRows: SecuritySeedRow[] = matched.map((s) => {
+              const market = byTicker.get(s.symbol)!.market;
+              return {
+                market,
+                ticker: s.symbol,
+                // currency는 securities NOT NULL 컬럼 — UPSERT가 INSERT 경로로 NOT NULL을 검사하므로
+                // 부분 payload라도 반드시 채운다(market 1:1 결정: KRX=KRW, US=USD).
+                currency: market === "KRX" ? ("KRW" as const) : ("USD" as const),
+                tossSymbol: s.symbol,
+                name: s.name,
+                englishName: s.englishName ?? undefined,
+                isinCode: s.isinCode ?? undefined,
+                securityType: s.securityType ?? undefined,
+                listDate: s.listDate,
+                delistDate: s.delistDate,
+              };
+            });
+            const seedResult = await repos.upsertSecuritySeeds(seedRows);
+            if (!seedResult.ok) {
+              // 숨은 실패 방지 — 이전에는 반환값을 무시해 toss_symbol 미반영이 조용히 넘어갔다.
+              console.error(`[phase0/toss] upsertSecuritySeeds 실패 (chunk ${i}): ${seedResult.error}`);
+            }
             processed += seedRows.length;
 
             const sharesRows: SharesRow[] = matched

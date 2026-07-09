@@ -15,10 +15,12 @@ function makeClient(overrides: Record<string, unknown>): SupabaseClient {
 
 describe("findCollectTargets", () => {
   it("applies market IN, listing_status='listed', and toss_symbol NOT NULL filters", async () => {
-    const notFn = vi.fn().mockResolvedValue({
+    // fetchAllPages 는 마지막 빌더에 .range(from,to) 를 호출한다. 1건(<1000)이면 첫 페이지가 마지막.
+    const rangeFn = vi.fn().mockResolvedValue({
       data: [{ id: "sec-1", toss_symbol: "005930", market: "KRX", currency: "KRW" }],
       error: null,
     });
+    const notFn = vi.fn().mockReturnValue({ range: rangeFn });
     const eqFn = vi.fn().mockReturnValue({ not: notFn });
     const inFn = vi.fn().mockReturnValue({ eq: eqFn });
     const select = vi.fn().mockReturnValue({ in: inFn });
@@ -40,7 +42,7 @@ describe("findCollectTargets", () => {
 
 describe("findAllForFinancials", () => {
   it("excludes delisted securities but includes suspended ones (E20), selecting mapping columns", async () => {
-    const neqFn = vi.fn().mockResolvedValue({
+    const rangeFn = vi.fn().mockResolvedValue({
       data: [
         {
           id: "sec-1",
@@ -55,6 +57,7 @@ describe("findAllForFinancials", () => {
       ],
       error: null,
     });
+    const neqFn = vi.fn().mockReturnValue({ range: rangeFn });
     const select = vi.fn().mockReturnValue({ neq: neqFn });
     const from = vi.fn().mockReturnValue({ select });
     const client = makeClient({ from });
@@ -185,10 +188,11 @@ describe("flagSharesManualOverride", () => {
 
 describe("findAllTickers", () => {
   it("selects id/market/ticker for every security (Phase 0 toss_symbol confirmation lookup)", async () => {
-    const select = vi.fn().mockResolvedValue({
+    const rangeFn = vi.fn().mockResolvedValue({
       data: [{ id: "sec-1", market: "KRX", ticker: "005930" }],
       error: null,
     });
+    const select = vi.fn().mockReturnValue({ range: rangeFn });
     const from = vi.fn().mockReturnValue({ select });
     const client = makeClient({ from });
 
@@ -196,6 +200,7 @@ describe("findAllTickers", () => {
 
     expect(from).toHaveBeenCalledWith("securities");
     expect(select).toHaveBeenCalledWith("id, market, ticker");
+    expect(rangeFn).toHaveBeenCalledWith(0, 999);
     expect(result).toEqual({
       ok: true,
       data: [{ id: "sec-1", market: "KRX", ticker: "005930" }],

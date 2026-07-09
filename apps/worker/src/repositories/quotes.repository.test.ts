@@ -87,7 +87,8 @@ describe("upsertProvisionalDaily", () => {
 
 describe("findUnconfirmedDaily", () => {
   it("applies market/date/unconfirmed filters and returns symbols", async () => {
-    const notFn = vi.fn().mockResolvedValue({
+    // 체인: .not(...).order(security_id).range(from,to) — fetchAllPages가 마지막에 range 호출.
+    const rangeFn = vi.fn().mockResolvedValue({
       data: [
         {
           security_id: "sec-1",
@@ -96,6 +97,8 @@ describe("findUnconfirmedDaily", () => {
       ],
       error: null,
     });
+    const orderFn = vi.fn().mockReturnValue({ range: rangeFn });
+    const notFn = vi.fn().mockReturnValue({ order: orderFn });
     const eqMarket = vi.fn().mockReturnValue({ not: notFn });
     const eqConfirmed = vi.fn().mockReturnValue({ eq: eqMarket });
     const eqDate = vi.fn().mockReturnValue({ eq: eqConfirmed });

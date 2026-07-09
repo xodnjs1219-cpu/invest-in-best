@@ -136,6 +136,12 @@ export const BACKFILL_PROGRESS_UPDATE_EVERY_N_UNITS = 10;
 /** 국내 과거 공시 백필 소급 개월 수(H-10 — 공시 백필은 최근 N개월만, 전 구간 아님). */
 export const BACKFILL_KRX_DISCLOSURE_MONTHS = 12;
 
+/**
+ * 과거 일봉 백필 소급 개월 수(Phase 1). 전 구간(상장 이래) 대신 최근 N개월만 수집한다.
+ * 12 = 최근 1년. 컷오프 이전 봉은 적재하지 않고 페이지네이션을 중단한다.
+ */
+export const BACKFILL_QUOTES_LOOKBACK_MONTHS = 12;
+
 /** OpenDART list.json 기간 조회 상한(3개월) 내로 분할하는 일수(공시 소급 윈도우 분할). */
 export const OPENDART_LIST_WINDOW_DAYS = 85;
 

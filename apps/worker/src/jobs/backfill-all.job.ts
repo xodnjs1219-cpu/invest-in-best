@@ -3,7 +3,12 @@
  * CLI 진입(main) + 오케스트레이터: 경합 확인 → 실행 기록 → 체크포인트 로드/큐 생성 → Phase 0~3 → 종료 판정 → UC-029 후속 연결.
  * 잡 전체를 try/catch로 감싸 어떤 예외도 프로세스로 전파하지 않는다(E17 최상위 방어).
  */
-import { BACKFILL_HEARTBEAT_STALE_MS, BACKFILL_JOB_TYPE } from "@iib/domain";
+import {
+  BACKFILL_HEARTBEAT_STALE_MS,
+  BACKFILL_JOB_TYPE,
+  BACKFILL_QUOTES_LOOKBACK_MONTHS,
+  computeQuotesBackfillCutoff,
+} from "@iib/domain";
 import type { RepoResult } from "../repositories/result";
 import type { RunningRun, FinishRunInput } from "../repositories/batch.repository";
 import type { FinancialsTargetSecurity } from "../repositories/securities.repository";
@@ -295,6 +300,8 @@ export function assembleBackfillAllJob(): BackfillAllJob {
     checkpoints: scopedCheckpoints(BACKFILL_JOB_TYPE),
     guard,
     batchLog: sharedBatchLog,
+    // 일봉 백필은 최근 N개월만 수집(전 구간 대신) — 조립 시점 기준 컷오프 거래일.
+    minTradeDate: computeQuotesBackfillCutoff(new Date(), BACKFILL_QUOTES_LOOKBACK_MONTHS),
   });
 
   const phase2 = createPhase2KrxFinancials({

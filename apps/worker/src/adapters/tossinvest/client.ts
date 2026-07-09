@@ -389,8 +389,9 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
     if (!response.ok) {
       throw await toTossRequestError(response);
     }
-    const raw = (await response.json()) as { prices?: unknown[] };
-    return { prices: Array.isArray(raw.prices) ? raw.prices : [] };
+    // 토스 응답은 { result: [...] } 로 한 겹 감싸여 온다. result 배열을 그대로 prices로 정규화한다.
+    const raw = (await response.json()) as { result?: unknown[] };
+    return { prices: Array.isArray(raw.result) ? raw.result : [] };
   }
 
   /** UC-027 모듈 11 — 026 getPrices와 동일 파이프(청크·레이트리밋·재시도·부분실패 분리)를 STOCK 그룹으로 재사용. */
@@ -404,8 +405,9 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
     if (!response.ok) {
       throw await toTossRequestError(response);
     }
-    const raw = (await response.json()) as { stocks?: unknown[] };
-    return { stocks: Array.isArray(raw.stocks) ? raw.stocks : [] };
+    // /api/v1/stocks 는 { result: [...] } 형태(최상위 stocks 키 없음).
+    const raw = (await response.json()) as { result?: unknown[] };
+    return { stocks: Array.isArray(raw.result) ? raw.result : [] };
   }
 
   /** UC-031 Phase 0 — 정형 필드 전체 조회(getStockInfos와 동일 엔드포인트, 검증 스키마만 확장). */
@@ -419,8 +421,9 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
     if (!response.ok) {
       throw await toTossRequestError(response);
     }
-    const raw = (await response.json()) as { stocks?: unknown[] };
-    return { stocks: Array.isArray(raw.stocks) ? raw.stocks : [] };
+    // /api/v1/stocks 는 { result: [...] } 형태(최상위 stocks 키 없음).
+    const raw = (await response.json()) as { result?: unknown[] };
+    return { stocks: Array.isArray(raw.result) ? raw.result : [] };
   }
 
   /** UC-031 Phase 1 — before 커서 페이지네이션으로 과거 일봉 소급(count=200, adjusted=true). */
@@ -442,8 +445,9 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
     if (!response.ok) {
       throw await toTossRequestError(response);
     }
-    const raw: unknown = await response.json();
-    const parsed = candlePageResponseSchema.safeParse(raw);
+    // 토스 candles 응답은 { result: { candles, nextBefore } } 로 감싸여 온다 — result 하위를 검증한다.
+    const raw = (await response.json()) as { result?: unknown };
+    const parsed = candlePageResponseSchema.safeParse(raw.result);
     if (!parsed.success) {
       throw new TossRequestError({ code: "validation_failed", status: response.status, message: parsed.error.message });
     }
@@ -473,8 +477,9 @@ export function createTossInvestClient(options: CreateTossInvestClientOptions): 
     if (!response.ok) {
       throw await toTossRequestError(response);
     }
-    const raw: unknown = await response.json();
-    const parsed = candlePageResponseSchema.safeParse(raw);
+    // candles 응답은 { result: { candles, nextBefore } } 로 감싸여 온다 — result 하위를 검증한다.
+    const raw = (await response.json()) as { result?: unknown };
+    const parsed = candlePageResponseSchema.safeParse(raw.result);
     if (!parsed.success || parsed.data.candles.length === 0) {
       return null;
     }

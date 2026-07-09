@@ -4,7 +4,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DB_UPSERT_CHUNK_SIZE, type MarketCode } from "@iib/domain";
-import { repoFail, repoOk, type RepoResult } from "./result";
+import { fetchAllPages, repoFail, repoOk, type RepoResult } from "./result";
 
 export interface QuoteTickRow {
   securityId: string;
@@ -92,20 +92,24 @@ export async function findUnconfirmedDaily(
   market: MarketCode,
   tradeDate: string,
 ): Promise<RepoResult<UnconfirmedDailyTarget[]>> {
-  const { data, error } = await client
-    .from("daily_quotes")
-    .select("security_id, securities!inner(toss_symbol, market)")
-    .eq("trade_date", tradeDate)
-    .eq("is_closing_confirmed", false)
-    .eq("securities.market", market)
-    .not("securities.toss_symbol", "is", null);
-
-  if (error || !data) {
-    return repoFail(`findUnconfirmedDaily failed: ${error?.message ?? "no data returned"}`);
+  // 시장 전체의 미확정 종목을 반환 — KRX는 상장 종목이 2,000건 이상이라 1,000행 캡에 걸린다.
+  // 페이지네이션으로 전량 수집해야 초과분이 종가 확정에서 누락되지 않는다. security_id로 안정 정렬.
+  const paged = await fetchAllPages<UnconfirmedDailyRow>(() =>
+    client
+      .from("daily_quotes")
+      .select("security_id, securities!inner(toss_symbol, market)")
+      .eq("trade_date", tradeDate)
+      .eq("is_closing_confirmed", false)
+      .eq("securities.market", market)
+      .not("securities.toss_symbol", "is", null)
+      .order("security_id", { ascending: true }),
+  );
+  if (!paged.ok) {
+    return repoFail(`findUnconfirmedDaily failed: ${paged.error}`);
   }
 
   return repoOk(
-    (data as unknown as UnconfirmedDailyRow[]).map((row) => {
+    paged.data.map((row) => {
       const securities = Array.isArray(row.securities) ? row.securities[0] : row.securities;
       return {
         securityId: row.security_id,

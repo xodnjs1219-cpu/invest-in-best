@@ -60,6 +60,39 @@ describe("phase1-daily-quotes — pagination & completion", () => {
     expect(checkpoints.complete).toHaveBeenCalledWith(candlesCheckpointKey("sec-1"));
   });
 
+  it("minTradeDate 컷오프: 하한 이전 봉은 버리고 유효분만 적재한 뒤 조기 완료한다", async () => {
+    // 페이지에 컷오프(2025-07-09) 이후/이전 봉이 섞여 있음. 이후분만 적재하고 페이지네이션 중단.
+    const toss = makeToss({
+      getDailyCandlesPage: vi.fn().mockResolvedValue({
+        candles: [
+          { symbol: "005930", date: "2025-07-10", open: 1, high: 2, low: 0.5, close: 1.5, volume: 10 }, // 유효
+          { symbol: "005930", date: "2025-07-09", open: 1, high: 2, low: 0.5, close: 1.5, volume: 10 }, // 유효(경계 포함)
+          { symbol: "005930", date: "2025-07-08", open: 1, high: 2, low: 0.5, close: 1.5, volume: 10 }, // 컷오프 이전 → 제외
+        ],
+        nextBefore: "b1", // 더 과거 페이지가 있어도 컷오프에 걸려 중단해야 함
+      }),
+    });
+    const repos = makeRepos();
+    const checkpoints = makeCheckpoints();
+
+    const phase1 = createPhase1DailyQuotes({
+      toss,
+      repos,
+      checkpoints,
+      guard: makeGuard(),
+      batchLog: makeBatchLog(),
+      minTradeDate: "2025-07-09",
+    });
+    await phase1.run(targets);
+
+    // 유효분 2건만 적재(3건 아님).
+    expect(repos.upsertConfirmedDaily).toHaveBeenCalledTimes(1);
+    expect(repos.upsertConfirmedDaily.mock.calls[0]![0]).toHaveLength(2);
+    // nextBefore가 있어도 컷오프 도달로 조기 완료, 다음 페이지 요청 없음.
+    expect(toss.getDailyCandlesPage).toHaveBeenCalledTimes(1);
+    expect(checkpoints.complete).toHaveBeenCalledWith(candlesCheckpointKey("sec-1"));
+  });
+
   it("completes immediately on the first page when nextBefore is null (E7)", async () => {
     const toss = makeToss({
       getDailyCandlesPage: vi.fn().mockResolvedValue({

@@ -44,6 +44,11 @@ export interface Phase1Deps {
   guard: Phase1Guard;
   batchLog: Phase1BatchLog;
   retryOptions?: Partial<RetryOptions>;
+  /**
+   * 수집 하한 거래일(yyyy-MM-dd, 포함). 이 날짜 이전 봉은 적재하지 않고 페이지네이션을 중단한다.
+   * 미지정이면 전 구간(상장 이래) 수집(하위 호환).
+   */
+  minTradeDate?: string;
 }
 
 export interface Phase1Summary {
@@ -78,7 +83,7 @@ function shouldRetryPhase1Error(error: unknown): boolean {
 }
 
 export function createPhase1DailyQuotes(deps: Phase1Deps): Phase1Job {
-  const { toss, repos, checkpoints, guard, batchLog } = deps;
+  const { toss, repos, checkpoints, guard, batchLog, minTradeDate } = deps;
   const retryOptions = deps.retryOptions ?? {};
 
   return {
@@ -105,8 +110,15 @@ export function createPhase1DailyQuotes(deps: Phase1Deps): Phase1Job {
               { shouldRetry: shouldRetryPhase1Error, ...retryOptions },
             );
 
-            if (page.candles.length > 0) {
-              const rows = page.candles.map((c) => toConfirmedDailyRow(target.id, c));
+            // 컷오프 적용: minTradeDate 이전 봉은 버린다. 컷오프 이전 봉이 하나라도 있으면
+            // 이 페이지가 하한을 넘어선 것 → 남은 유효분 적재 후 페이지네이션을 중단한다.
+            const inRange = minTradeDate
+              ? page.candles.filter((c) => c.date >= minTradeDate)
+              : page.candles;
+            const reachedCutoff = minTradeDate !== undefined && inRange.length < page.candles.length;
+
+            if (inRange.length > 0) {
+              const rows = inRange.map((c) => toConfirmedDailyRow(target.id, c));
               const upsertResult = await repos.upsertConfirmedDaily(rows);
               if (!upsertResult.ok) {
                 // 적재 실패 — 커서를 전진시키지 않고 이 종목 처리를 중단(BR-6, 다음 실행에서 동일 지점부터 재시도).
@@ -116,7 +128,7 @@ export function createPhase1DailyQuotes(deps: Phase1Deps): Phase1Job {
               processed += rows.length;
             }
 
-            if (page.nextBefore === null) {
+            if (reachedCutoff || page.nextBefore === null) {
               await checkpoints.complete(key);
               break;
             }

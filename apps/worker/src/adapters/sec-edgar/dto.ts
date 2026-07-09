@@ -135,13 +135,20 @@ export function parseTickerCikMapResponse(raw: unknown): ParseResult<TickerCikMa
   return { ok: true, data: result.data };
 }
 
-/** 인덱스 키 객체 맵 → 내부 모델 배열(CIK 10자리 zero-pad 정규화). */
+/**
+ * 인덱스 키 객체 맵 → 내부 모델 배열(CIK 10자리 zero-pad 정규화).
+ * company_tickers.json은 한 회사(동일 CIK)가 여러 클래스 티커(BRK-A/BRK-B 등)로 중복 등장한다.
+ * securities.cik 는 유니크 제약(uq_securities_cik)이므로 CIK당 1행(대표=최초 등장 티커)으로 dedup한다.
+ * — dedup하지 않으면 한 UPSERT 청크 내 동일 CIK 충돌로 청크 전체가 실패한다(관측된 US 종목 누락 원인).
+ */
 export function toSecTickerEntries(dto: TickerCikMapResponse): SecTickerEntry[] {
-  return Object.values(dto).map((entry) => ({
-    cik: normalizeCik(entry.cik_str),
-    ticker: entry.ticker,
-    title: entry.title,
-  }));
+  const byCik = new Map<string, SecTickerEntry>();
+  for (const entry of Object.values(dto)) {
+    const cik = normalizeCik(entry.cik_str);
+    if (byCik.has(cik)) continue; // 최초 등장 티커를 대표로 유지
+    byCik.set(cik, { cik, ticker: entry.ticker, title: entry.title });
+  }
+  return [...byCik.values()];
 }
 
 export const companyConceptResponseSchema = z

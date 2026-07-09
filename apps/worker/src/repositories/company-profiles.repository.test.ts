@@ -47,10 +47,13 @@ describe("upsertProfiles", () => {
 
 describe("findProfileFreshness", () => {
   it("selects security_id and last_collected_at for the given ids", async () => {
-    const inFn = vi.fn().mockResolvedValue({
+    // 체인: .in(...).order(security_id).range(from,to) — fetchAllPages가 마지막에 range 호출.
+    const rangeFn = vi.fn().mockResolvedValue({
       data: [{ security_id: "sec-1", last_collected_at: "2026-01-01T00:00:00Z" }],
       error: null,
     });
+    const orderFn = vi.fn().mockReturnValue({ range: rangeFn });
+    const inFn = vi.fn().mockReturnValue({ order: orderFn });
     const select = vi.fn().mockReturnValue({ in: inFn });
     const from = vi.fn().mockReturnValue({ select });
     const client = makeClient({ from });

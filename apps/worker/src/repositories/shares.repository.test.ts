@@ -47,7 +47,8 @@ describe("upsertShares", () => {
 
 describe("findLatestBySource", () => {
   it("filters by security ids and source, returning the latest as_of_date per security", async () => {
-    const orderFn = vi.fn().mockResolvedValue({
+    // 체인: .order(as_of_date).order(security_id).range(from,to) — fetchAllPages가 마지막에 range 호출.
+    const rangeFn = vi.fn().mockResolvedValue({
       data: [
         { security_id: "sec-1", shares: 100, as_of_date: "2025-12-31" },
         { security_id: "sec-1", shares: 90, as_of_date: "2025-09-30" },
@@ -55,6 +56,8 @@ describe("findLatestBySource", () => {
       ],
       error: null,
     });
+    const order2Fn = vi.fn().mockReturnValue({ range: rangeFn });
+    const orderFn = vi.fn().mockReturnValue({ order: order2Fn });
     const eqSource = vi.fn().mockReturnValue({ order: orderFn });
     const inFn = vi.fn().mockReturnValue({ eq: eqSource });
     const select = vi.fn().mockReturnValue({ in: inFn });

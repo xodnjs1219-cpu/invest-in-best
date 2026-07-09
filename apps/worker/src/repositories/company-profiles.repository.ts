@@ -3,7 +3,7 @@
  * company_profiles UPSERT(+last_collected_at), 증분 갱신 대상 판정 조회(OQ-1).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { repoFail, repoOk, type RepoResult } from "./result";
+import { fetchAllPages, repoFail, repoOk, type RepoResult } from "./result";
 
 export interface CompanyProfileRow {
   securityId: string;
@@ -52,16 +52,20 @@ export async function findProfileFreshness(
   client: SupabaseClient,
   securityIds: string[],
 ): Promise<RepoResult<ProfileFreshness[]>> {
-  const { data, error } = await client
-    .from("company_profiles")
-    .select("security_id, last_collected_at")
-    .in("security_id", securityIds);
-
-  if (error || !data) {
-    return repoFail(`findProfileFreshness failed: ${error?.message ?? "no data returned"}`);
+  // KRX 대상 종목 전체(1,000 초과 가능)를 조회 — 잘리면 미조회 종목이 항상 갱신 대상으로 오판되어
+  // DART 재호출을 낭비한다. 페이지네이션으로 전량 수집. security_id로 안정 정렬.
+  const paged = await fetchAllPages<{ security_id: string; last_collected_at: string | null }>(() =>
+    client
+      .from("company_profiles")
+      .select("security_id, last_collected_at")
+      .in("security_id", securityIds)
+      .order("security_id", { ascending: true }),
+  );
+  if (!paged.ok) {
+    return repoFail(`findProfileFreshness failed: ${paged.error}`);
   }
   return repoOk(
-    (data as Array<{ security_id: string; last_collected_at: string | null }>).map((row) => ({
+    paged.data.map((row) => ({
       securityId: row.security_id,
       lastCollectedAt: row.last_collected_at,
     })),

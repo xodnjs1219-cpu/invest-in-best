@@ -4,7 +4,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DB_UPSERT_CHUNK_SIZE, type MarketCode } from "@iib/domain";
-import { repoFail, repoOk, type RepoResult } from "./result";
+import { fetchAllPages, repoFail, repoOk, type RepoResult } from "./result";
 
 function chunkArray<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -32,18 +32,19 @@ export async function findCollectTargets(
   client: SupabaseClient,
   markets: MarketCode[],
 ): Promise<RepoResult<CollectTargetSecurity[]>> {
-  const { data, error } = await client
-    .from("securities")
-    .select("id, toss_symbol, market, currency")
-    .in("market", markets)
-    .eq("listing_status", "listed")
-    .not("toss_symbol", "is", null);
-
-  if (error || !data) {
-    return repoFail(`findCollectTargets failed: ${error?.message ?? "no data returned"}`);
+  const paged = await fetchAllPages<SecurityRow>(() =>
+    client
+      .from("securities")
+      .select("id, toss_symbol, market, currency")
+      .in("market", markets)
+      .eq("listing_status", "listed")
+      .not("toss_symbol", "is", null),
+  );
+  if (!paged.ok) {
+    return repoFail(`findCollectTargets failed: ${paged.error}`);
   }
   return repoOk(
-    (data as SecurityRow[]).map((row) => ({
+    paged.data.map((row) => ({
       id: row.id,
       tossSymbol: row.toss_symbol,
       market: row.market,
@@ -81,16 +82,17 @@ interface FinancialsTargetRow {
 export async function findAllForFinancials(
   client: SupabaseClient,
 ): Promise<RepoResult<FinancialsTargetSecurity[]>> {
-  const { data, error } = await client
-    .from("securities")
-    .select("id, ticker, market, listing_status, dart_corp_code, cik, toss_symbol, shares_manual_override_needed")
-    .neq("listing_status", "delisted");
-
-  if (error || !data) {
-    return repoFail(`findAllForFinancials failed: ${error?.message ?? "no data returned"}`);
+  const paged = await fetchAllPages<FinancialsTargetRow>(() =>
+    client
+      .from("securities")
+      .select("id, ticker, market, listing_status, dart_corp_code, cik, toss_symbol, shares_manual_override_needed")
+      .neq("listing_status", "delisted"),
+  );
+  if (!paged.ok) {
+    return repoFail(`findAllForFinancials failed: ${paged.error}`);
   }
   return repoOk(
-    (data as FinancialsTargetRow[]).map((row) => ({
+    paged.data.map((row) => ({
       id: row.id,
       ticker: row.ticker,
       market: row.market,
@@ -137,12 +139,11 @@ export interface SecurityTickerRow {
  * 전 종목 id/market/ticker 조회(UC-031 Phase 0 — 토스 stocks 응답 매칭·shares_outstanding 적재용 id 해석).
  */
 export async function findAllTickers(client: SupabaseClient): Promise<RepoResult<SecurityTickerRow[]>> {
-  const { data, error } = await client.from("securities").select("id, market, ticker");
-
-  if (error || !data) {
-    return repoFail(`findAllTickers failed: ${error?.message ?? "no data returned"}`);
+  const paged = await fetchAllPages<SecurityTickerRow>(() => client.from("securities").select("id, market, ticker"));
+  if (!paged.ok) {
+    return repoFail(`findAllTickers failed: ${paged.error}`);
   }
-  return repoOk(data as SecurityTickerRow[]);
+  return repoOk(paged.data);
 }
 
 /**
