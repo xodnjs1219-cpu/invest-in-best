@@ -281,6 +281,8 @@ const MindmapCanvasInner = () => {
         // 줌 범위 확장 — 큰 밸류체인(노드 최대 100개)도 한눈에 보이도록 축소를 넉넉히 허용한다.
         minZoom={0.1}
         maxZoom={2.5}
+        // 노드 클릭 선택 시 연결 엣지 SVG가 라벨 위로 올라가 관계 타이틀을 덮는 것을 막는다.
+        elevateEdgesOnSelect={false}
         zoomOnDoubleClick={false}
       />
       {/* 시점 복원 중 인디케이터(UC-012) — 스냅샷 조회 중 캔버스 위에 표시. */}

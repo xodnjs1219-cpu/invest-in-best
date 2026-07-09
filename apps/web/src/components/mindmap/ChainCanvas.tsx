@@ -205,6 +205,9 @@ function ChainCanvasInner({
         // 줌 범위 확장 — 큰 밸류체인(노드 최대 100개)도 한눈에 보이도록 축소를 넉넉히 허용한다.
         minZoom={0.1}
         maxZoom={2.5}
+        // 노드 선택(클릭) 시 연결 엣지의 SVG가 라벨 레이어 위로 올라가 관계 타이틀을 덮는 것을 막는다.
+        // (React Flow 기본 elevateEdgesOnSelect=true 여파 — 강조는 data 기반이라 elevate 불필요)
+        elevateEdgesOnSelect={false}
         // 페인 빈 곳 더블클릭 시 줌인되면 노드가 화면 밖으로 밀려나 "노드가 사라진 것처럼" 보인다.
         // 밸류체인 캔버스에서 더블클릭 줌은 불필요하므로 비활성화한다(줌은 휠·컨트롤로만).
         zoomOnDoubleClick={false}
