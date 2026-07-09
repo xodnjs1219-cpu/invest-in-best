@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -6,6 +7,11 @@ import { createServiceClient } from "@/lib/supabase/service-client";
 
 const PROFILES_TABLE = "profiles";
 const ADMIN_ENTRY_PATH = "/admin/llm-proposals";
+
+/** 어드민 콘솔 — 검색 색인 제외(비공개 운영 도구). */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 /** 어드민 콘솔 내비게이션 항목(UC-021/023/024가 화면 추가 시 이 배열에 추가). */
 const ADMIN_NAV_ITEMS = [

@@ -5,7 +5,15 @@ import { DataSourcePolicySection } from "@/features/legal/components/DataSourceP
 
 const doc = getLegalPageDoc("investment_disclaimer");
 
-export const metadata: Metadata = { title: doc.title };
+export const metadata: Metadata = {
+  title: doc.title,
+  description: `${doc.title} — 모든 데이터는 정보 제공 목적이며 투자 권유가 아님을 안내합니다.`,
+  alternates: { canonical: "/legal/disclaimer" },
+  openGraph: {
+    title: doc.title,
+    url: "/legal/disclaimer",
+  },
+};
 
 /**
  * 투자 면책 페이지 (UC-025 plan B-5) — Server Component, 정적 세그먼트.

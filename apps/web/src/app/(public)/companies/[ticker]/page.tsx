@@ -15,9 +15,30 @@ const parseMarket = (raw: string | undefined): "KRX" | "US" | null =>
 const parseAsOf = (raw: string | undefined): string | null =>
   raw && ISO_DATE_PATTERN.test(raw) ? raw : null;
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { ticker } = await params;
-  return { title: `${ticker} — 기업 상세` };
+  const { market: marketRaw } = await searchParams;
+  const market = parseMarket(marketRaw);
+
+  const title = `${ticker} — 기업 상세`;
+  const description = `${ticker}${market ? ` (${market})` : ""} 기업의 밸류체인 소속·핵심 지표·현황을 invest-in-best에서 확인하세요.`;
+  // 시장이 명시된 표준 형태를 canonical로 지정(같은 티커의 파라미터 변형 중복 방지).
+  const canonical = `/companies/${encodeURIComponent(ticker)}${market ? `?market=${market}` : ""}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+    },
+    twitter: {
+      title,
+      description,
+    },
+  };
 }
 
 /**

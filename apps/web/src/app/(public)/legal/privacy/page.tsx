@@ -4,7 +4,15 @@ import { LegalDocumentView } from "@/features/legal/components/LegalDocumentView
 
 const doc = getLegalPageDoc("privacy_policy");
 
-export const metadata: Metadata = { title: doc.title };
+export const metadata: Metadata = {
+  title: doc.title,
+  description: `${doc.title} — invest-in-best의 개인정보 수집·이용·보관에 관한 방침.`,
+  alternates: { canonical: "/legal/privacy" },
+  openGraph: {
+    title: doc.title,
+    url: "/legal/privacy",
+  },
+};
 
 /**
  * 개인정보처리방침 페이지 (UC-025 plan B-4) — Server Component, 정적 세그먼트.

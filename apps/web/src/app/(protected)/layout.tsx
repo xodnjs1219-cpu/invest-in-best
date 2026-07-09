@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSsrServerClient } from "@/lib/supabase/server-client";
+
+/** 로그인 전용 영역 — 검색 색인 제외(개인화·비공개 콘텐츠). */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 /**
  * `(protected)/*` 화면 공통 로그인 가드 (UC-013 plan 모듈 15).
