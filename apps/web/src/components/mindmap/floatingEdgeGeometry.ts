@@ -32,6 +32,28 @@ function getNodeIntersection(
   return { x, y };
 }
 
+/**
+ * 원형 노드용 교점 — 두 노드 중심을 잇는 직선이 `circleNode`의 원 둘레와 만나는 점.
+ * 원형 표시에서는 사각 경계(getNodeIntersection)가 원 밖으로 뜨거나 코너에 붙어 어색하므로,
+ * 중심에서 반지름 방향으로 정확히 원 둘레 위 접점을 구한다(정사각 노드 기준 반지름 = 폭/2).
+ */
+function getCircleIntersection(
+  circleNode: InternalNode<Node>,
+  otherNode: InternalNode<Node>,
+): { x: number; y: number } {
+  const w = circleNode.measured.width ?? 0;
+  const h = circleNode.measured.height ?? 0;
+  const cx = circleNode.internals.positionAbsolute.x + w / 2;
+  const cy = circleNode.internals.positionAbsolute.y + h / 2;
+  const ox = otherNode.internals.positionAbsolute.x + (otherNode.measured.width ?? 0) / 2;
+  const oy = otherNode.internals.positionAbsolute.y + (otherNode.measured.height ?? 0) / 2;
+  const dx = ox - cx;
+  const dy = oy - cy;
+  const dist = Math.hypot(dx, dy) || 1;
+  const r = Math.min(w, h) / 2; // 정사각이면 w=h. 원 반지름.
+  return { x: cx + (dx / dist) * r, y: cy + (dy / dist) * r };
+}
+
 /** 교점이 노드의 어느 변(상/하/좌/우)에 있는지 판정 — 베지어 곡선 방향 결정용. */
 function getEdgePosition(
   node: InternalNode<Node>,
@@ -71,7 +93,10 @@ export function getSideCenter(node: InternalNode<Node>, side: Position): { x: nu
   }
 }
 
-/** source/target 노드로부터 floating edge의 시작·끝 좌표와 각 변 위치를 계산한다. */
+/**
+ * source/target 노드로부터 floating edge의 시작·끝 좌표와 각 변 위치를 계산한다.
+ * 각 노드가 원형(circle)이면 사각 경계 대신 원 둘레 교점을 써서 접점이 원 경계에 정확히 붙게 한다.
+ */
 export function getFloatingEdgeParams(
   source: InternalNode<Node>,
   target: InternalNode<Node>,
@@ -83,8 +108,15 @@ export function getFloatingEdgeParams(
   sourcePos: Position;
   targetPos: Position;
 } {
-  const sourceIntersectionPoint = getNodeIntersection(source, target);
-  const targetIntersectionPoint = getNodeIntersection(target, source);
+  const sourceIsCircle = (source.data as { shape?: string })?.shape === "circle";
+  const targetIsCircle = (target.data as { shape?: string })?.shape === "circle";
+
+  const sourceIntersectionPoint = sourceIsCircle
+    ? getCircleIntersection(source, target)
+    : getNodeIntersection(source, target);
+  const targetIntersectionPoint = targetIsCircle
+    ? getCircleIntersection(target, source)
+    : getNodeIntersection(target, source);
 
   return {
     sx: sourceIntersectionPoint.x,

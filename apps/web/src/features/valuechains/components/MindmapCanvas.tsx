@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -17,7 +17,7 @@ import { CompanyNode, type CompanyNodeType } from "@/components/mindmap/CompanyN
 import { FreeSubjectNode, type FreeSubjectNodeType } from "@/components/mindmap/FreeSubjectNode";
 import { GroupNode, type GroupNodeType } from "@/components/mindmap/GroupNode";
 import { RelationEdge, directedArrowMarker } from "@/components/mindmap/RelationEdge";
-import type { RenderGraph } from "@/components/mindmap/types";
+import type { NodeShape, RenderGraph } from "@/components/mindmap/types";
 import {
   computeGroupBounds,
   toAbsolutePosition,
@@ -45,6 +45,7 @@ const toReactFlowElements = (
   renderGraph: RenderGraph,
   onToggleCollapse: (groupId: string) => void,
   selectedNodeId: string | null,
+  nodeShape: NodeShape,
 ): { nodes: Node[]; edges: Edge[] } => {
   // 그룹 크기는 고정이 아니라 멤버 노드들의 bounding box에 맞춰 계산한다(편집기와 동일 규칙).
   // 그룹 좌표는 비영속 파생값이므로 항상 멤버 절대 좌표에서 유도하고, 멤버는 상대 좌표로 변환한다.
@@ -69,6 +70,7 @@ const toReactFlowElements = (
         isCollapsed: group.isCollapsed,
         memberCount: group.memberCount,
         onToggleCollapse: () => onToggleCollapse(group.id),
+        shape: nodeShape,
       },
       style: { width: bounds.width, height: bounds.height },
     };
@@ -99,6 +101,7 @@ const toReactFlowElements = (
           sublabel: node.sublabel,
           market: node.market,
           listingStatus: node.listingStatus,
+          shape: nodeShape,
         },
       } satisfies Node<CompanyNodeType["data"]>;
     }
@@ -106,7 +109,7 @@ const toReactFlowElements = (
     return {
       ...base,
       type: "freeSubjectNode",
-      data: { label: node.label, subjectType: node.subjectType ?? "other" },
+      data: { label: node.label, subjectType: node.subjectType ?? "other", shape: nodeShape },
     } satisfies Node<FreeSubjectNodeType["data"]>;
   });
 
@@ -123,16 +126,47 @@ const toReactFlowElements = (
   return { nodes: [...groupNodes, ...memberNodes], edges };
 };
 
+/** 노드 모양 토글 버튼(카드/원) — 활성 상태를 accent로 채운다. */
+const NodeShapeToggleButton = ({
+  active,
+  onClick,
+  label,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  children: ReactNode;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={label}
+    aria-pressed={active}
+    title={label}
+    className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+      active
+        ? "bg-accent text-accent-fg shadow-[var(--shadow-sm)]"
+        : "text-fg-muted hover:bg-surface-sunken hover:text-fg"
+    }`}
+  >
+    {children}
+  </button>
+);
+
 const MindmapCanvasInner = () => {
   const { structure, renderGraph, selectedNodeId } = useChainViewState();
   const { commitNodeDrag, toggleGroupCollapse, selectNode, closeNodePanel } = useChainViewActions();
+
+  // 노드 표시 모양(카드/원) — 뷰 전용 로컬 상태(영속 불필요). 우상단 토글로 전환한다.
+  const [nodeShape, setNodeShape] = useState<NodeShape>("box");
 
   const { nodes: nodesFromGraph, edges: edgesFromGraph } = useMemo(() => {
     if (!renderGraph) {
       return { nodes: [] as Node[], edges: [] as Edge[] };
     }
-    return toReactFlowElements(renderGraph, toggleGroupCollapse, selectedNodeId);
-  }, [renderGraph, toggleGroupCollapse, selectedNodeId]);
+    return toReactFlowElements(renderGraph, toggleGroupCollapse, selectedNodeId, nodeShape);
+  }, [renderGraph, toggleGroupCollapse, selectedNodeId, nodeShape]);
 
   // React Flow controlled 배선(v12, error#015) — onNodesChange 미배선 시 노드 측정이 갱신되지 않아
   // 더블클릭/줌 등에서 노드가 사라진다. 내부 상태를 두고, 그래프 파생 노드를 id 기준으로 병합한다
@@ -285,6 +319,31 @@ const MindmapCanvasInner = () => {
         elevateEdgesOnSelect={false}
         zoomOnDoubleClick={false}
       />
+      {/* 노드 모양 전환(카드/원) — 우상단. 원형은 종목명만 담은 옵시디언 그래프뷰식 표시. */}
+      <div
+        className="absolute right-3 top-3 z-10 flex items-center gap-0.5 rounded-full border border-border bg-surface-raised/90 p-0.5 shadow-[var(--shadow-sm)] backdrop-blur"
+        role="group"
+        aria-label="노드 표시 모양"
+      >
+        <NodeShapeToggleButton
+          active={nodeShape === "box"}
+          onClick={() => setNodeShape("box")}
+          label="카드형 노드"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <rect x="4" y="7" width="16" height="10" rx="2.5" />
+          </svg>
+        </NodeShapeToggleButton>
+        <NodeShapeToggleButton
+          active={nodeShape === "circle"}
+          onClick={() => setNodeShape("circle")}
+          label="원형 노드"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <circle cx="12" cy="12" r="7" />
+          </svg>
+        </NodeShapeToggleButton>
+      </div>
       {/* 시점 복원 중 인디케이터(UC-012) — 스냅샷 조회 중 캔버스 위에 표시. */}
       {isRestoring && (
         <div

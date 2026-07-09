@@ -2,7 +2,7 @@ import { type Node, type NodeProps } from "@xyflow/react";
 import { LISTING_STATUS_LABELS } from "@iib/domain";
 import { NodeDeleteButton } from "@/components/mindmap/NodeDeleteButton";
 import { NodeHandles } from "@/components/mindmap/NodeHandles";
-import type { ListingStatus, MarketCode } from "@/components/mindmap/types";
+import type { ListingStatus, MarketCode, NodeShape } from "@/components/mindmap/types";
 
 export type CompanyNodeData = {
   label: string;
@@ -14,6 +14,8 @@ export type CompanyNodeData = {
   /** 옵시디언식 hover — 강조/흐림(캔버스가 주입). */
   isEmphasized?: boolean;
   isDimmed?: boolean;
+  /** 뷰어 노드 모양 — "circle"이면 종목명만 담은 원형으로 렌더(옵시디언 그래프뷰식). 기본 "box". */
+  shape?: NodeShape;
 };
 
 export type CompanyNodeType = Node<CompanyNodeData>;
@@ -37,6 +39,25 @@ export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeTy
     data.market === "US"
       ? "bg-accent-soft text-accent-soft-fg"
       : "bg-data-soft text-data";
+
+  // 원형 표시(옵시디언 그래프뷰식) — 종목명만 담고, 핸들·삭제버튼·강조/dim은 카드형과 동일하게 지원한다.
+  if (data.shape === "circle") {
+    return (
+      <div
+        data-animate-landing
+        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border-2 border-accent/40 bg-surface-raised text-center shadow-[var(--shadow-sm)] transition-colors group-hover:border-accent ${nodeStateClass(data)}`}
+      >
+        {data.onDelete && (
+          <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
+        )}
+        {/* 원형 표시에서는 상하좌우 연결점을 감춘다(엣지는 노드 경계로 자동 연결되어 그대로 렌더). */}
+        <NodeHandles isConnectable={isConnectable} hidden />
+        <span className="line-clamp-3 px-2.5 text-[13px] font-semibold leading-tight text-fg break-keep">
+          {data.label}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

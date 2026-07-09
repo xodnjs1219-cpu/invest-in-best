@@ -1,4 +1,5 @@
 import type { Node, NodeProps } from "@xyflow/react";
+import type { NodeShape } from "@/components/mindmap/types";
 
 export type GroupNodeData = {
   label: string;
@@ -11,6 +12,8 @@ export type GroupNodeData = {
   isEmpty?: boolean;
   /** 편집(UC-017) 전용 — 저장 422 오류 위치 하이라이트(clientGroupIds). */
   isHighlighted?: boolean;
+  /** 뷰어 노드 모양 — "circle"이면 클러스터도 원형(타원)으로 표시. 기본 "box"(둥근 사각형). */
+  shape?: NodeShape;
 };
 
 export type GroupNodeType = Node<GroupNodeData>;
@@ -28,21 +31,27 @@ export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
   const isEmpty = data.isEmpty ?? false;
   const isHighlighted = data.isHighlighted ?? false;
 
+  const isCircle = data.shape === "circle";
   const borderClass = isHighlighted
     ? "border-danger/50 bg-danger-soft/50"
     : isEmpty
       ? "border-accent/40 bg-accent-soft/40"
       : "border-accent/30 bg-accent-soft/60";
-  const selectedClass = selected ? "ring-2 ring-accent/50" : "";
+  const selectedClass = selected ? (isCircle ? "ring-2 ring-accent/50" : "ring-2 ring-accent/50") : "";
+  // 원형 클러스터는 rounded-full로 타원/원형 영역을 만든다(bounds가 정사각이면 정원).
+  // 둥근 모서리에 라벨이 잘리지 않도록, 원형에서는 라벨을 상단 중앙에 배치한다.
+  const shapeClass = isCircle ? "rounded-full" : "rounded-xl";
 
   return (
     <div
       data-testid="group-node"
       data-empty={isEmpty || undefined}
       data-highlighted={isHighlighted || undefined}
-      className={`h-full w-full rounded-xl border-2 border-dashed p-2 ${borderClass} ${selectedClass}`}
+      className={`h-full w-full border-2 border-dashed p-2 ${shapeClass} ${borderClass} ${selectedClass}`}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div
+        className={`flex items-center gap-2 ${isCircle ? "justify-center" : "justify-between"}`}
+      >
         <span className="truncate text-xs font-semibold text-accent-soft-fg">{data.label}</span>
         {data.onToggleCollapse && (
           <button

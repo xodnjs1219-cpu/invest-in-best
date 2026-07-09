@@ -2,6 +2,7 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
+  getStraightPath,
   MarkerType,
   useInternalNode,
   useStore,
@@ -71,10 +72,16 @@ export const RelationEdge = ({
 
   const params = sourceNode && targetNode ? getFloatingEdgeParams(sourceNode, targetNode) : null;
 
+  // 원형 표시 노드가 하나라도 관여하면 직선 경로로 잇는다(옵시디언 그래프뷰식) — 원 경계 접점에
+  // 베지어를 쓰면 곡선이 원 안으로 파고들거나 크게 휘어 어색하다. 원형에서는 번들링도 끈다(방향 변 개념 약함).
+  const isCircleEdge =
+    (sourceNode?.data as { shape?: string })?.shape === "circle" ||
+    (targetNode?.data as { shape?: string })?.shape === "circle";
+
   // 엣지 번들링 — 같은 target 노드의 같은 변으로 들어오는 엣지가 다수면, 그 변의 중앙 한 점으로
   // 접점을 통일한다(한 선으로 모아 들어가는 효과). 다른 엣지의 target 변은 store에서 함께 조회한다.
   const bundleToCenter = useStore((s) => {
-    if (!params || !targetNode) return false;
+    if (!params || !targetNode || isCircleEdge) return false;
     let sameSideCount = 0;
     for (const e of s.edges) {
       if (e.target !== target) continue;
@@ -93,14 +100,21 @@ export const RelationEdge = ({
       ? getSideCenter(targetNode, params.targetPos)
       : { x: params?.tx ?? 0, y: params?.ty ?? 0 };
 
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX: params?.sx ?? 0,
-    sourceY: params?.sy ?? 0,
-    sourcePosition: params?.sourcePos,
-    targetX: targetContact.x,
-    targetY: targetContact.y,
-    targetPosition: params?.targetPos,
-  });
+  const [edgePath, labelX, labelY] = isCircleEdge
+    ? getStraightPath({
+        sourceX: params?.sx ?? 0,
+        sourceY: params?.sy ?? 0,
+        targetX: targetContact.x,
+        targetY: targetContact.y,
+      })
+    : getBezierPath({
+        sourceX: params?.sx ?? 0,
+        sourceY: params?.sy ?? 0,
+        sourcePosition: params?.sourcePos,
+        targetX: targetContact.x,
+        targetY: targetContact.y,
+        targetPosition: params?.targetPos,
+      });
 
   const label = data?.label ?? "";
   const isDirected = data?.isDirected ?? true;

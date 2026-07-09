@@ -22,7 +22,16 @@ const SIDES = [
   { pos: Position.Left, key: "l" },
 ] as const;
 
-export function NodeHandles({ isConnectable }: { isConnectable?: boolean }) {
+export function NodeHandles({
+  isConnectable,
+  hidden = false,
+}: {
+  isConnectable?: boolean;
+  /** 원형 표시 등에서 연결점(핸들)을 감춘다. Floating 엣지는 핸들 위치와 무관하게 노드 경계로 붙으므로
+   *  숨겨도 연결선은 정상 렌더된다. `!opacity-0`로 감추되 연결 자체는 유지(편집 캔버스에서 연결 가능). */
+  hidden?: boolean;
+}) {
+  const handleClass = hidden ? `${HANDLE_BASE} !opacity-0` : HANDLE_BASE;
   return (
     <>
       {SIDES.map(({ pos, key }) => (
@@ -32,14 +41,14 @@ export function NodeHandles({ isConnectable }: { isConnectable?: boolean }) {
             type="target"
             position={pos}
             isConnectable={isConnectable}
-            className={HANDLE_BASE}
+            className={handleClass}
           />
           <Handle
             id={`${key}-s`}
             type="source"
             position={pos}
             isConnectable={isConnectable}
-            className={HANDLE_BASE}
+            className={handleClass}
           />
         </Fragment>
       ))}

@@ -9,6 +9,9 @@ export type ListingStatus = "listed" | "suspended" | "delisted";
 export type SubjectType = "consumer" | "government" | "private_company" | "other";
 export type MarketCode = "KRX" | "US";
 
+/** 뷰어 마인드맵 노드 표시 모양 — 카드형(box, 기본) 또는 옵시디언식 원형(circle). */
+export type NodeShape = "box" | "circle";
+
 export type RenderNode = {
   id: string;
   kind: "listed_company" | "free_subject";
