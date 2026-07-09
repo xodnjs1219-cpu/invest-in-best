@@ -1,5 +1,6 @@
 import type { BatchJobType, BatchRunStatus } from "@iib/domain";
 import { BATCH_RUNS_DEFAULT_LOOKBACK_DAYS } from "@iib/domain";
+import type { BadgeTone } from "@/components/ui";
 
 /** M1(BATCH_JOB_TYPES) 전체를 커버 — 누락 시 타입 에러(하드코딩 금지 규칙 이행). */
 export const BATCH_JOB_TYPE_LABELS: Record<BatchJobType, string> = {
@@ -18,12 +19,12 @@ export const BATCH_RUN_STATUS_LABELS: Record<BatchRunStatus, string> = {
   failed: "실패",
 };
 
-/** 상태 배지 색상 variant 맵(Tailwind 클래스) — 컴포넌트 하드코딩 금지. */
-export const BATCH_RUN_STATUS_BADGE_CLASSES: Record<BatchRunStatus, string> = {
-  running: "bg-blue-100 text-blue-800",
-  success: "bg-green-100 text-green-800",
-  partial_success: "bg-yellow-100 text-yellow-800",
-  failed: "bg-red-100 text-red-800",
+/** 상태 배지 톤 맵(디자인 시스템 Badge tone) — 컴포넌트 하드코딩 금지. */
+export const BATCH_RUN_STATUS_BADGE_TONES: Record<BatchRunStatus, BadgeTone> = {
+  running: "accent",
+  success: "success",
+  partial_success: "warning",
+  failed: "danger",
 };
 
 /** 이월 배지(E4) 문구·툴팁. */

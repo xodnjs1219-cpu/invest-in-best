@@ -142,6 +142,16 @@ function withDirty(state: ChainEditorState): ChainEditorState {
   return { ...state, isDirty: true, serverIssues: [] };
 }
 
+/** 두 selection이 (순서 포함) 동일한지 — SELECTION_CHANGED의 no-op 판정용. */
+function isSameSelection(a: EditorSelection, b: EditorSelection): boolean {
+  return (
+    a.nodeIds.length === b.nodeIds.length &&
+    a.edgeIds.length === b.edgeIds.length &&
+    a.nodeIds.every((id, i) => id === b.nodeIds[i]) &&
+    a.edgeIds.every((id, i) => id === b.edgeIds[i])
+  );
+}
+
 /**
  * 순수 함수 — 사이드이펙트 금지, 불변 갱신(새 객체 반환).
  * 초기화 게이트: `initialized=false`인 동안 `EDITOR_INITIALIZED` 외 모든 액션은 무시(no-op).
@@ -204,6 +214,12 @@ export function chainEditorReducer(
     }
 
     case "SELECTION_CHANGED": {
+      // 선택이 실제로 바뀌지 않았으면 기존 state를 그대로 반환한다(참조 안정성).
+      // React Flow는 새 nodes/edges prop을 받을 때마다 onSelectionChange를 호출하므로,
+      // 항상 새 state 객체를 반환하면 재렌더 → 새 selector 배열 → 재선택 통지로 무한 루프가 된다.
+      if (isSameSelection(state.selection, action.payload)) {
+        return state;
+      }
       return { ...state, selection: action.payload };
     }
 

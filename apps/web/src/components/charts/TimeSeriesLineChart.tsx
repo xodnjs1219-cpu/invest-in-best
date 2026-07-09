@@ -42,47 +42,20 @@ export const TimeSeriesLineChart = ({
   const highlighted = highlightedX ? data.find((p) => p.x === highlightedX) : undefined;
 
   return (
-    <div className="viz-root" style={{ width: "100%", height }}>
-      <style>{`
-        .viz-root {
-          --surface-1: #fcfcfb;
-          --text-secondary: #52514e;
-          --grid-line: #e5e4e0;
-          --series-1: #2a78d6;
-        }
-        @media (prefers-color-scheme: dark) {
-          .viz-root {
-            --surface-1: #1a1a19;
-            --text-secondary: #c3c2b7;
-            --grid-line: #33322e;
-            --series-1: #3987e5;
-          }
-        }
-        :root[data-theme="dark"] .viz-root {
-          --surface-1: #1a1a19;
-          --text-secondary: #c3c2b7;
-          --grid-line: #33322e;
-          --series-1: #3987e5;
-        }
-        :root[data-theme="light"] .viz-root {
-          --surface-1: #fcfcfb;
-          --text-secondary: #52514e;
-          --grid-line: #e5e4e0;
-          --series-1: #2a78d6;
-        }
-      `}</style>
+    // 색상은 전역 차트 토큰(--chart-*)을 참조 — 라이트/다크가 globals.css에서 자동 전환된다.
+    <div style={{ width: "100%", height }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data as TimeSeriesPoint[]} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="var(--grid-line)" vertical={false} />
+          <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
             dataKey="x"
-            tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
-            axisLine={{ stroke: "var(--grid-line)" }}
+            tick={{ fontSize: 11, fill: "var(--chart-text)" }}
+            axisLine={{ stroke: "var(--chart-grid)" }}
             tickLine={false}
             minTickGap={24}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
+            tick={{ fontSize: 11, fill: "var(--chart-text)" }}
             axisLine={false}
             tickLine={false}
             tickFormatter={yFormatter}
@@ -96,7 +69,7 @@ export const TimeSeriesLineChart = ({
                 }
                 const point = payload[0]?.payload as TimeSeriesPoint;
                 return (
-                  <div className="rounded border border-[var(--grid-line)] bg-[var(--surface-1)] px-3 py-2 text-xs shadow-sm">
+                  <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-sm">
                     {renderTooltip(point)}
                   </div>
                 );
@@ -106,7 +79,7 @@ export const TimeSeriesLineChart = ({
           <Line
             type="monotone"
             dataKey="y"
-            stroke="var(--series-1)"
+            stroke="var(--chart-series-1)"
             strokeWidth={2}
             dot={false}
             connectNulls={false}
@@ -118,8 +91,8 @@ export const TimeSeriesLineChart = ({
               x={highlighted.x}
               y={highlighted.y}
               r={5}
-              fill="var(--series-1)"
-              stroke="var(--surface-1)"
+              fill="var(--chart-series-1)"
+              stroke="var(--chart-surface)"
               strokeWidth={2}
             />
           )}

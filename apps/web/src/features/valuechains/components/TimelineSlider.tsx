@@ -54,7 +54,7 @@ export const TimelineSlider = ({ range, markers, selectedDate, onSelectDate }: T
           onTouchEnd={commit}
           onKeyUp={commit}
           aria-label="타임라인 날짜 선택"
-          className="h-2 w-full appearance-none rounded-full bg-gray-200 accent-blue-600 dark:bg-gray-700"
+          className="h-2 w-full appearance-none rounded-full bg-surface-sunken accent-accent"
         />
         <div className="pointer-events-none absolute inset-x-0 top-4 h-2">
           {markers.map((marker) => {
@@ -66,7 +66,7 @@ export const TimelineSlider = ({ range, markers, selectedDate, onSelectDate }: T
                 key={marker.snapshotId}
                 type="button"
                 aria-label={`스냅샷 마커 ${markerDate}`}
-                className="pointer-events-auto absolute h-2 w-1 -translate-x-1/2 rounded bg-gray-500 dark:bg-gray-400"
+                className="pointer-events-auto absolute h-2 w-1 -translate-x-1/2 rounded-[var(--radius-sm)] bg-fg-muted"
                 style={{ left: `${pct}%` }}
                 onClick={() => onSelectDate(markerDate as IsoDate)}
               />
@@ -74,7 +74,7 @@ export const TimelineSlider = ({ range, markers, selectedDate, onSelectDate }: T
           })}
         </div>
       </div>
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex justify-between text-xs text-fg-muted">
         <span>{range.minDate}</span>
         <span data-testid="timeline-slider-current">{currentDate}</span>
         <span>{range.maxDate}</span>

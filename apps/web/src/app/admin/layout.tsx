@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Heading } from "@/components/ui";
+import { AdminNav } from "@/app/admin/AdminNav";
 import { createSsrServerClient } from "@/lib/supabase/server-client";
 import { createServiceClient } from "@/lib/supabase/service-client";
 
@@ -51,15 +52,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-8">
-      <header className="flex flex-col gap-3 border-b pb-4">
-        <h1 className="text-lg font-semibold">관리자 콘솔</h1>
-        <nav className="flex gap-4 text-sm">
-          {ADMIN_NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} className="text-gray-600 hover:text-gray-900">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+      <header className="flex flex-col gap-3 border-b border-border pb-4">
+        <Heading level={2}>관리자 콘솔</Heading>
+        <AdminNav items={ADMIN_NAV_ITEMS} />
       </header>
       <main className="flex-1">{children}</main>
     </div>

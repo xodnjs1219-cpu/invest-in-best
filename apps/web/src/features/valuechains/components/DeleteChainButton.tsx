@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui";
 import { DeleteChainConfirmDialog } from "@/features/valuechains/components/DeleteChainConfirmDialog";
 import { DELETE_BUTTON_LABEL, DELETE_PENDING_LABEL } from "@/features/valuechains/constants/delete";
 import { useDeleteChainAction } from "@/features/valuechains/hooks/useDeleteChainAction";
@@ -34,16 +35,16 @@ export function DeleteChainButton({
     requestDelete();
   };
 
-  const baseClassName =
-    variant === "header"
-      ? "rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-      : "rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50";
-
   return (
     <>
-      <button type="button" onClick={handleClick} disabled={isDeleting} className={baseClassName}>
+      <Button
+        variant="danger"
+        size={variant === "header" ? "md" : "sm"}
+        onClick={handleClick}
+        disabled={isDeleting}
+      >
         {isDeleting ? DELETE_PENDING_LABEL : DELETE_BUTTON_LABEL}
-      </button>
+      </Button>
       <DeleteChainConfirmDialog
         open={isDialogOpen}
         chainName={chainName}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Heading } from "@/components/ui";
 import { ArchiveChainDialog, type ArchiveChainTarget } from "@/features/admin-valuechains/components/ArchiveChainDialog";
 import { AdminChainTable } from "@/features/admin-valuechains/components/AdminChainTable";
 import { ADMIN_CHAIN_LIST_TEXT, ARCHIVE_TOAST_TEXT } from "@/features/admin-valuechains/constants";
@@ -53,20 +54,16 @@ export default function AdminValuechainsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{ADMIN_CHAIN_LIST_TEXT.pageTitle}</h1>
-        <button
-          type="button"
-          onClick={() => router.push("/admin/valuechains/new")}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-        >
+        <Heading level={1}>{ADMIN_CHAIN_LIST_TEXT.pageTitle}</Heading>
+        <Button variant="primary" size="sm" onClick={() => router.push("/admin/valuechains/new")}>
           {ADMIN_CHAIN_LIST_TEXT.createCta}
-        </button>
+        </Button>
       </div>
 
       {toast && (
         <div
-          className={`fixed right-4 top-4 z-50 rounded px-4 py-2 text-sm text-white shadow-lg ${
-            toast.variant === "success" ? "bg-green-600" : "bg-red-600"
+          className={`fixed right-4 top-4 z-50 rounded-[var(--radius)] px-4 py-2 text-sm text-white shadow-lg ${
+            toast.variant === "success" ? "bg-success" : "bg-danger"
           }`}
         >
           {toast.message}

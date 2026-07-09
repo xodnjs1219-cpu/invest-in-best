@@ -1,3 +1,4 @@
+import { Button, EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import { SecurityResultItem } from "@/features/securities/components/SecurityResultItem";
 import { getSearchErrorMessage } from "@/features/securities/lib/search-error-message";
 import type { SecuritySearchItem } from "@/features/securities/lib/dto";
@@ -36,7 +37,7 @@ export function SearchResultsSection({
     return (
       <div data-testid="search-results-loading" className="flex flex-col gap-2">
         {Array.from({ length: LOADING_SKELETON_ROWS }, (_, i) => (
-          <div key={i} className="h-12 animate-pulse rounded-md bg-gray-100" />
+          <Skeleton key={i} className="h-12" />
         ))}
       </div>
     );
@@ -44,25 +45,12 @@ export function SearchResultsSection({
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <p className="text-gray-700">{getSearchErrorMessage(errorCode)}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          재시도
-        </button>
-      </div>
+      <ErrorState message={getSearchErrorMessage(errorCode)} onRetry={onRetry} retryLabel="재시도" />
     );
   }
 
   if (items.length === 0) {
-    return (
-      <div className="py-8 text-center text-gray-500">
-        <p>검색 결과가 없습니다.</p>
-      </div>
-    );
+    return <EmptyState message="검색 결과가 없습니다." />;
   }
 
   return (
@@ -76,21 +64,16 @@ export function SearchResultsSection({
       </ul>
 
       {items.length >= 20 && (
-        <p className="px-3 pt-2 text-xs text-gray-500">
+        <p className="px-3 pt-2 text-xs text-fg-muted">
           더 정확한 결과를 원하시면 시장 필터를 활용해 보세요.
         </p>
       )}
 
       {hasNextPage && (
         <div className="flex justify-center pt-2">
-          <button
-            type="button"
-            onClick={onLoadMore}
-            disabled={isFetchingNextPage}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
+          <Button variant="secondary" onClick={onLoadMore} disabled={isFetchingNextPage}>
             {isFetchingNextPage ? "불러오는 중..." : "더보기"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

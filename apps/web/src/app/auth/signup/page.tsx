@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { PageShell } from "@/components/ui";
 import { SignupPageClient } from "@/app/auth/signup/signup-page-client";
 import { sanitizeReturnTo } from "@/lib/utils/safe-redirect";
 import { createSsrServerClient } from "@/lib/supabase/server-client";
@@ -27,8 +28,8 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-12">
+    <PageShell width="sm">
       <SignupPageClient redirectTo={redirectTo || undefined} />
-    </main>
+    </PageShell>
   );
 }

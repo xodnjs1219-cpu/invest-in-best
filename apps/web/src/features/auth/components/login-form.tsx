@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Button, Input } from "@/components/ui";
 import { sanitizeReturnTo } from "@/lib/utils/safe-redirect";
 import { AUTH_LOGIN_MESSAGES } from "@/features/auth/constants";
 import { useCurrentUser } from "@/features/auth/context/current-user-provider";
@@ -52,39 +53,52 @@ export function LoginForm({ returnTo }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
       {loginMutation.isError && (
-        <p role="alert" className="text-red-600">
+        <p role="alert" className="text-danger">
           {loginErrorMessage(loginMutation.error)}
         </p>
       )}
 
       <div className="flex flex-col gap-1">
         <label htmlFor="login-email">{AUTH_LOGIN_MESSAGES.emailLabel}</label>
-        <input id="login-email" type="email" autoComplete="email" {...register("email")} />
-        {errors.email && <p className="text-red-600">{errors.email.message}</p>}
+        <Input
+          id="login-email"
+          type="email"
+          autoComplete="email"
+          invalid={Boolean(errors.email)}
+          {...register("email")}
+        />
+        {errors.email && <p className="text-danger">{errors.email.message}</p>}
       </div>
 
       <div className="flex flex-col gap-1">
         <label htmlFor="login-password">{AUTH_LOGIN_MESSAGES.passwordLabel}</label>
-        <input
+        <Input
           id="login-password"
           type="password"
           autoComplete="current-password"
+          invalid={Boolean(errors.password)}
           {...register("password")}
         />
-        {errors.password && <p className="text-red-600">{errors.password.message}</p>}
+        {errors.password && <p className="text-danger">{errors.password.message}</p>}
       </div>
 
-      <button type="submit" disabled={isSubmitting || loginMutation.isPending}>
+      <Button type="submit" disabled={isSubmitting || loginMutation.isPending}>
         {isSubmitting || loginMutation.isPending
           ? AUTH_LOGIN_MESSAGES.submittingLabel
           : AUTH_LOGIN_MESSAGES.submitLabel}
-      </button>
+      </Button>
 
       <div className="flex justify-between text-sm">
-        <Link href={signupHref} className="underline">
+        <Link
+          href={signupHref}
+          className="text-accent hover:text-accent-hover underline underline-offset-2"
+        >
           {AUTH_LOGIN_MESSAGES.goToSignup}
         </Link>
-        <Link href={passwordResetHref} className="underline">
+        <Link
+          href={passwordResetHref}
+          className="text-accent hover:text-accent-hover underline underline-offset-2"
+        >
           {AUTH_LOGIN_MESSAGES.goToPasswordReset}
         </Link>
       </div>

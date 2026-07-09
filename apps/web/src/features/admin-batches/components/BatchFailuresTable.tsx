@@ -1,3 +1,4 @@
+import { Badge, Button } from "@/components/ui";
 import type { BatchItemFailureDto } from "@/features/admin-batches/backend/schema";
 import {
   FAILURES_LOAD_ERROR_MESSAGE,
@@ -32,15 +33,15 @@ export function BatchFailuresTable({
   onPageChange,
 }: BatchFailuresTableProps) {
   if (isLoading) {
-    return <p className="p-3 text-center text-sm text-gray-500">로딩 중...</p>;
+    return <p className="p-3 text-center text-sm text-fg-muted">로딩 중...</p>;
   }
 
   if (isError) {
-    return <p className="p-3 text-center text-sm text-red-600">{FAILURES_LOAD_ERROR_MESSAGE}</p>;
+    return <p className="p-3 text-center text-sm text-danger">{FAILURES_LOAD_ERROR_MESSAGE}</p>;
   }
 
   if (failures.length === 0) {
-    return <p className="p-3 text-center text-sm text-gray-500">{NO_FAILURES_MESSAGE}</p>;
+    return <p className="p-3 text-center text-sm text-fg-muted">{NO_FAILURES_MESSAGE}</p>;
   }
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -49,7 +50,7 @@ export function BatchFailuresTable({
     <div className="flex flex-col gap-2">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b text-left text-gray-500">
+          <tr className="border-b border-border text-left text-fg-muted">
             <th className="p-2">종목</th>
             <th className="p-2">시도 횟수</th>
             <th className="p-2">최종 오류</th>
@@ -59,7 +60,7 @@ export function BatchFailuresTable({
         </thead>
         <tbody>
           {failures.map((failure) => (
-            <tr key={failure.id} className="border-b">
+            <tr key={failure.id} className="border-b border-border">
               <td className="p-2">
                 {failure.security
                   ? `${failure.security.ticker} · ${failure.security.name} · ${failure.security.market}`
@@ -68,13 +69,9 @@ export function BatchFailuresTable({
               <td className="p-2">{failure.attemptCount}</td>
               <td className="p-2">{failure.lastError ?? "-"}</td>
               <td className="p-2">
-                <span
-                  className={`rounded px-1.5 py-0.5 text-xs ${
-                    failure.isResolved ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"
-                  }`}
-                >
+                <Badge tone={failure.isResolved ? "success" : "neutral"}>
                   {failure.isResolved ? RESOLVED_BADGE_LABEL : UNRESOLVED_BADGE_LABEL}
-                </span>
+                </Badge>
               </td>
               <td className="p-2">{formatKstDateTime(failure.updatedAt)}</td>
             </tr>
@@ -83,25 +80,25 @@ export function BatchFailuresTable({
       </table>
 
       <div className="flex items-center justify-center gap-3 text-sm">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          className="rounded border px-2 py-1 disabled:opacity-50"
         >
           이전
-        </button>
-        <span className="text-gray-600">
+        </Button>
+        <span className="text-fg-muted">
           {page} / {totalPages}
         </span>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
-          className="rounded border px-2 py-1 disabled:opacity-50"
         >
           다음
-        </button>
+        </Button>
       </div>
     </div>
   );

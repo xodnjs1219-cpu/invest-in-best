@@ -1,10 +1,11 @@
+import { Badge, Card, Heading } from "@/components/ui";
 import type { BackfillProgressResponse } from "@/features/admin-batches/backend/schema";
 import {
   BACKFILL_COMPLETED_LABEL,
   BACKFILL_LOAD_ERROR_MESSAGE,
   BACKFILL_NO_RUN_HISTORY_MESSAGE,
   BACKFILL_NOT_STARTED_LABEL,
-  BATCH_RUN_STATUS_BADGE_CLASSES,
+  BATCH_RUN_STATUS_BADGE_TONES,
   BATCH_RUN_STATUS_LABELS,
 } from "@/features/admin-batches/constants";
 import { formatBackfillProgress, formatKstDateTime } from "@/features/admin-batches/lib/run-display";
@@ -21,50 +22,48 @@ type BackfillProgressCardProps = {
  */
 export function BackfillProgressCard({ progress, isLoading, isError }: BackfillProgressCardProps) {
   if (isLoading) {
-    return <div className="rounded border p-4 text-sm text-gray-500">백필 진행 현황 로딩 중...</div>;
+    return (
+      <Card className="p-4 text-sm text-fg-muted">백필 진행 현황 로딩 중...</Card>
+    );
   }
 
   if (isError || !progress) {
-    return <div className="rounded border p-4 text-sm text-red-600">{BACKFILL_LOAD_ERROR_MESSAGE}</div>;
+    return <Card className="p-4 text-sm text-danger">{BACKFILL_LOAD_ERROR_MESSAGE}</Card>;
   }
 
   const { percent, label } = formatBackfillProgress(progress.completedCheckpoints, progress.totalCheckpoints);
   const isNotStarted = progress.totalCheckpoints === 0;
 
   return (
-    <div className="flex flex-col gap-2 rounded border p-4">
+    <Card className="flex flex-col gap-2 p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">전 종목 백필 진행 현황</h2>
+        <Heading level={3}>전 종목 백필 진행 현황</Heading>
         {isNotStarted ? (
-          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-            {BACKFILL_NOT_STARTED_LABEL}
-          </span>
+          <Badge tone="neutral">{BACKFILL_NOT_STARTED_LABEL}</Badge>
         ) : progress.isCompleted ? (
-          <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">
-            {BACKFILL_COMPLETED_LABEL}
-          </span>
+          <Badge tone="success">{BACKFILL_COMPLETED_LABEL}</Badge>
         ) : null}
       </div>
 
-      <div className="h-2 w-full overflow-hidden rounded bg-gray-100">
-        <div className="h-full bg-blue-600" style={{ width: `${percent}%` }} />
+      <div className="h-2 w-full overflow-hidden rounded-[var(--radius)] bg-surface-sunken">
+        <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
       </div>
-      <p className="text-xs text-gray-600">
+      <p className="text-xs text-fg-muted">
         {label} ({percent}%)
       </p>
 
       {progress.latestRun ? (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-fg-muted">
           최신 실행:{" "}
-          <span className={`rounded px-1.5 py-0.5 ${BATCH_RUN_STATUS_BADGE_CLASSES[progress.latestRun.status]}`}>
+          <Badge tone={BATCH_RUN_STATUS_BADGE_TONES[progress.latestRun.status]}>
             {BATCH_RUN_STATUS_LABELS[progress.latestRun.status]}
-          </span>{" "}
+          </Badge>{" "}
           {formatKstDateTime(progress.latestRun.startedAt)} ~{" "}
           {progress.latestRun.finishedAt ? formatKstDateTime(progress.latestRun.finishedAt) : "진행 중"}
         </p>
       ) : (
-        <p className="text-xs text-gray-500">{BACKFILL_NO_RUN_HISTORY_MESSAGE}</p>
+        <p className="text-xs text-fg-muted">{BACKFILL_NO_RUN_HISTORY_MESSAGE}</p>
       )}
-    </div>
+    </Card>
   );
 }

@@ -7,6 +7,7 @@ import { LEGAL_PAGE_SLUGS, type LegalPageDocType } from "@iib/domain";
  */
 export const ROUTES = {
   home: "/",
+  explore: "/explore",
   terms: "/legal/terms",
   privacy: "/legal/privacy",
   disclaimer: "/legal/disclaimer",

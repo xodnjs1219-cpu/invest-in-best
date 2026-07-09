@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button, Heading } from "@/components/ui";
 import { ApiError } from "@/lib/http/api-client";
 import { DeactivateConfirmDialog } from "@/features/admin-relation-types/components/DeactivateConfirmDialog";
 import { RelationTypeFormDialog, type RelationTypeFormValues } from "@/features/admin-relation-types/components/RelationTypeFormDialog";
@@ -20,8 +21,8 @@ type DialogState =
 type Toast = { variant: "success" | "error"; message: string } | null;
 
 const toastStyles: Record<"success" | "error", string> = {
-  success: "bg-green-600",
-  error: "bg-red-600",
+  success: "bg-success",
+  error: "bg-danger",
 };
 
 /**
@@ -143,19 +144,15 @@ export default function AdminRelationTypesPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{PAGE_TITLE}</h1>
-        <button
-          type="button"
-          onClick={() => setDialog({ kind: "create" })}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-        >
+        <Heading level={1}>{PAGE_TITLE}</Heading>
+        <Button variant="primary" size="sm" onClick={() => setDialog({ kind: "create" })}>
           {ADD_BUTTON_LABEL}
-        </button>
+        </Button>
       </div>
 
       {toast && (
         <div
-          className={`fixed right-4 top-4 z-50 rounded px-4 py-2 text-sm text-white shadow-lg ${toastStyles[toast.variant]}`}
+          className={`fixed right-4 top-4 z-50 rounded-[var(--radius)] px-4 py-2 text-sm text-white shadow-lg ${toastStyles[toast.variant]}`}
         >
           {toast.message}
         </div>

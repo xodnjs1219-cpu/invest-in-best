@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Heading, PageShell } from "@/components/ui";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { GoogleLoginSection } from "@/features/auth/components/google-login-section";
 import { sanitizeReturnTo } from "@/lib/utils/safe-redirect";
@@ -28,15 +29,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-12">
-      <h1 className="text-xl font-semibold">로그인</h1>
+    <PageShell width="sm">
+      <Heading level={1}>로그인</Heading>
       <LoginForm returnTo={returnTo || undefined} />
-      <div className="flex items-center gap-2 text-xs text-gray-400">
-        <span className="h-px flex-1 bg-gray-200" />
+      <div className="flex items-center gap-2 text-xs text-fg-subtle">
+        <span className="h-px flex-1 bg-border" />
         또는
-        <span className="h-px flex-1 bg-gray-200" />
+        <span className="h-px flex-1 bg-border" />
       </div>
       <GoogleLoginSection redirectPath={returnTo || undefined} />
-    </main>
+    </PageShell>
   );
 }

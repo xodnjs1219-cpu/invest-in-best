@@ -1,4 +1,5 @@
 import { DATA_SOURCE_LABELS, DATA_SOURCE_POLICY_TEXT } from "@iib/domain";
+import { Badge, Heading } from "@/components/ui";
 
 /**
  * 데이터 출처 표기 정책 섹션 (UC-025 plan B-2) — 면책 페이지 전용.
@@ -9,16 +10,16 @@ export function DataSourcePolicySection() {
   return (
     <section
       aria-labelledby="data-source-policy-heading"
-      className="flex flex-col gap-3 rounded border border-gray-200 p-4"
+      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border p-4"
     >
-      <h2 id="data-source-policy-heading" className="text-lg font-semibold">
+      <Heading level={2} id="data-source-policy-heading">
         데이터 출처 표기 정책
-      </h2>
-      <p className="text-sm leading-relaxed text-gray-800">{DATA_SOURCE_POLICY_TEXT}</p>
-      <ul className="flex flex-wrap gap-2 text-sm text-gray-700">
+      </Heading>
+      <p className="text-sm leading-relaxed text-fg-muted">{DATA_SOURCE_POLICY_TEXT}</p>
+      <ul className="flex flex-wrap gap-2 text-sm">
         {DATA_SOURCE_LABELS.map((label) => (
-          <li key={label} className="rounded bg-gray-100 px-2 py-1">
-            {label}
+          <li key={label}>
+            <Badge tone="neutral">{label}</Badge>
           </li>
         ))}
       </ul>

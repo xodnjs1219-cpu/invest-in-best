@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { PASSWORD_POLICY_MESSAGE } from "@iib/domain";
+import { Button, Heading, Input } from "@/components/ui";
 import { AUTH_PASSWORD_RESET_MESSAGES } from "@/features/auth/constants";
 import {
   newPasswordFormSchema,
@@ -32,47 +33,49 @@ export function NewPasswordForm({ onSubmit, isPending, errorCode }: NewPasswordF
       noValidate
       className="flex flex-col gap-4"
     >
-      <h1 className="text-xl font-semibold">{AUTH_PASSWORD_RESET_MESSAGES.newPasswordTitle}</h1>
+      <Heading level={1}>{AUTH_PASSWORD_RESET_MESSAGES.newPasswordTitle}</Heading>
 
       {errorCode && (
-        <p role="alert" className="text-red-600">
+        <p role="alert" className="text-danger">
           {AUTH_PASSWORD_RESET_MESSAGES.temporaryError}
         </p>
       )}
 
-      <p className="text-xs text-gray-500">{PASSWORD_POLICY_MESSAGE}</p>
+      <p className="text-xs text-fg-muted">{PASSWORD_POLICY_MESSAGE}</p>
 
       <div className="flex flex-col gap-1">
         <label htmlFor="new-password">{AUTH_PASSWORD_RESET_MESSAGES.newPasswordLabel}</label>
-        <input
+        <Input
           id="new-password"
           type="password"
           autoComplete="new-password"
+          invalid={Boolean(errors.newPassword)}
           {...register("newPassword")}
         />
-        {errors.newPassword && <p className="text-red-600">{errors.newPassword.message}</p>}
+        {errors.newPassword && <p className="text-danger">{errors.newPassword.message}</p>}
       </div>
 
       <div className="flex flex-col gap-1">
         <label htmlFor="new-password-confirm">
           {AUTH_PASSWORD_RESET_MESSAGES.newPasswordConfirmLabel}
         </label>
-        <input
+        <Input
           id="new-password-confirm"
           type="password"
           autoComplete="new-password"
+          invalid={Boolean(errors.newPasswordConfirm)}
           {...register("newPasswordConfirm")}
         />
         {errors.newPasswordConfirm && (
-          <p className="text-red-600">{errors.newPasswordConfirm.message}</p>
+          <p className="text-danger">{errors.newPasswordConfirm.message}</p>
         )}
       </div>
 
-      <button type="submit" disabled={isPending}>
+      <Button type="submit" disabled={isPending}>
         {isPending
           ? AUTH_PASSWORD_RESET_MESSAGES.newPasswordSubmittingLabel
           : AUTH_PASSWORD_RESET_MESSAGES.newPasswordSubmitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

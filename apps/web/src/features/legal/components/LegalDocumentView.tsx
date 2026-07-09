@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { LegalDocContent } from "@iib/domain";
+import { Heading } from "@/components/ui";
 
 type LegalDocumentViewProps = {
   doc: LegalDocContent;
@@ -17,13 +18,13 @@ export function LegalDocumentView({ doc, children }: LegalDocumentViewProps) {
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold">{doc.title}</h1>
-        <p className="text-sm text-gray-500">
+        <Heading level={1}>{doc.title}</Heading>
+        <p className="text-sm text-fg-muted">
           버전 {doc.version} · 시행일 {doc.effectiveDate}
         </p>
       </header>
 
-      <section className="flex flex-col gap-4 text-sm leading-relaxed text-gray-800">
+      <section className="flex flex-col gap-4 text-sm leading-relaxed text-fg-muted">
         {paragraphs.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>
         ))}

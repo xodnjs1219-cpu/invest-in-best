@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui";
+
 type ProposalPaginationProps = {
   page: number;
   hasMore: boolean;
@@ -8,23 +10,13 @@ type ProposalPaginationProps = {
 export function ProposalPagination({ page, hasMore, onPageChange }: ProposalPaginationProps) {
   return (
     <div className="flex items-center justify-center gap-4 py-4">
-      <button
-        type="button"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        className="rounded border px-3 py-1.5 text-sm disabled:opacity-50"
-      >
+      <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
         이전
-      </button>
-      <span className="text-sm text-gray-600">{page} 페이지</span>
-      <button
-        type="button"
-        disabled={!hasMore}
-        onClick={() => onPageChange(page + 1)}
-        className="rounded border px-3 py-1.5 text-sm disabled:opacity-50"
-      >
+      </Button>
+      <span className="text-sm text-fg-muted">{page} 페이지</span>
+      <Button variant="secondary" size="sm" disabled={!hasMore} onClick={() => onPageChange(page + 1)}>
         다음
-      </button>
+      </Button>
     </div>
   );
 }

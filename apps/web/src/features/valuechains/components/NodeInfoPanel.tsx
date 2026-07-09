@@ -1,6 +1,7 @@
 "use client";
 
 import { SUBJECT_TYPE_LABELS } from "@iib/domain";
+import { Badge, Button, Heading, Skeleton } from "@/components/ui";
 import {
   useChainViewActions,
   useChainViewState,
@@ -21,84 +22,68 @@ export const NodeInfoPanel = () => {
   return (
     <aside
       data-testid="node-info-panel"
-      className="mt-4 rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+      className="rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-[var(--shadow-sm)]"
       aria-label="노드 정보 패널"
     >
       {nodePanel.status === "loading" && (
         <div data-testid="node-panel-skeleton" className="space-y-2">
-          <div className="h-4 w-1/2 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="h-4 w-1/3 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-4 w-2/3" />
         </div>
       )}
 
       {nodePanel.status === "error" && (
-        <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+        <div className="space-y-2 text-sm text-fg-muted">
           <p>노드 정보를 불러오지 못했습니다.</p>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={retryNodeDetail}
-              className="rounded border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-            >
+            <Button variant="secondary" size="sm" onClick={retryNodeDetail}>
               다시 시도
-            </button>
-            <button
-              type="button"
-              onClick={closeNodePanel}
-              className="rounded border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-            >
+            </Button>
+            <Button variant="secondary" size="sm" onClick={closeNodePanel}>
               닫기
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {nodePanel.status === "security-fallback" && (
-        <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+        <div className="space-y-2 text-sm text-fg-muted">
           <p>기업 정보를 확인할 수 없어 상세 페이지로 이동할 수 없습니다.</p>
-          <button
-            type="button"
-            onClick={closeNodePanel}
-            className="rounded border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-          >
+          <Button variant="secondary" size="sm" onClick={closeNodePanel}>
             닫기
-          </button>
+          </Button>
         </div>
       )}
 
       {nodePanel.status === "free-subject" && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            <Heading level={3} className="text-base">
               {nodePanel.data.name ?? "이름 없음"}
-            </h3>
+            </Heading>
             <button
               type="button"
               onClick={closeNodePanel}
               aria-label="패널 닫기"
-              className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="text-xs text-fg-subtle hover:text-fg-muted"
             >
               닫기
             </button>
           </div>
           <dl className="space-y-1 text-sm">
             <div>
-              <dt className="inline text-gray-500 dark:text-gray-400">주체 유형: </dt>
-              <dd className="inline text-gray-800 dark:text-gray-200">
+              <dt className="inline text-fg-muted">주체 유형: </dt>
+              <dd className="inline text-fg">
                 {nodePanel.data.subjectType ? SUBJECT_TYPE_LABELS[nodePanel.data.subjectType] : "-"}
               </dd>
             </div>
             <div>
-              <dt className="inline text-gray-500 dark:text-gray-400">설명 메모: </dt>
-              <dd className="inline text-gray-800 dark:text-gray-200">{nodePanel.data.memo ?? "—"}</dd>
+              <dt className="inline text-fg-muted">설명 메모: </dt>
+              <dd className="inline text-fg">{nodePanel.data.memo ?? "—"}</dd>
             </div>
           </dl>
-          {nodePanel.data.groupName && (
-            <span className="inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-              그룹: {nodePanel.data.groupName}
-            </span>
-          )}
+          {nodePanel.data.groupName && <Badge tone="neutral">그룹: {nodePanel.data.groupName}</Badge>}
         </div>
       )}
     </aside>

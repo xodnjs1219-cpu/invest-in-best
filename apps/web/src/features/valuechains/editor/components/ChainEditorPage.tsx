@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import type { EditorMode, EditorVariant } from "@iib/domain";
 import {
   ChainEditorProvider,
@@ -7,6 +8,8 @@ import {
   useChainEditorState,
 } from "@/features/valuechains/editor/context/ChainEditorContext";
 import { useUnsavedChangesGuard } from "@/features/valuechains/editor/hooks/useUnsavedChangesGuard";
+import { useNodeDeletion } from "@/features/valuechains/editor/hooks/useNodeDeletion";
+import { DeleteConfirmDialog } from "@/features/valuechains/editor/components/DeleteConfirmDialog";
 import { EntryBlockedScreen } from "@/features/valuechains/editor/components/EntryBlockedScreen";
 import { EditorToolbar } from "@/features/valuechains/editor/components/EditorToolbar";
 import { ChainMetaPanel } from "@/features/valuechains/editor/components/ChainMetaPanel";
@@ -16,7 +19,11 @@ import { EditorCanvasContainer } from "@/features/valuechains/editor/components/
 import { IssuePanel } from "@/features/valuechains/editor/components/IssuePanel";
 import { SaveConflictDialog } from "@/features/valuechains/editor/components/SaveConflictDialog";
 import { UnsavedLeaveDialog } from "@/features/valuechains/editor/components/UnsavedLeaveDialog";
-import { selectUsedSecurityIds } from "@/features/valuechains/editor/state/chainEditorSelectors";
+import {
+  selectNodeListItems,
+  selectUsedSecurityIds,
+} from "@/features/valuechains/editor/state/chainEditorSelectors";
+import { Button, Heading, Skeleton } from "@/components/ui";
 
 export interface ChainEditorPageProps {
   mode: EditorMode;
@@ -38,13 +45,18 @@ function ChainEditorPageBody() {
   } = useChainEditorActions();
   const { isLeaveDialogOpen, confirmLeave, cancelLeave } = useUnsavedChangesGuard(state.isDirty);
 
+  // "현재 노드" 탭 데이터 — 노드 목록과 그룹명 맵(소속 그룹 표기용). state 변경 시에만 재계산.
+  const nodeListItems = useMemo(() => selectNodeListItems(state), [state]);
+  const groupNameById = useMemo(
+    () => new Map(Object.values(state.groups).map((g) => [g.clientGroupId, g.name])),
+    [state.groups],
+  );
+
+  // 노드 삭제 흐름(캔버스 ×버튼과 별개 인스턴스 — "현재 노드" 탭 전용, 확인 다이얼로그 포함).
+  const { requestDeleteNode, dialogProps: deleteDialogProps } = useNodeDeletion();
+
   if (asyncState.isBootstrapping) {
-    return (
-      <div
-        data-testid="editor-skeleton"
-        className="h-[480px] w-full animate-pulse rounded-lg bg-gray-100"
-      />
-    );
+    return <Skeleton data-testid="editor-skeleton" className="h-[480px] w-full" />;
   }
 
   if (asyncState.entryBlocked) {
@@ -59,14 +71,11 @@ function ChainEditorPageBody() {
   if (asyncState.bootstrapError?.kind === "auth") {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-16 text-center">
-        <h1 className="text-lg font-semibold text-gray-900">로그인이 필요합니다</h1>
-        <p className="text-sm text-gray-600">세션이 만료되었습니다. 다시 로그인해 주세요.</p>
-        <a
-          href={`/auth/login?returnTo=${encodeURIComponent("/valuechains/new")}`}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
+        <Heading level={1}>로그인이 필요합니다</Heading>
+        <p className="text-sm text-fg-muted">세션이 만료되었습니다. 다시 로그인해 주세요.</p>
+        <Button as="link" href={`/auth/login?returnTo=${encodeURIComponent("/valuechains/new")}`}>
           로그인 페이지로 이동
-        </a>
+        </Button>
       </div>
     );
   }
@@ -74,26 +83,17 @@ function ChainEditorPageBody() {
   if (asyncState.bootstrapError?.kind === "network") {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-16 text-center">
-        <h1 className="text-lg font-semibold text-gray-900">오류가 발생했습니다</h1>
-        <p className="text-sm text-gray-600">잠시 후 다시 시도해 주세요.</p>
-        <button
-          type="button"
-          onClick={() => asyncState.bootstrapError?.retry?.()}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
+        <Heading level={1}>오류가 발생했습니다</Heading>
+        <p className="text-sm text-fg-muted">잠시 후 다시 시도해 주세요.</p>
+        <Button type="button" onClick={() => asyncState.bootstrapError?.retry?.()}>
           재시도
-        </button>
+        </Button>
       </div>
     );
   }
 
   if (!state.initialized) {
-    return (
-      <div
-        data-testid="editor-skeleton"
-        className="h-[480px] w-full animate-pulse rounded-lg bg-gray-100"
-      />
-    );
+    return <Skeleton data-testid="editor-skeleton" className="h-[480px] w-full" />;
   }
 
   return (
@@ -101,7 +101,7 @@ function ChainEditorPageBody() {
       <EditorToolbar />
       <ChainMetaPanel />
       <div className="flex flex-1 gap-4 px-4 py-4">
-        <div className="w-80 shrink-0 space-y-4">
+        <div className="w-80 shrink-0 space-y-4 lg:w-96">
           <NodeAddPanel
             nodeCount={computed.nodeCount}
             isNearNodeLimit={computed.isNearNodeLimit}
@@ -109,6 +109,9 @@ function ChainEditorPageBody() {
             onAddListedCompanyNode={(security) => addListedCompanyNode(security)}
             onAddFreeSubjectNode={(input) => addFreeSubjectNode(input)}
             usedSecurityIds={selectUsedSecurityIds(state)}
+            nodeListItems={nodeListItems}
+            groupNameById={groupNameById}
+            onDeleteNode={requestDeleteNode}
           />
           <GroupPanel
             groups={Object.values(state.groups)}
@@ -129,6 +132,7 @@ function ChainEditorPageBody() {
           </div>
         </div>
       </div>
+      <DeleteConfirmDialog {...deleteDialogProps} />
       <UnsavedLeaveDialog open={isLeaveDialogOpen} onConfirm={confirmLeave} onCancel={cancelLeave} />
       <SaveConflictDialog
         open={asyncState.saveError?.kind === "conflict"}

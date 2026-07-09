@@ -1,3 +1,4 @@
+import { Button, Card, Heading, Textarea } from "@/components/ui";
 import {
   REJECT_DIALOG_CANCEL_LABEL,
   REJECT_DIALOG_CONFIRM_LABEL,
@@ -32,40 +33,34 @@ export function RejectReasonDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="flex w-full max-w-md flex-col gap-3 rounded bg-white p-6 shadow-lg">
-        <h2 className="text-base font-semibold">{REJECT_DIALOG_TITLE}</h2>
-        <textarea
+      <Card className="flex w-full max-w-md flex-col gap-3 bg-surface-raised p-6">
+        <Heading level={2}>{REJECT_DIALOG_TITLE}</Heading>
+        <Textarea
           value={target.reason}
           onChange={(event) => onReasonChange(event.target.value)}
           placeholder={REJECT_REASON_PLACEHOLDER}
           rows={4}
-          className="w-full rounded border p-2 text-sm"
         />
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-fg-muted">
           <span>{REJECT_DIALOG_HELPER_TEXT}</span>
-          <span className={isOverLimit ? "text-red-600" : ""}>
+          <span className={isOverLimit ? "text-danger" : ""}>
             {target.reason.length} / {REJECT_REASON_MAX_LENGTH}
           </span>
         </div>
         <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={onCancel}
-            className="rounded border px-3 py-1.5 text-sm disabled:opacity-50"
-          >
+          <Button variant="secondary" size="sm" disabled={isSubmitting} onClick={onCancel}>
             {REJECT_DIALOG_CANCEL_LABEL}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
             disabled={isSubmitting || isOverLimit}
             onClick={onConfirm}
-            className="rounded bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
           >
             {REJECT_DIALOG_CONFIRM_LABEL}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

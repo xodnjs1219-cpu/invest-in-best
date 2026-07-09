@@ -1,7 +1,8 @@
+import { Badge, EmptyState, ErrorState } from "@/components/ui";
 import type { BatchRunSummaryDto } from "@/features/admin-batches/backend/schema";
 import {
   BATCH_JOB_TYPE_LABELS,
-  BATCH_RUN_STATUS_BADGE_CLASSES,
+  BATCH_RUN_STATUS_BADGE_TONES,
   BATCH_RUN_STATUS_LABELS,
   CARRIED_OVER_BADGE_LABEL,
   CARRIED_OVER_TOOLTIP,
@@ -35,32 +36,27 @@ export function BatchRunsTable({
   now,
 }: BatchRunsTableProps) {
   if (isLoading) {
-    return <p className="p-6 text-center text-sm text-gray-500">로딩 중...</p>;
+    return <p className="p-6 text-center text-sm text-fg-muted">로딩 중...</p>;
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center gap-3 p-6 text-center">
-        <p className="text-sm text-red-600">{RUNS_LOAD_ERROR_MESSAGE}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded border px-3 py-1.5 text-sm hover:bg-gray-50"
-        >
-          {RUNS_RETRY_BUTTON_LABEL}
-        </button>
-      </div>
+      <ErrorState
+        message={RUNS_LOAD_ERROR_MESSAGE}
+        onRetry={onRetry}
+        retryLabel={RUNS_RETRY_BUTTON_LABEL}
+      />
     );
   }
 
   if (runs.length === 0) {
-    return <p className="p-6 text-center text-sm text-gray-500">{EMPTY_RUNS_MESSAGE}</p>;
+    return <EmptyState message={EMPTY_RUNS_MESSAGE} />;
   }
 
   return (
     <table className="w-full border-collapse text-sm">
       <thead>
-        <tr className="border-b text-left text-gray-500">
+        <tr className="border-b border-border text-left text-fg-muted">
           <th className="p-2">작업 종류</th>
           <th className="p-2">상태</th>
           <th className="p-2">시작</th>
@@ -78,25 +74,20 @@ export function BatchRunsTable({
             <tr
               key={run.id}
               onClick={() => onSelect(run.id)}
-              className={`cursor-pointer border-b hover:bg-gray-50 ${isSelected ? "bg-blue-50" : ""}`}
+              className={`cursor-pointer border-b border-border hover:bg-surface-hover ${isSelected ? "bg-accent-soft" : ""}`}
             >
               <td className="p-2">{BATCH_JOB_TYPE_LABELS[run.jobType]}</td>
               <td className="p-2">
-                <span
-                  className={`rounded px-2 py-0.5 text-xs ${BATCH_RUN_STATUS_BADGE_CLASSES[run.status]}`}
-                >
+                <Badge tone={BATCH_RUN_STATUS_BADGE_TONES[run.status]}>
                   {BATCH_RUN_STATUS_LABELS[run.status]}
-                </span>
+                </Badge>
                 {run.isCarriedOver && (
-                  <span
-                    title={CARRIED_OVER_TOOLTIP}
-                    className="ml-1 rounded bg-orange-100 px-1.5 py-0.5 text-xs text-orange-800"
-                  >
+                  <Badge tone="warning" title={CARRIED_OVER_TOOLTIP} className="ml-1">
                     {CARRIED_OVER_BADGE_LABEL}
-                  </span>
+                  </Badge>
                 )}
                 {run.hasErrorLog && (
-                  <span className="ml-1 text-xs text-gray-400" title="실패 요약 로그 있음">
+                  <span className="ml-1 text-xs text-fg-subtle" title="실패 요약 로그 있음">
                     📄
                   </span>
                 )}

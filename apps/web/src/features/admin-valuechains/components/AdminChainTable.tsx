@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge, Button, EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import type { AdminChainListItem } from "@/features/admin-valuechains/backend/schema";
 import {
   ADMIN_CHAIN_LIST_TEXT,
@@ -33,58 +34,51 @@ export function AdminChainTable({
 }: AdminChainTableProps) {
   if (isLoading) {
     return (
-      <div
-        data-testid="admin-chain-table-skeleton"
-        className="h-64 w-full animate-pulse rounded-lg bg-gray-100"
-      />
+      <div data-testid="admin-chain-table-skeleton">
+        <Skeleton className="h-64 w-full" />
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center">
-        <p className="text-sm text-red-700">{ADMIN_CHAIN_LIST_TEXT.loadErrorTitle}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          {ADMIN_CHAIN_LIST_TEXT.retryAction}
-        </button>
-      </div>
+      <ErrorState
+        message={ADMIN_CHAIN_LIST_TEXT.loadErrorTitle}
+        onRetry={onRetry}
+        retryLabel={ADMIN_CHAIN_LIST_TEXT.retryAction}
+      />
     );
   }
 
   if (chains.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-lg border border-gray-200 px-4 py-12 text-center">
-        <p className="text-sm font-medium text-gray-900">{ADMIN_CHAIN_LIST_TEXT.emptyStateTitle}</p>
-        <p className="text-sm text-gray-500">{ADMIN_CHAIN_LIST_TEXT.emptyStateDescription}</p>
-      </div>
+      <EmptyState message={ADMIN_CHAIN_LIST_TEXT.emptyStateTitle}>
+        <p className="text-sm text-fg-muted">{ADMIN_CHAIN_LIST_TEXT.emptyStateDescription}</p>
+      </EmptyState>
     );
   }
 
   return (
     <table className="w-full border-collapse text-sm">
       <thead>
-        <tr className="border-b border-gray-200 text-left text-gray-500">
-          <th className="py-2 pr-4">이름</th>
-          <th className="py-2 pr-4">기준</th>
-          <th className="py-2 pr-4">노드 수</th>
-          <th className="py-2 pr-4">최근 변경</th>
-          <th className="py-2 pr-4">상태</th>
-          <th className="py-2 pr-4">작업</th>
+        <tr className="border-b border-border text-left text-fg-muted">
+          <th className="p-2">이름</th>
+          <th className="p-2">기준</th>
+          <th className="p-2">노드 수</th>
+          <th className="p-2">최근 변경</th>
+          <th className="p-2">상태</th>
+          <th className="p-2">작업</th>
         </tr>
       </thead>
       <tbody>
         {chains.map((chain) => (
-          <tr key={chain.chainId} className="border-b border-gray-100">
-            <td className="py-2 pr-4 font-medium text-gray-900">{chain.name}</td>
-            <td className="py-2 pr-4">
-              <span className="rounded bg-gray-100 px-2 py-0.5 text-xs">{FOCUS_TYPE_LABELS[chain.focusType]}</span>
+          <tr key={chain.chainId} className="border-b border-border">
+            <td className="p-2 font-medium text-fg">{chain.name}</td>
+            <td className="p-2">
+              <Badge tone="neutral">{FOCUS_TYPE_LABELS[chain.focusType]}</Badge>
             </td>
-            <td className="py-2 pr-4">{chain.latestSnapshot?.nodeCount ?? 0}</td>
-            <td className="py-2 pr-4 text-gray-500">
+            <td className="p-2">{chain.latestSnapshot?.nodeCount ?? 0}</td>
+            <td className="p-2 text-fg-muted">
               {chain.latestSnapshot ? (
                 <>
                   {new Date(chain.latestSnapshot.effectiveAt).toLocaleString("ko-KR")} ·{" "}
@@ -94,31 +88,25 @@ export function AdminChainTable({
                 "-"
               )}
             </td>
-            <td className="py-2 pr-4">
+            <td className="p-2">
               {chain.isArchived && (
-                <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                  {ADMIN_CHAIN_LIST_TEXT.archivedBadge}
-                </span>
+                <Badge tone="warning">{ADMIN_CHAIN_LIST_TEXT.archivedBadge}</Badge>
               )}
             </td>
-            <td className="py-2 pr-4">
+            <td className="p-2">
               {!chain.isArchived && (
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(chain.chainId)}
-                    className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => onEdit(chain.chainId)}>
                     {ADMIN_CHAIN_LIST_TEXT.editAction}
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
                     disabled={archivingChainId === chain.chainId}
                     onClick={() => onArchiveClick(chain)}
-                    className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
                     {ADMIN_CHAIN_LIST_TEXT.archiveAction}
-                  </button>
+                  </Button>
                 </div>
               )}
             </td>

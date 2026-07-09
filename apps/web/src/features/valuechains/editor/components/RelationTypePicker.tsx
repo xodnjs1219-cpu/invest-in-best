@@ -1,6 +1,7 @@
 "use client";
 
 import type { RelationType } from "@iib/domain";
+import { Badge, Card } from "@/components/ui";
 
 /**
  * 관계 종류 선택 팝오버(UC-016 plan 모듈 M20) — 신규 연결·관계 변경 공용.
@@ -23,13 +24,13 @@ export function RelationTypePicker({
   currentRelationTypeId,
 }: RelationTypePickerProps) {
   return (
-    <div
+    <Card
       role="dialog"
       aria-label="관계 종류 선택"
-      className="flex w-64 flex-col gap-1 rounded-md border border-gray-200 bg-white p-2 shadow-lg"
+      className="flex w-64 flex-col gap-1 p-2"
     >
       {relationTypes.length === 0 ? (
-        <p className="px-2 py-3 text-sm text-gray-500">
+        <p className="px-2 py-3 text-sm text-fg-muted">
           활성화된 관계 종류가 없습니다. 관리자에게 문의하세요.
         </p>
       ) : (
@@ -42,33 +43,29 @@ export function RelationTypePicker({
                   type="button"
                   aria-pressed={isCurrent}
                   onClick={() => onSelect(relationType.id)}
-                  className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-gray-50 ${
-                    isCurrent ? "bg-gray-100 font-medium" : ""
+                  className={`flex w-full items-center justify-between gap-2 rounded-[var(--radius)] px-2 py-1.5 text-left text-sm hover:bg-surface-hover ${
+                    isCurrent ? "bg-surface-sunken font-medium" : ""
                   }`}
                 >
                   <span>{relationType.name}</span>
-                  <span
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                      relationType.isDirected ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
+                  <Badge tone={relationType.isDirected ? "accent" : "neutral"}>
                     {relationType.isDirected ? "유향" : "무향"}
-                  </span>
+                  </Badge>
                 </button>
               </li>
             );
           })}
         </ul>
       )}
-      <div className="mt-1 flex justify-end border-t border-gray-100 pt-2">
+      <div className="mt-1 flex justify-end border-t border-border pt-2">
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-50"
+          className="rounded-[var(--radius)] px-2 py-1 text-xs text-fg-muted hover:bg-surface-hover"
         >
           취소
         </button>
       </div>
-    </div>
+    </Card>
   );
 }

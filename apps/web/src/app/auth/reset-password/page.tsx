@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/ui";
 import { PasswordResetFlow } from "@/features/auth/components/password-reset-flow";
 
 type ResetPasswordPageProps = {
@@ -13,8 +14,8 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
   const { token_hash: tokenHash } = await searchParams;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-12">
+    <PageShell width="sm">
       <PasswordResetFlow tokenHash={tokenHash ?? null} />
-    </main>
+    </PageShell>
   );
 }

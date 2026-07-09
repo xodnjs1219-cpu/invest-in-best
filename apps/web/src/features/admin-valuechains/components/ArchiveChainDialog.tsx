@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Card, Heading } from "@/components/ui";
 import { ARCHIVE_DIALOG_TEXT } from "@/features/admin-valuechains/constants";
 
 export interface ArchiveChainTarget {
@@ -31,30 +32,21 @@ export function ArchiveChainDialog({ target, isArchiving, onConfirm, onCancel }:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div role="alertdialog" aria-modal="true" className="w-96 rounded-lg bg-white p-4 shadow-xl">
-        <h2 className="text-sm font-semibold text-gray-900">{ARCHIVE_DIALOG_TEXT.title}</h2>
-        <p className="mt-2 text-sm text-gray-600">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <Card role="alertdialog" aria-modal="true" className="w-full max-w-sm bg-surface-raised p-6">
+        <Heading level={3}>{ARCHIVE_DIALOG_TEXT.title}</Heading>
+        <p className="mt-2 text-sm text-fg-muted">
           {`"${target.name}"`} {ARCHIVE_DIALOG_TEXT.description}
         </p>
         <div className="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-          >
+          <Button variant="ghost" size="sm" onClick={handleCancel}>
             {ARCHIVE_DIALOG_TEXT.cancelLabel}
-          </button>
-          <button
-            type="button"
-            disabled={isArchiving}
-            onClick={onConfirm}
-            className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-          >
+          </Button>
+          <Button variant="danger" size="sm" disabled={isArchiving} onClick={onConfirm}>
             {ARCHIVE_DIALOG_TEXT.confirmLabel}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Button, Input } from "@/components/ui";
 import { AUTH_SIGNUP_MESSAGES } from "@/features/auth/constants";
 import { useSignup, signupErrorMessage } from "@/features/auth/hooks/useSignup";
 import {
@@ -45,66 +46,94 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
       {signupMutation.isError && (
-        <p role="alert" className="text-red-600">
+        <p role="alert" className="text-danger">
           {signupErrorMessage(signupMutation.error)}
         </p>
       )}
 
       <div className="flex flex-col gap-1">
         <label htmlFor="signup-email">{AUTH_SIGNUP_MESSAGES.emailLabel}</label>
-        <input id="signup-email" type="email" autoComplete="email" {...register("email")} />
-        {errors.email && <p className="text-red-600">{errors.email.message}</p>}
+        <Input
+          id="signup-email"
+          type="email"
+          autoComplete="email"
+          invalid={Boolean(errors.email)}
+          {...register("email")}
+        />
+        {errors.email && <p className="text-danger">{errors.email.message}</p>}
       </div>
 
       <div className="flex flex-col gap-1">
         <label htmlFor="signup-password">{AUTH_SIGNUP_MESSAGES.passwordLabel}</label>
-        <input
+        <Input
           id="signup-password"
           type="password"
           autoComplete="new-password"
+          invalid={Boolean(errors.password)}
           {...register("password")}
         />
-        {errors.password && <p className="text-red-600">{errors.password.message}</p>}
+        {errors.password && <p className="text-danger">{errors.password.message}</p>}
       </div>
 
       <div className="flex flex-col gap-1">
         <label htmlFor="signup-password-confirm">{AUTH_SIGNUP_MESSAGES.passwordConfirmLabel}</label>
-        <input
+        <Input
           id="signup-password-confirm"
           type="password"
           autoComplete="new-password"
+          invalid={Boolean(errors.passwordConfirm)}
           {...register("passwordConfirm")}
         />
-        {errors.passwordConfirm && <p className="text-red-600">{errors.passwordConfirm.message}</p>}
+        {errors.passwordConfirm && <p className="text-danger">{errors.passwordConfirm.message}</p>}
       </div>
 
       <div data-testid="terms-field" className="flex flex-col gap-1">
         <label htmlFor="signup-agree-terms" className="flex items-center gap-2">
-          <input id="signup-agree-terms" type="checkbox" {...register("agreeTerms")} />
+          <input
+            id="signup-agree-terms"
+            type="checkbox"
+            className="accent-accent"
+            {...register("agreeTerms")}
+          />
           {AUTH_SIGNUP_MESSAGES.agreeTermsLabel}
         </label>
-        <a href="/legal/terms" target="_blank" rel="noreferrer" className="underline">
+        <a
+          href="/legal/terms"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:text-accent-hover underline underline-offset-2"
+        >
           이용약관 보기
         </a>
-        {errors.agreeTerms && <p className="text-red-600">{errors.agreeTerms.message}</p>}
+        {errors.agreeTerms && <p className="text-danger">{errors.agreeTerms.message}</p>}
       </div>
 
       <div data-testid="privacy-field" className="flex flex-col gap-1">
         <label htmlFor="signup-agree-privacy" className="flex items-center gap-2">
-          <input id="signup-agree-privacy" type="checkbox" {...register("agreePrivacy")} />
+          <input
+            id="signup-agree-privacy"
+            type="checkbox"
+            className="accent-accent"
+            {...register("agreePrivacy")}
+          />
           {AUTH_SIGNUP_MESSAGES.agreePrivacyLabel}
         </label>
-        <a href="/legal/privacy" target="_blank" rel="noreferrer" className="underline">
+        <a
+          href="/legal/privacy"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:text-accent-hover underline underline-offset-2"
+        >
           개인정보처리방침 보기
         </a>
-        {errors.agreePrivacy && <p className="text-red-600">{errors.agreePrivacy.message}</p>}
+        {errors.agreePrivacy && <p className="text-danger">{errors.agreePrivacy.message}</p>}
       </div>
 
-      <button type="submit" disabled={isSubmitting || signupMutation.isPending}>
+      <Button type="submit" disabled={isSubmitting || signupMutation.isPending}>
         {isSubmitting || signupMutation.isPending
           ? AUTH_SIGNUP_MESSAGES.submittingLabel
           : AUTH_SIGNUP_MESSAGES.submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

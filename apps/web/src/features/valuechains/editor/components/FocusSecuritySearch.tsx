@@ -7,6 +7,7 @@ import { useSecuritiesSearch } from "@/features/securities/hooks/useSecuritiesSe
 import { ListingStatusBadge, MarketBadge } from "@/features/securities/components/SecurityBadges";
 import { toSecurityRef } from "@/features/valuechains/editor/lib/toSecurityRef";
 import type { MarketFilter } from "@/features/explore/state/exploreReducer";
+import { Input, Select } from "@/components/ui";
 
 /**
  * 대상 기업 검색 (UC-013 plan 모듈 20).
@@ -39,28 +40,27 @@ export function FocusSecuritySearch({ onSelect }: FocusSecuritySearchProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          role="textbox"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="종목명 또는 티커 검색"
-          className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-        <select
-          value={market}
-          onChange={(e) => setMarket(e.target.value as MarketFilter)}
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-        >
-          <option value="ALL">전체</option>
-          <option value="KRX">KRX</option>
-          <option value="US">US</option>
-        </select>
-      </div>
+      {/* 검색 입력은 항상 한 줄 전체 폭을 차지하고, 시장 필터는 아래 줄로 내려 입력창이 넉넉하게 보이도록 한다. */}
+      <Input
+        type="text"
+        role="textbox"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="종목명 또는 티커 검색"
+      />
+      <Select
+        value={market}
+        onChange={(e) => setMarket(e.target.value as MarketFilter)}
+        aria-label="시장 필터"
+        className="w-auto"
+      >
+        <option value="ALL">전체 시장</option>
+        <option value="KRX">KRX</option>
+        <option value="US">US</option>
+      </Select>
 
       {enabled && searchResult.isError && (
-        <div className="flex items-center justify-between rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="flex items-center justify-between rounded-[var(--radius)] bg-danger-soft px-3 py-2 text-sm text-danger">
           <span>검색 중 오류가 발생했습니다.</span>
           <button type="button" onClick={() => searchResult.refetch()} className="underline">
             재시도
@@ -69,7 +69,7 @@ export function FocusSecuritySearch({ onSelect }: FocusSecuritySearchProps) {
       )}
 
       {enabled && !searchResult.isError && searchResult.isSuccess && items.length === 0 && (
-        <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-500">
+        <p className="rounded-[var(--radius)] bg-surface-sunken px-3 py-2 text-sm text-fg-muted">
           검색 결과 없음 — 대상 기업 없이 진행할 수 있습니다.
         </p>
       )}
@@ -81,11 +81,11 @@ export function FocusSecuritySearch({ onSelect }: FocusSecuritySearchProps) {
               <button
                 type="button"
                 onClick={() => handleSelect(item)}
-                className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-gray-50"
+                className="flex w-full items-center justify-between gap-3 rounded-[var(--radius)] px-3 py-2 text-left hover:bg-surface-hover"
               >
                 <span className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">{item.name}</span>
-                  <span className="text-sm text-gray-500">{item.ticker}</span>
+                  <span className="font-medium text-fg">{item.name}</span>
+                  <span className="text-sm text-fg-muted">{item.ticker}</span>
                 </span>
                 <span className="flex items-center gap-1.5">
                   <MarketBadge market={item.market} />

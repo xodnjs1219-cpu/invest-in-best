@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Heading } from "@/components/ui";
 import { AUTH_SIGNUP_MESSAGES } from "@/features/auth/constants";
 
 type SignupSuccessNoticeProps = {
@@ -17,9 +18,12 @@ export function SignupSuccessNotice({ email, redirectTo }: SignupSuccessNoticePr
 
   return (
     <div data-testid="signup-success-notice" className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">{AUTH_SIGNUP_MESSAGES.successTitle}</h1>
+      <Heading level={1}>{AUTH_SIGNUP_MESSAGES.successTitle}</Heading>
       <p>{AUTH_SIGNUP_MESSAGES.successBodyTemplate(email)}</p>
-      <Link href={loginHref} className="underline">
+      <Link
+        href={loginHref}
+        className="text-accent hover:text-accent-hover underline underline-offset-2"
+      >
         {AUTH_SIGNUP_MESSAGES.goToLogin}
       </Link>
     </div>

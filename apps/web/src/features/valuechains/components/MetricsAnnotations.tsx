@@ -24,14 +24,14 @@ export const MetricsAnnotations = ({ variant, annotations }: MetricsAnnotationsP
         aria-label="지표 산정 기준 안내"
         onClick={() => setOpen((v) => !v)}
         onBlur={() => setOpen(false)}
-        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-gray-400 text-[10px] text-gray-500 dark:border-gray-500 dark:text-gray-400"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-border-strong text-[10px] text-fg-muted"
       >
         i
       </button>
       {open && (
         <div
           role="tooltip"
-          className="absolute left-0 top-6 z-10 w-64 rounded border border-gray-200 bg-white p-3 text-xs text-gray-700 shadow-lg dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+          className="absolute left-0 top-6 z-10 w-64 rounded-[var(--radius)] border border-border bg-surface-raised p-3 text-xs text-fg-muted shadow-[var(--shadow-md)]"
         >
           <p>기준 통화: {annotations.baseCurrency}</p>
           <p>환산 기준: {fxBasisLabel}</p>
@@ -46,7 +46,7 @@ export const MetricsAnnotations = ({ variant, annotations }: MetricsAnnotationsP
                 </p>
               )}
               {annotations.isClosingConfirmed === false && (
-                <p className="text-amber-600 dark:text-amber-400">최신 일자 종가 미확정</p>
+                <p className="text-warning">최신 일자 종가 미확정</p>
               )}
             </>
           )}

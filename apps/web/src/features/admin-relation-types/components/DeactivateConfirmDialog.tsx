@@ -1,3 +1,4 @@
+import { Button, Card, Heading } from "@/components/ui";
 import {
   CANCEL_BUTTON_LABEL,
   DEACTIVATE_COMMON_NOTICE,
@@ -36,37 +37,32 @@ export function DeactivateConfirmDialog({
       aria-label={DEACTIVATE_DIALOG_TITLE}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
     >
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-lg font-semibold">{DEACTIVATE_DIALOG_TITLE}</h2>
-        <p className="mb-2 text-sm text-gray-700">
+      <Card className="w-full max-w-sm bg-surface-raised p-6">
+        <Heading level={2} className="mb-4">{DEACTIVATE_DIALOG_TITLE}</Heading>
+        <p className="mb-2 text-sm text-fg-muted">
           <strong>{target.name}</strong>
         </p>
-        <p className="mb-2 text-sm text-gray-600">{DEACTIVATE_COMMON_NOTICE}</p>
+        <p className="mb-2 text-sm text-fg-muted">{DEACTIVATE_COMMON_NOTICE}</p>
         {target.isInUse && (
-          <p className="mb-4 rounded bg-amber-50 p-2 text-sm text-amber-800">
+          <p className="mb-4 rounded-[var(--radius)] bg-warning-soft p-2 text-sm text-warning">
             {DEACTIVATE_IN_USE_NOTICE}
           </p>
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="rounded border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
-          >
+          <Button variant="secondary" size="sm" onClick={onCancel} disabled={isSubmitting}>
             {CANCEL_BUTTON_LABEL}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
             onClick={() => onConfirm(target.id)}
             disabled={isSubmitting}
-            className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700 disabled:opacity-50"
           >
             {DEACTIVATE_CONFIRM_BUTTON_LABEL}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

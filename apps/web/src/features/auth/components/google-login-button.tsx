@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui";
 import { AUTH_OAUTH_MESSAGES } from "@/features/auth/constants";
 
 type GoogleLoginButtonProps = {
@@ -14,25 +15,30 @@ type GoogleLoginButtonProps = {
 export function GoogleLoginButton({ onClick, isPending, errorMessage }: GoogleLoginButtonProps) {
   return (
     <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={isPending}
-        className="flex items-center justify-center gap-2 rounded border px-4 py-2"
-      >
+      <Button type="button" variant="secondary" onClick={onClick} disabled={isPending}>
         {isPending ? AUTH_OAUTH_MESSAGES.googleButtonLoadingLabel : AUTH_OAUTH_MESSAGES.googleButtonLabel}
-      </button>
-      <p className="text-xs text-gray-500">
+      </Button>
+      <p className="text-xs text-fg-muted">
         {AUTH_OAUTH_MESSAGES.consentNotice}{" "}
-        <Link href="/legal/terms" target="_blank" rel="noreferrer" className="underline">
+        <Link
+          href="/legal/terms"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:text-accent-hover underline underline-offset-2"
+        >
           이용약관
         </Link>{" "}
-        <Link href="/legal/privacy" target="_blank" rel="noreferrer" className="underline">
+        <Link
+          href="/legal/privacy"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:text-accent-hover underline underline-offset-2"
+        >
           개인정보처리방침
         </Link>
       </p>
       {errorMessage && (
-        <p role="alert" className="text-red-600 text-sm">
+        <p role="alert" className="text-danger text-sm">
           {errorMessage}
         </p>
       )}

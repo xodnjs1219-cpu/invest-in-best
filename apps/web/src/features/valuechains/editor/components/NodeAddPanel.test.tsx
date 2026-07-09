@@ -26,6 +26,9 @@ describe("NodeAddPanel", () => {
         onAddListedCompanyNode={vi.fn()}
         onAddFreeSubjectNode={vi.fn()}
         usedSecurityIds={new Set()}
+        nodeListItems={[]}
+        groupNameById={new Map()}
+        onDeleteNode={vi.fn()}
       />,
     );
 
@@ -42,6 +45,9 @@ describe("NodeAddPanel", () => {
         onAddListedCompanyNode={vi.fn()}
         onAddFreeSubjectNode={vi.fn()}
         usedSecurityIds={new Set()}
+        nodeListItems={[]}
+        groupNameById={new Map()}
+        onDeleteNode={vi.fn()}
       />,
     );
 
@@ -57,6 +63,9 @@ describe("NodeAddPanel", () => {
         onAddListedCompanyNode={vi.fn()}
         onAddFreeSubjectNode={vi.fn()}
         usedSecurityIds={new Set()}
+        nodeListItems={[]}
+        groupNameById={new Map()}
+        onDeleteNode={vi.fn()}
       />,
     );
 
@@ -74,6 +83,9 @@ describe("NodeAddPanel", () => {
         onAddListedCompanyNode={vi.fn()}
         onAddFreeSubjectNode={vi.fn()}
         usedSecurityIds={new Set()}
+        nodeListItems={[]}
+        groupNameById={new Map()}
+        onDeleteNode={vi.fn()}
       />,
     );
 
@@ -91,6 +103,9 @@ describe("NodeAddPanel", () => {
         onAddListedCompanyNode={vi.fn()}
         onAddFreeSubjectNode={vi.fn()}
         usedSecurityIds={new Set()}
+        nodeListItems={[]}
+        groupNameById={new Map()}
+        onDeleteNode={vi.fn()}
       />,
     );
 

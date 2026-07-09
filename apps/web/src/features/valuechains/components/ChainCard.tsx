@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Badge, Card } from "@/components/ui";
 import {
   formatFocusLabel,
   formatMetricDisplay,
@@ -25,7 +26,8 @@ export function ChainCard({ card, onSelect, actionSlot }: ChainCardProps) {
   const nodeCountLabel = formatNodeCount(card.nodeCount);
 
   return (
-    <div
+    <Card
+      interactive
       role="button"
       tabIndex={0}
       onClick={() => onSelect(card.id)}
@@ -35,34 +37,30 @@ export function ChainCard({ card, onSelect, actionSlot }: ChainCardProps) {
           onSelect(card.id);
         }
       }}
-      className="flex w-full cursor-pointer flex-col gap-2 rounded-lg border border-gray-200 p-4 text-left transition hover:border-blue-400 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="flex w-full flex-col gap-2 p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="truncate text-base font-semibold text-gray-900">{card.name}</span>
+        <span className="truncate text-base font-semibold text-fg">{card.name}</span>
         {actionSlot && (
           <span onClick={(event) => event.stopPropagation()} className="shrink-0">
             {actionSlot}
           </span>
         )}
       </div>
-      <span className="text-sm text-gray-500">{focusLabel}</span>
-      <span className="text-sm text-gray-500">{nodeCountLabel}</span>
+      <span className="text-sm text-fg-muted">{focusLabel}</span>
+      <span className="text-sm text-fg-muted">{nodeCountLabel}</span>
 
       {metricDisplay.kind === "unavailable" ? (
-        <span className="text-sm text-gray-400">집계 준비 중</span>
+        <span className="text-sm text-fg-subtle">집계 준비 중</span>
       ) : (
         <span className="flex flex-col gap-0.5">
-          <span className="text-lg font-bold text-gray-900">{metricDisplay.text}</span>
-          <span className="flex items-center gap-1.5 text-xs text-gray-500">
+          <span className="text-lg font-bold text-fg">{metricDisplay.text}</span>
+          <span className="flex items-center gap-1.5 text-xs text-fg-muted">
             <span>{metricDisplay.coverageText}</span>
-            {metricDisplay.isCarriedForward && (
-              <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-amber-700 ring-1 ring-inset ring-amber-600/20">
-                이월 집계
-              </span>
-            )}
+            {metricDisplay.isCarriedForward && <Badge tone="warning">이월 집계</Badge>}
           </span>
         </span>
       )}
-    </div>
+    </Card>
   );
 }

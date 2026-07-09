@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui";
 import type { TimelineBadge as TimelineBadgeData } from "@/features/valuechains/context/chain-view-context";
 
 export interface TimelineBadgeProps {
@@ -13,17 +14,13 @@ export interface TimelineBadgeProps {
 export const TimelineBadge = ({ badge, onReturnToLatest }: TimelineBadgeProps) => (
   <div
     data-testid="timeline-badge"
-    className="flex flex-wrap items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200"
+    className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] bg-accent-soft px-3 py-2 text-sm text-accent-soft-fg ring-1 ring-inset ring-accent/25"
   >
     <span>
       {badge.selectedDate} 시점 조회 중 · 기준 스냅샷 {new Date(badge.snapshotEffectiveAt).toLocaleString("ko-KR")}
     </span>
-    <button
-      type="button"
-      onClick={onReturnToLatest}
-      className="rounded border border-blue-300 bg-white px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:bg-blue-900 dark:text-blue-200"
-    >
+    <Button variant="secondary" size="sm" onClick={onReturnToLatest}>
       최신으로 돌아가기
-    </button>
+    </Button>
   </div>
 );

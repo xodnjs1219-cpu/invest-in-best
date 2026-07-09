@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { relationTypeNameSchema } from "@iib/domain";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { Button, Card, Heading, Input } from "@/components/ui";
 import {
   CANCEL_BUTTON_LABEL,
   DIRECTION_FIELD_HELP_TEXT,
@@ -65,28 +66,28 @@ export function RelationTypeFormDialog({
       aria-label={FORM_DIALOG_TITLES[mode]}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
     >
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-lg font-semibold">{FORM_DIALOG_TITLES[mode]}</h2>
+      <Card className="w-full max-w-md bg-surface-raised p-6">
+        <Heading level={2} className="mb-4">{FORM_DIALOG_TITLES[mode]}</Heading>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label htmlFor="relation-type-name" className="text-sm font-medium">
               {NAME_FIELD_LABEL}
             </label>
-            <input
+            <Input
               id="relation-type-name"
               type="text"
               placeholder={NAME_FIELD_PLACEHOLDER}
-              className="rounded border px-3 py-2 text-sm"
+              invalid={Boolean(errors.name)}
               {...register("name")}
             />
             {errors.name && (
-              <p role="alert" className="text-xs text-red-600">
+              <p role="alert" className="text-xs text-danger">
                 {errors.name.message}
               </p>
             )}
             {!errors.name && serverErrorMessage && (
-              <p role="alert" className="text-xs text-red-600">
+              <p role="alert" className="text-xs text-danger">
                 {serverErrorMessage}
               </p>
             )}
@@ -121,29 +122,20 @@ export function RelationTypeFormDialog({
                   </div>
                 )}
               />
-              <p className="text-xs text-gray-500">{DIRECTION_FIELD_HELP_TEXT}</p>
+              <p className="text-xs text-fg-muted">{DIRECTION_FIELD_HELP_TEXT}</p>
             </div>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="rounded border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
-            >
+            <Button variant="secondary" size="sm" onClick={onCancel} disabled={isSubmitting}>
               {CANCEL_BUTTON_LABEL}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="primary" size="sm" type="submit" disabled={isSubmitting}>
               {SUBMIT_BUTTON_LABELS[mode]}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

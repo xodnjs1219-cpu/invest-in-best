@@ -1,6 +1,7 @@
 "use client";
 
 import type { InfiniteData, UseInfiniteQueryResult } from "@tanstack/react-query";
+import { Button, EmptyState, ErrorState, Heading, Skeleton } from "@/components/ui";
 import {
   DISCLOSURES_EMPTY_MESSAGE,
   DISCLOSURES_LOADING_MORE_LABEL,
@@ -21,21 +22,16 @@ type DisclosuresSectionProps = {
  */
 export function DisclosuresSection({ query }: DisclosuresSectionProps) {
   if (query.isPending) {
-    return <div data-testid="disclosures-loading" className="h-32 animate-pulse rounded-md bg-gray-100" />;
+    return <Skeleton data-testid="disclosures-loading" className="h-32" />;
   }
 
   if (query.isError) {
     return (
-      <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <p className="text-gray-700">{DISCLOSURES_SECTION_ERROR_MESSAGE}</p>
-        <button
-          type="button"
-          onClick={() => query.refetch()}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          {SECTION_RETRY_LABEL}
-        </button>
-      </div>
+      <ErrorState
+        message={DISCLOSURES_SECTION_ERROR_MESSAGE}
+        onRetry={() => query.refetch()}
+        retryLabel={SECTION_RETRY_LABEL}
+      />
     );
   }
 
@@ -43,10 +39,10 @@ export function DisclosuresSection({ query }: DisclosuresSectionProps) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-lg font-semibold text-gray-900">주요 공시</h2>
+      <Heading level={2}>주요 공시</Heading>
 
       {items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">{DISCLOSURES_EMPTY_MESSAGE}</p>
+        <EmptyState message={DISCLOSURES_EMPTY_MESSAGE} />
       ) : (
         <ul className="flex flex-col gap-1">
           {items.map((item) => (
@@ -55,10 +51,10 @@ export function DisclosuresSection({ query }: DisclosuresSectionProps) {
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm hover:bg-gray-50"
+                className="flex items-center justify-between gap-3 rounded-[var(--radius)] px-2 py-2 text-sm hover:bg-surface-hover"
               >
-                <span className="text-gray-900">{item.title}</span>
-                <span className="shrink-0 text-xs text-gray-500">{item.disclosureDate}</span>
+                <span className="text-fg">{item.title}</span>
+                <span className="shrink-0 text-xs text-fg-muted">{item.disclosureDate}</span>
               </a>
             </li>
           ))}
@@ -67,14 +63,13 @@ export function DisclosuresSection({ query }: DisclosuresSectionProps) {
 
       {query.hasNextPage && (
         <div className="flex justify-center pt-1">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={() => query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             {query.isFetchingNextPage ? DISCLOSURES_LOADING_MORE_LABEL : DISCLOSURES_LOAD_MORE_LABEL}
-          </button>
+          </Button>
         </div>
       )}
     </section>

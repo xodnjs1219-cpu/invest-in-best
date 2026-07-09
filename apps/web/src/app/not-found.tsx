@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button, Heading } from "@/components/ui";
 import { ROUTES } from "@/constants/routes";
 
 /**
@@ -9,11 +9,11 @@ import { ROUTES } from "@/constants/routes";
 export default function NotFound() {
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-24 text-center">
-      <h1 className="text-2xl font-bold">페이지를 찾을 수 없습니다</h1>
-      <p className="text-sm text-gray-600">요청하신 경로가 존재하지 않거나 이동되었습니다.</p>
-      <Link href={ROUTES.home} className="underline hover:text-gray-700">
+      <Heading level={1}>페이지를 찾을 수 없습니다</Heading>
+      <p className="text-sm text-fg-muted">요청하신 경로가 존재하지 않거나 이동되었습니다.</p>
+      <Button as="link" href={ROUTES.home} variant="secondary" className="mt-2">
         메인으로 돌아가기
-      </Link>
+      </Button>
     </div>
   );
 }

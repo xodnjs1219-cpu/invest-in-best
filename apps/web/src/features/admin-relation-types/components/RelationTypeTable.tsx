@@ -1,10 +1,11 @@
+import { Badge, Button, EmptyState, ErrorState } from "@/components/ui";
 import type { AdminRelationTypeListItem } from "@/features/admin-relation-types/backend/schema";
 import {
-  ACTIVE_STATE_BADGE_CLASSES,
+  ACTIVE_STATE_BADGE_TONES,
   ACTIVE_STATE_LABELS,
   DIRECTION_LABELS,
   EMPTY_LIST_MESSAGE,
-  IN_USE_BADGE_CLASSES,
+  IN_USE_BADGE_TONE,
   IN_USE_BADGE_LABEL,
   LIST_LOAD_ERROR_MESSAGE,
   LIST_LOADING_MESSAGE,
@@ -39,32 +40,27 @@ export function RelationTypeTable({
   onReactivate,
 }: RelationTypeTableProps) {
   if (isLoading) {
-    return <p className="p-6 text-center text-sm text-gray-500">{LIST_LOADING_MESSAGE}</p>;
+    return <p className="p-6 text-center text-sm text-fg-muted">{LIST_LOADING_MESSAGE}</p>;
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center gap-3 p-6 text-center">
-        <p className="text-sm text-red-600">{LIST_LOAD_ERROR_MESSAGE}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded border px-3 py-1.5 text-sm hover:bg-gray-50"
-        >
-          {LIST_RETRY_BUTTON_LABEL}
-        </button>
-      </div>
+      <ErrorState
+        message={LIST_LOAD_ERROR_MESSAGE}
+        onRetry={onRetry}
+        retryLabel={LIST_RETRY_BUTTON_LABEL}
+      />
     );
   }
 
   if (items.length === 0) {
-    return <p className="p-6 text-center text-sm text-gray-500">{EMPTY_LIST_MESSAGE}</p>;
+    return <EmptyState message={EMPTY_LIST_MESSAGE} />;
   }
 
   return (
     <table className="w-full border-collapse text-sm">
       <thead>
-        <tr className="border-b text-left text-gray-500">
+        <tr className="border-b border-border text-left text-fg-muted">
           <th className="p-2">이름</th>
           <th className="p-2">방향성</th>
           <th className="p-2">상태</th>
@@ -78,54 +74,52 @@ export function RelationTypeTable({
           const activeKey = item.isActive ? "active" : "inactive";
 
           return (
-            <tr key={item.id} className="border-b hover:bg-gray-50">
+            <tr key={item.id} className="border-b border-border hover:bg-surface-hover">
               <td className="p-2">{item.name}</td>
               <td className="p-2">
                 {item.isDirected ? DIRECTION_LABELS.directed : DIRECTION_LABELS.undirected}
               </td>
               <td className="p-2">
-                <span
-                  className={`rounded px-2 py-0.5 text-xs ${ACTIVE_STATE_BADGE_CLASSES[activeKey]}`}
-                >
+                <Badge tone={ACTIVE_STATE_BADGE_TONES[activeKey]}>
                   {ACTIVE_STATE_LABELS[activeKey]}
-                </span>
+                </Badge>
                 {item.isInUse && (
-                  <span className={`ml-1 rounded px-2 py-0.5 text-xs ${IN_USE_BADGE_CLASSES}`}>
+                  <Badge tone={IN_USE_BADGE_TONE} className="ml-1">
                     {IN_USE_BADGE_LABEL}
-                  </span>
+                  </Badge>
                 )}
               </td>
               <td className="p-2">{new Date(item.updatedAt).toLocaleString("ko-KR")}</td>
               <td className="p-2">
                 <div className="flex gap-2">
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     disabled={isMutating}
                     onClick={() => onRenameClick(item)}
-                    className="rounded border px-2 py-1 text-xs hover:bg-gray-100 disabled:opacity-50"
                   >
                     {ROW_ACTION_LABELS.rename}
-                  </button>
+                  </Button>
                   {item.isActive ? (
-                    <button
-                      type="button"
+                    <Button
+                      variant="danger"
+                      size="sm"
                       disabled={isMutating}
                       onClick={() => onDeactivateClick(item)}
-                      className="rounded border px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
                     >
                       {ROW_ACTION_LABELS.deactivate}
-                    </button>
+                    </Button>
                   ) : (
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       disabled={isMutating}
                       onClick={() => onReactivate(item)}
-                      className="rounded border px-2 py-1 text-xs text-green-700 hover:bg-green-50 disabled:opacity-50"
                     >
                       {ROW_ACTION_LABELS.reactivate}
-                    </button>
+                    </Button>
                   )}
-                  {isMutating && <span className="text-xs text-gray-400">처리 중...</span>}
+                  {isMutating && <span className="text-xs text-fg-subtle">처리 중...</span>}
                 </div>
               </td>
             </tr>

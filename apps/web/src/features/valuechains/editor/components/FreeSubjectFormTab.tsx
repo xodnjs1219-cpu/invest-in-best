@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FreeSubjectType } from "@iib/domain";
+import { Button, Input, Select, Textarea } from "@/components/ui";
 
 const SUBJECT_TYPE_OPTIONS: { value: FreeSubjectType; label: string }[] = [
   { value: "consumer", label: "소비자" },
@@ -57,15 +58,14 @@ export function FreeSubjectFormTab({ onAdd, disabled }: FreeSubjectFormTabProps)
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <label htmlFor="free-subject-type" className="text-sm font-medium text-gray-700">
+        <label htmlFor="free-subject-type" className="text-sm font-medium text-fg-muted">
           유형
         </label>
-        <select
+        <Select
           id="free-subject-type"
           aria-label="유형"
           value={subjectType}
           onChange={(e) => setSubjectType(e.target.value as FreeSubjectType)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
         >
           <option value="">선택하세요</option>
           {SUBJECT_TYPE_OPTIONS.map((opt) => (
@@ -73,46 +73,40 @@ export function FreeSubjectFormTab({ onAdd, disabled }: FreeSubjectFormTabProps)
               {opt.label}
             </option>
           ))}
-        </select>
-        {typeError && <p className="text-xs text-red-600">유형을 선택하세요</p>}
+        </Select>
+        {typeError && <p className="text-xs text-danger">유형을 선택하세요</p>}
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="free-subject-name" className="text-sm font-medium text-gray-700">
+        <label htmlFor="free-subject-name" className="text-sm font-medium text-fg-muted">
           이름
         </label>
-        <input
+        <Input
           id="free-subject-name"
           aria-label="이름"
           type="text"
           value={subjectName}
           onChange={(e) => setSubjectName(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
         />
-        {nameError && <p className="text-xs text-red-600">이름을 입력하세요</p>}
+        {nameError && <p className="text-xs text-danger">이름을 입력하세요</p>}
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="free-subject-memo" className="text-sm font-medium text-gray-700">
+        <label htmlFor="free-subject-memo" className="text-sm font-medium text-fg-muted">
           설명 메모
         </label>
-        <textarea
+        <Textarea
           id="free-subject-memo"
           aria-label="설명 메모"
           value={subjectMemo}
           onChange={(e) => setSubjectMemo(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
           rows={2}
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={disabled}
-        className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-300"
-      >
+      <Button type="submit" size="sm" disabled={disabled}>
         추가
-      </button>
+      </Button>
     </form>
   );
 }

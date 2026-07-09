@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "@/app/providers";
 import { AppFooter } from "@/components/common/AppFooter";
 import { GlobalHeader } from "@/components/layout/global-header";
@@ -12,13 +13,31 @@ import {
 } from "@/constants/site";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+/**
+ * Pretendard Variable — 서비스 전역 본문/제목 서체(한글 최적화).
+ * CDN CSP·폰트 로딩 실패 위험을 피하려 woff2를 셀프호스팅해 `next/font/local`로 배선한다
+ * (`src/app/fonts/PretendardVariable.woff2`). weight 45~920 가변 축 전체를 한 파일로 커버한다.
+ */
+const pretendard = localFont({
+  src: "./fonts/PretendardVariable.woff2",
+  variable: "--font-sans",
+  display: "swap",
+  weight: "45 920",
+  preload: true,
+  fallback: [
+    "-apple-system",
+    "BlinkMacSystemFont",
+    "system-ui",
+    "Segoe UI",
+    "Apple SD Gothic Neo",
+    "Malgun Gothic",
+    "sans-serif",
+  ],
 });
 
+/** 숫자·데이터 정렬용 모노스페이스(재무 지표·티커 등). 본문 서체와 역할이 다르다. */
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
@@ -79,8 +98,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
+    <html
+      lang="ko"
+      className={`${pretendard.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="bg-surface text-fg flex min-h-full flex-col font-sans">
         <Providers>
           <GlobalHeader />
           {children}

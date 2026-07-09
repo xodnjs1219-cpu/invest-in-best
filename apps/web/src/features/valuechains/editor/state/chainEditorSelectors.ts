@@ -1,8 +1,10 @@
-import { MarkerType, type Edge, type Node } from "@xyflow/react";
+import { type Edge, type Node } from "@xyflow/react";
 import {
   MAX_NODES_PER_CHAIN,
   NODE_LIMIT_WARNING_THRESHOLD,
+  SUBJECT_TYPE_LABELS,
   validateChainNameFormat,
+  type MarketCode,
   type RelationType,
   type SaveChainRequest,
   type ServerIssue,
@@ -10,7 +12,7 @@ import {
 import type { CompanyNodeData } from "@/components/mindmap/CompanyNode";
 import type { FreeSubjectNodeData } from "@/components/mindmap/FreeSubjectNode";
 import type { GroupNodeData } from "@/components/mindmap/GroupNode";
-import type { RelationEdgeData } from "@/components/mindmap/RelationEdge";
+import { directedArrowMarker, type RelationEdgeData } from "@/components/mindmap/RelationEdge";
 import { computeGroupBounds, toRelativePosition } from "@/features/valuechains/editor/lib/groupLayout";
 import type { ChainEditorState } from "./chainEditorReducer";
 
@@ -68,6 +70,58 @@ export function selectConnectedEdgeIds(state: ChainEditorState, nodeIds: string[
   return [...connected];
 }
 
+/** "현재 노드" 목록 항목(사이드 패널 탭용 표시 데이터). */
+export interface EditorNodeListItem {
+  clientNodeId: string;
+  kind: "listed_company" | "free_subject";
+  /** 주 표시명 — 종목명 또는 자유 주체 이름. */
+  label: string;
+  /** 부가 표시 — 종목은 티커, 자유 주체는 유형 라벨. */
+  sublabel: string;
+  /** 상장기업만 — 시장 코드(배지용). 자유 주체는 null. */
+  market: MarketCode | null;
+  /** 소속 그룹 clientId(없으면 null) — 그룹명 표기용. */
+  groupClientId: string | null;
+  /** 이 노드에 연결된 엣지 수 — 삭제 시 함께 사라짐을 안내하기 위함. */
+  connectedEdgeCount: number;
+}
+
+/**
+ * "현재 노드" 목록 셀렉터 — state.nodes(삽입 순서 유지)를 사이드 패널 표시 항목으로 변환한다.
+ * 종목/자유 주체를 구분해 라벨·부가정보·시장·그룹·연결 엣지 수를 담는다.
+ */
+export function selectNodeListItems(state: ChainEditorState): EditorNodeListItem[] {
+  const edgeCountByNode = new Map<string, number>();
+  for (const edge of Object.values(state.edges)) {
+    edgeCountByNode.set(edge.sourceClientNodeId, (edgeCountByNode.get(edge.sourceClientNodeId) ?? 0) + 1);
+    edgeCountByNode.set(edge.targetClientNodeId, (edgeCountByNode.get(edge.targetClientNodeId) ?? 0) + 1);
+  }
+
+  return Object.values(state.nodes).map((node) => {
+    const connectedEdgeCount = edgeCountByNode.get(node.clientNodeId) ?? 0;
+    if (node.nodeKind === "listed_company") {
+      return {
+        clientNodeId: node.clientNodeId,
+        kind: "listed_company",
+        label: node.security.name,
+        sublabel: node.security.ticker,
+        market: node.security.market,
+        groupClientId: node.groupClientId,
+        connectedEdgeCount,
+      };
+    }
+    return {
+      clientNodeId: node.clientNodeId,
+      kind: "free_subject",
+      label: node.subjectName,
+      sublabel: SUBJECT_TYPE_LABELS[node.subjectType],
+      market: null,
+      groupClientId: node.groupClientId,
+      connectedEdgeCount,
+    };
+  });
+}
+
 // ============================================================================
 // UC-016: 엣지 React Flow 매핑 셀렉터
 // ============================================================================
@@ -86,24 +140,29 @@ export function selectReactFlowEdges(
   state: ChainEditorState,
   relationTypeById: ReadonlyMap<string, Pick<RelationType, "name" | "isDirected" | "isActive">>,
   highlight: EdgeHighlight,
+  /** 편집 캔버스 전용 — 엣지 라벨 우상단 삭제(×) 버튼 콜백. 미전달 시 버튼 미표시(뷰 캔버스). */
+  onDeleteEdge?: (edgeId: string) => void,
 ): Edge<RelationEdgeData>[] {
   const highlightSet = new Set(highlight.edgeIds);
 
   return Object.values(state.edges).map((edge) => {
     const relationType = relationTypeById.get(edge.relationTypeId);
     const isDirected = relationType?.isDirected ?? true;
+    const isHighlighted = highlightSet.has(edge.clientEdgeId);
 
     return {
       id: edge.clientEdgeId,
       source: edge.sourceClientNodeId,
       target: edge.targetClientNodeId,
       type: "relationEdge",
-      markerEnd: isDirected ? MarkerType.ArrowClosed : undefined,
+      // 유향 관계는 색 있는 화살표로 방향(source→target)을 강조한다(뷰어와 동일 공용 마커).
+      markerEnd: directedArrowMarker(isDirected, isHighlighted),
       data: {
         label: relationType?.name ?? FALLBACK_RELATION_LABEL,
         isDirected,
         isInactiveType: relationType ? !relationType.isActive : false,
-        isHighlighted: highlightSet.has(edge.clientEdgeId),
+        isHighlighted,
+        onDelete: onDeleteEdge,
       },
     } satisfies Edge<RelationEdgeData>;
   });
@@ -163,6 +222,8 @@ export interface NodeFlowHighlight {
 export function selectReactFlowNodes(
   state: ChainEditorState,
   highlight: NodeFlowHighlight = {},
+  /** 편집 캔버스 전용 — 노드 우상단 삭제(×) 버튼 콜백. 미전달 시 버튼 미표시(뷰 캔버스). */
+  onDeleteNode?: (nodeId: string) => void,
 ): (EditorFlowNode | EditorFlowGroupNode)[] {
   const membership = selectGroupMembership(state);
   const highlightGroupIds = new Set(highlight.groupIds ?? []);
@@ -186,7 +247,8 @@ export function selectReactFlowNodes(
       position: bounds.position,
       width: bounds.width,
       height: bounds.height,
-      draggable: false,
+      // 그룹을 드래그로 옮길 수 있다 — 종료 시 이동량(delta)을 멤버 노드에 적용해 커밋한다(handleNodeDragStop).
+      draggable: true,
       selectable: true,
       zIndex: -1,
       data: {
@@ -214,6 +276,7 @@ export function selectReactFlowNodes(
           label: node.security.name,
           sublabel: node.security.ticker,
           market: node.security.market,
+          onDelete: onDeleteNode,
         },
       } satisfies Node<CompanyNodeData>;
     }
@@ -226,6 +289,7 @@ export function selectReactFlowNodes(
       data: {
         label: node.subjectName,
         subjectType: node.subjectType,
+        onDelete: onDeleteNode,
       },
     } satisfies Node<FreeSubjectNodeData>;
   });

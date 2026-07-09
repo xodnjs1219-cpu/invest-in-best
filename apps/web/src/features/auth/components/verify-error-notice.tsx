@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Heading } from "@/components/ui";
 import { AUTH_VERIFY_ERROR_MESSAGES } from "@/features/auth/constants";
 
 /**
@@ -8,9 +9,12 @@ import { AUTH_VERIFY_ERROR_MESSAGES } from "@/features/auth/constants";
 export function VerifyErrorNotice() {
   return (
     <div data-testid="verify-error-notice" className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">{AUTH_VERIFY_ERROR_MESSAGES.title}</h1>
+      <Heading level={1}>{AUTH_VERIFY_ERROR_MESSAGES.title}</Heading>
       <p>{AUTH_VERIFY_ERROR_MESSAGES.body}</p>
-      <Link href="/auth/login" className="underline">
+      <Link
+        href="/auth/login"
+        className="text-accent hover:text-accent-hover underline underline-offset-2"
+      >
         {AUTH_VERIFY_ERROR_MESSAGES.goToLogin}
       </Link>
     </div>

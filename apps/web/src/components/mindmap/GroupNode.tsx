@@ -29,11 +29,11 @@ export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
   const isHighlighted = data.isHighlighted ?? false;
 
   const borderClass = isHighlighted
-    ? "border-red-400 bg-red-50/40"
+    ? "border-danger/50 bg-danger-soft/50"
     : isEmpty
-      ? "border-indigo-300 bg-indigo-50/20"
-      : "border-indigo-200 bg-indigo-50/40";
-  const selectedClass = selected ? "ring-2 ring-indigo-400" : "";
+      ? "border-accent/40 bg-accent-soft/40"
+      : "border-accent/30 bg-accent-soft/60";
+  const selectedClass = selected ? "ring-2 ring-accent/50" : "";
 
   return (
     <div
@@ -43,25 +43,25 @@ export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
       className={`h-full w-full rounded-xl border-2 border-dashed p-2 ${borderClass} ${selectedClass}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-xs font-semibold text-indigo-700">{data.label}</span>
+        <span className="truncate text-xs font-semibold text-accent-soft-fg">{data.label}</span>
         {data.onToggleCollapse && (
           <button
             type="button"
             onClick={data.onToggleCollapse}
-            className="rounded px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 hover:bg-indigo-100"
+            className="rounded px-1.5 py-0.5 text-[10px] font-medium text-accent hover:bg-accent-soft"
             aria-label={data.isCollapsed ? "그룹 펼치기" : "그룹 접기"}
           >
             {data.isCollapsed ? "펼치기" : "접기"}
           </button>
         )}
         {isEmpty && (
-          <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-500">
+          <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent-soft-fg ring-1 ring-inset ring-accent/25">
             {EMPTY_BADGE_LABEL}
           </span>
         )}
       </div>
       {data.isCollapsed && (
-        <div className="mt-1 text-[11px] text-indigo-500">노드 {data.memberCount}개</div>
+        <div className="mt-1 text-[11px] text-accent-soft-fg">노드 {data.memberCount}개</div>
       )}
     </div>
   );

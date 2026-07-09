@@ -33,13 +33,13 @@ export function IssuePanel({ clientIssues, serverIssues }: IssuePanelProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+    <div className="flex flex-col gap-1 rounded-[var(--radius)] border border-danger/30 bg-danger-soft px-3 py-2">
       {allIssues.map((issue, index) => {
         const targetDescription = describeTargets(issue.targets);
         return (
-          <p key={`${issue.code}-${index}`} className="text-sm text-red-700">
+          <p key={`${issue.code}-${index}`} className="text-sm text-danger">
             {issue.message}
-            {targetDescription && <span className="ml-1 text-red-500">({targetDescription})</span>}
+            {targetDescription && <span className="ml-1 text-danger/80">({targetDescription})</span>}
           </p>
         );
       })}

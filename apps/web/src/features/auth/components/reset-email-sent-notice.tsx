@@ -1,3 +1,4 @@
+import { Button, Heading } from "@/components/ui";
 import { AUTH_PASSWORD_RESET_MESSAGES } from "@/features/auth/constants";
 
 type ResetEmailSentNoticeProps = {
@@ -8,11 +9,11 @@ type ResetEmailSentNoticeProps = {
 export function ResetEmailSentNotice({ onBack }: ResetEmailSentNoticeProps) {
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">{AUTH_PASSWORD_RESET_MESSAGES.sentTitle}</h1>
+      <Heading level={1}>{AUTH_PASSWORD_RESET_MESSAGES.sentTitle}</Heading>
       <p>{AUTH_PASSWORD_RESET_MESSAGES.sentBody}</p>
-      <button type="button" onClick={onBack} className="underline self-start">
+      <Button type="button" variant="link" onClick={onBack} className="self-start">
         {AUTH_PASSWORD_RESET_MESSAGES.backToRequest}
-      </button>
+      </Button>
     </div>
   );
 }

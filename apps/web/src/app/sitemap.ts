@@ -24,6 +24,7 @@ const toDate = (value: unknown): Date | undefined => {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}${ROUTES.home}`, changeFrequency: "daily", priority: 1 },
+    { url: `${SITE_URL}${ROUTES.explore}`, changeFrequency: "daily", priority: 0.9 },
     { url: `${SITE_URL}${ROUTES.terms}`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}${ROUTES.privacy}`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}${ROUTES.disclaimer}`, changeFrequency: "yearly", priority: 0.3 },

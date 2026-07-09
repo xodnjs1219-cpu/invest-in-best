@@ -15,15 +15,15 @@ export function SecurityResultItem({ item, onSelect }: SecurityResultItemProps) 
     <button
       type="button"
       onClick={() => onSelect(item.ticker)}
-      className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="flex w-full items-center justify-between gap-3 rounded-[var(--radius)] px-3 py-2 text-left hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="flex min-w-0 flex-col">
         <span className="flex items-center gap-2">
-          <span className="truncate font-medium text-gray-900">{item.name}</span>
-          <span className="shrink-0 text-sm text-gray-500">{item.ticker}</span>
+          <span className="truncate font-medium text-fg">{item.name}</span>
+          <span className="shrink-0 text-sm text-fg-muted">{item.ticker}</span>
         </span>
         {item.englishName && (
-          <span className="truncate text-sm text-gray-500">{item.englishName}</span>
+          <span className="truncate text-sm text-fg-muted">{item.englishName}</span>
         )}
       </span>
       <span className="flex shrink-0 items-center gap-1.5">

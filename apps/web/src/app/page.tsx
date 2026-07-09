@@ -1,10 +1,10 @@
-import { MainExplorePage } from "@/features/explore/components/MainExplorePage";
+import { LandingPage } from "@/features/landing/components/LandingPage";
 
 /**
- * 메인/탐색 페이지 셸 (UC-007 plan 모듈 E-1) — Server Component: 클라이언트 경계 배치만.
- * 데이터 페칭·로직 없음(목록은 클라이언트 쿼리 훅이 담당 — 영역별 독립 로딩/오류 처리를 위해
- * SSR 프리페치는 하지 않는 최소 구성).
+ * 루트(`/`) 랜딩페이지 셸 — Server Component: 클라이언트 경계 배치만.
+ * 서비스 강점을 소개하고 탐색(`/explore`)·생성으로 유도한다.
+ * 기존 검색+밸류체인 카드 목록(메인/탐색)은 `/explore`로 이동했다.
  */
 export default function Home() {
-  return <MainExplorePage />;
+  return <LandingPage />;
 }

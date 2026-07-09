@@ -13,14 +13,14 @@ export function AppFooter() {
   const legalDocTypes = Object.keys(LEGAL_PAGE_DOCS) as (keyof typeof LEGAL_PAGE_DOCS)[];
 
   return (
-    <footer className="mt-auto flex flex-col items-center gap-2 border-t border-gray-100 px-4 py-6 text-center text-xs text-gray-500">
+    <footer className="mt-auto flex flex-col items-center gap-2 border-t border-border px-4 py-6 text-center text-xs text-fg-muted">
       <p className="max-w-2xl">{DISCLAIMER_SUMMARY_TEXT}</p>
       <nav className="flex gap-4">
         {legalDocTypes.map((docType) => (
           <Link
             key={docType}
             href={LEGAL_ROUTES[docType]}
-            className="underline hover:text-gray-700"
+            className="underline underline-offset-2 transition-colors hover:text-fg"
           >
             {FOOTER_LEGAL_LINK_LABELS[docType]}
           </Link>

@@ -1,3 +1,4 @@
+import { Button, Heading } from "@/components/ui";
 import { AUTH_PASSWORD_RESET_MESSAGES } from "@/features/auth/constants";
 
 type ResetTokenInvalidNoticeProps = {
@@ -8,11 +9,11 @@ type ResetTokenInvalidNoticeProps = {
 export function ResetTokenInvalidNotice({ onRequestAgain }: ResetTokenInvalidNoticeProps) {
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">{AUTH_PASSWORD_RESET_MESSAGES.invalidTitle}</h1>
+      <Heading level={1}>{AUTH_PASSWORD_RESET_MESSAGES.invalidTitle}</Heading>
       <p>{AUTH_PASSWORD_RESET_MESSAGES.invalidBody}</p>
-      <button type="button" onClick={onRequestAgain} className="underline self-start">
+      <Button type="button" variant="link" onClick={onRequestAgain} className="self-start">
         {AUTH_PASSWORD_RESET_MESSAGES.requestAgain}
-      </button>
+      </Button>
     </div>
   );
 }

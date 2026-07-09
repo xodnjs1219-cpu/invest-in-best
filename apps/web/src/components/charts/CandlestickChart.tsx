@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CandlestickSeries,
   createChart,
@@ -10,6 +10,7 @@ import {
   type ISeriesMarkersPluginApi,
   type Time,
 } from "lightweight-charts";
+import { getChartPalette, subscribeThemeChange } from "@/components/charts/chartTheme";
 
 export interface CandlestickPoint {
   time: string;
@@ -25,15 +26,6 @@ export interface CandlestickChartProps {
   height?: number;
 }
 
-const CHART_COLORS_LIGHT = {
-  background: "#fcfcfb",
-  text: "#52514e",
-  grid: "#e5e4e0",
-  upColor: "#1a7f4b",
-  downColor: "#c0392b",
-  unconfirmedColor: "#9a9890",
-};
-
 /**
  * 일봉 캔들차트 프레젠테이션 래퍼(UC-020 plan 모듈 9) — lightweight-charts 5.x 기반.
  * 거래일만 표시(전달된 캔들만 시간축에 나열 — 누락 일자 보간 없음, spec §6.1), OHLC에 null이
@@ -45,6 +37,10 @@ export function CandlestickChart({ candles, height = 320 }: CandlestickChartProp
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  // 테마 전환(OS/토글) 시 차트를 재생성하기 위한 키. lightweight-charts는 색을 JS로 주입하므로 필요.
+  const [themeKey, setThemeKey] = useState(0);
+
+  useEffect(() => subscribeThemeChange(() => setThemeKey((k) => k + 1)), []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -52,27 +48,29 @@ export function CandlestickChart({ candles, height = 320 }: CandlestickChartProp
       return;
     }
 
+    const palette = getChartPalette();
+
     const chart = createChart(container, {
       height,
       layout: {
-        background: { color: CHART_COLORS_LIGHT.background },
-        textColor: CHART_COLORS_LIGHT.text,
+        background: { color: palette.surface },
+        textColor: palette.text,
       },
       grid: {
-        vertLines: { color: CHART_COLORS_LIGHT.grid },
-        horzLines: { color: CHART_COLORS_LIGHT.grid },
+        vertLines: { color: palette.grid },
+        horzLines: { color: palette.grid },
       },
       timeScale: {
-        borderColor: CHART_COLORS_LIGHT.grid,
+        borderColor: palette.grid,
       },
     });
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: CHART_COLORS_LIGHT.upColor,
-      downColor: CHART_COLORS_LIGHT.downColor,
+      upColor: palette.up,
+      downColor: palette.down,
       borderVisible: false,
-      wickUpColor: CHART_COLORS_LIGHT.upColor,
-      wickDownColor: CHART_COLORS_LIGHT.downColor,
+      wickUpColor: palette.up,
+      wickDownColor: palette.down,
     });
 
     chartRef.current = chart;
@@ -94,14 +92,16 @@ export function CandlestickChart({ candles, height = 320 }: CandlestickChartProp
       seriesRef.current = null;
       markersRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 차트 인스턴스는 마운트 시 1회만 생성(height 변경은 미지원 범위).
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- height는 미지원 범위. themeKey 변경 시에만 재생성.
+  }, [themeKey]);
 
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) {
       return;
     }
+
+    const mutedColor = getChartPalette().muted;
 
     const data = candles
       .filter(
@@ -114,7 +114,7 @@ export function CandlestickChart({ candles, height = 320 }: CandlestickChartProp
         high: candle.high as number,
         low: candle.low as number,
         close: candle.close as number,
-        color: candle.isClosingConfirmed === false ? CHART_COLORS_LIGHT.unconfirmedColor : undefined,
+        color: candle.isClosingConfirmed === false ? mutedColor : undefined,
       }));
 
     series.setData(data);
@@ -124,7 +124,7 @@ export function CandlestickChart({ candles, height = 320 }: CandlestickChartProp
       .map((candle) => ({
         time: candle.time as Time,
         position: "aboveBar" as const,
-        color: CHART_COLORS_LIGHT.unconfirmedColor,
+        color: mutedColor,
         shape: "circle" as const,
         text: "미확정",
       }));
@@ -132,7 +132,7 @@ export function CandlestickChart({ candles, height = 320 }: CandlestickChartProp
     markersRef.current?.setMarkers(unconfirmedMarkers);
 
     chartRef.current?.timeScale().fitContent();
-  }, [candles]);
+  }, [candles, themeKey]);
 
   return <div ref={containerRef} style={{ width: "100%", height }} />;
 }

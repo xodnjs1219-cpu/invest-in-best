@@ -41,14 +41,14 @@ export const QuarterlyMetricsChart = ({ view }: QuarterlyMetricsChartProps) => {
             <p className="font-medium">{point.x}</p>
             <p>{formatKrwCompactOrNull(point.y, "미제공")}</p>
             {series && (
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-fg-muted">
                 반영 {series.coveredNodeCount} / 전체 {series.totalNodeCount}
                 {series.excludedUnmappedCount > 0 && ` · 제외 ${series.excludedUnmappedCount}개`}
               </p>
             )}
-            <p className="text-gray-500 dark:text-gray-400">환산 기준: 분기 말일 환율</p>
+            <p className="text-fg-muted">환산 기준: 분기 말일 환율</p>
             {view.annotations.revenueOverlapNotice && (
-              <p className="text-gray-500 dark:text-gray-400">매출 중복·비관련 사업부 포함 가능성 있음</p>
+              <p className="text-fg-muted">매출 중복·비관련 사업부 포함 가능성 있음</p>
             )}
           </div>
         );

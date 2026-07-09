@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Button, Heading, Input } from "@/components/ui";
 import { AUTH_PASSWORD_RESET_MESSAGES } from "@/features/auth/constants";
 import { authErrorCodes } from "@/features/auth/backend/error";
 import {
@@ -48,25 +49,31 @@ export function PasswordResetRequestForm({
       noValidate
       className="flex flex-col gap-4"
     >
-      <h1 className="text-xl font-semibold">{AUTH_PASSWORD_RESET_MESSAGES.requestTitle}</h1>
+      <Heading level={1}>{AUTH_PASSWORD_RESET_MESSAGES.requestTitle}</Heading>
 
       {message && (
-        <p role="alert" className="text-red-600">
+        <p role="alert" className="text-danger">
           {message}
         </p>
       )}
 
       <div className="flex flex-col gap-1">
         <label htmlFor="reset-request-email">{AUTH_PASSWORD_RESET_MESSAGES.requestEmailLabel}</label>
-        <input id="reset-request-email" type="email" autoComplete="email" {...register("email")} />
-        {errors.email && <p className="text-red-600">{errors.email.message}</p>}
+        <Input
+          id="reset-request-email"
+          type="email"
+          autoComplete="email"
+          invalid={Boolean(errors.email)}
+          {...register("email")}
+        />
+        {errors.email && <p className="text-danger">{errors.email.message}</p>}
       </div>
 
-      <button type="submit" disabled={isPending}>
+      <Button type="submit" disabled={isPending}>
         {isPending
           ? AUTH_PASSWORD_RESET_MESSAGES.requestSubmittingLabel
           : AUTH_PASSWORD_RESET_MESSAGES.requestSubmitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui";
+
 type HealthBadgeProps = {
   status: "ok" | "degraded";
 };
@@ -6,5 +8,9 @@ type HealthBadgeProps = {
  * 환경 구축 검증용 최소 프레젠테이션 컴포넌트 예시.
  */
 export function HealthBadge({ status }: HealthBadgeProps) {
-  return <span data-testid="health-badge">{status === "ok" ? "정상" : "장애"}</span>;
+  return (
+    <Badge tone={status === "ok" ? "success" : "danger"} data-testid="health-badge">
+      {status === "ok" ? "정상" : "장애"}
+    </Badge>
+  );
 }

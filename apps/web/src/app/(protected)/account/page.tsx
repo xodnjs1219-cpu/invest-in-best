@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Heading, PageShell } from "@/components/ui";
 import { ACCOUNT_MESSAGES } from "@/features/account/constants";
 import { createSsrServerClient } from "@/lib/supabase/server-client";
 
@@ -17,12 +18,15 @@ export default async function AccountPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-12">
-      <h1 className="text-xl font-semibold">계정</h1>
-      <p className="text-sm text-gray-500">{user.email}</p>
-      <Link href="/account/withdraw" className="text-red-600 underline">
+    <PageShell width="sm">
+      <Heading level={1}>계정</Heading>
+      <p className="text-sm text-fg-muted">{user.email}</p>
+      <Link
+        href="/account/withdraw"
+        className="text-danger underline underline-offset-2 self-start"
+      >
         {ACCOUNT_MESSAGES.menuLinkLabel}
       </Link>
-    </main>
+    </PageShell>
   );
 }

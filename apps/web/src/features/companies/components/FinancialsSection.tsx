@@ -3,6 +3,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { FINANCIALS_PERIOD_PRESETS, type FinancialsPeriodPreset } from "@iib/domain";
 import { CategoryBarChart } from "@/components/charts/CategoryBarChart";
+import { EmptyState, ErrorState, Heading, Skeleton } from "@/components/ui";
 import {
   FINANCIALS_ANNUAL_ONLY_NOTE,
   FINANCIALS_DERIVED_FROM_CUMULATIVE_NOTE,
@@ -42,7 +43,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">분기 재무</h2>
+        <Heading level={2}>분기 재무</Heading>
         <div className="flex gap-1">
           {FINANCIALS_PERIOD_PRESETS.map((preset) => (
             <button
@@ -50,8 +51,10 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
               type="button"
               onClick={() => onPeriodChange(preset)}
               aria-pressed={period === preset}
-              className={`rounded-md px-3 py-1 text-xs font-medium ${
-                period === preset ? "bg-blue-600 text-white" : "border border-gray-300 text-gray-700"
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                period === preset
+                  ? "bg-accent text-accent-fg"
+                  : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"
               }`}
             >
               {periodLabel(preset)}
@@ -61,30 +64,25 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
       </div>
 
       {query.isPending && (
-        <div data-testid="financials-loading" className="h-48 animate-pulse rounded-md bg-gray-100" />
+        <Skeleton data-testid="financials-loading" className="h-48" />
       )}
 
       {query.isError && (
-        <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <p className="text-gray-700">{FINANCIALS_SECTION_ERROR_MESSAGE}</p>
-          <button
-            type="button"
-            onClick={() => query.refetch()}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            {FINANCIALS_RETRY_LABEL}
-          </button>
-        </div>
+        <ErrorState
+          message={FINANCIALS_SECTION_ERROR_MESSAGE}
+          onRetry={() => query.refetch()}
+          retryLabel={FINANCIALS_RETRY_LABEL}
+        />
       )}
 
       {query.isSuccess && query.data.items.length === 0 && (
-        <p className="py-8 text-center text-sm text-gray-500">{FINANCIALS_EMPTY_MESSAGE}</p>
+        <EmptyState message={FINANCIALS_EMPTY_MESSAGE} />
       )}
 
       {query.isSuccess && query.data.items.length > 0 && (
         <>
           {query.data.annotations.isAnnualOnly && (
-            <p className="text-xs text-amber-700">{FINANCIALS_ANNUAL_ONLY_NOTE}</p>
+            <p className="text-xs text-warning">{FINANCIALS_ANNUAL_ONLY_NOTE}</p>
           )}
 
           <CategoryBarChart
@@ -103,7 +101,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500">
+                <tr className="border-b border-border text-fg-muted">
                   <th className="py-2 pr-4">기간</th>
                   <th className="py-2 pr-4">매출</th>
                   <th className="py-2 pr-4">영업이익</th>
@@ -112,7 +110,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
               </thead>
               <tbody>
                 {query.data.items.map((item) => (
-                  <tr key={`${item.fiscalYear}-${item.fiscalQuarter ?? "annual"}`} className="border-b border-gray-100">
+                  <tr key={`${item.fiscalYear}-${item.fiscalQuarter ?? "annual"}`} className="border-b border-border">
                     <td className="py-2 pr-4">{buildAxisLabel(item)}</td>
                     <td className="py-2 pr-4">
                       {item.revenue === null && item.isRevenueTagUnmapped
@@ -127,7 +125,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
                       {item.amountBasis === "derived_from_cumulative" && (
                         <span
                           title={FINANCIALS_DERIVED_FROM_CUMULATIVE_NOTE}
-                          className="ml-1 cursor-help text-xs text-gray-400"
+                          className="ml-1 cursor-help text-xs text-fg-subtle"
                         >
                           *
                         </span>
@@ -138,7 +136,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-gray-400">보고 통화: {query.data.currency}</p>
+          <p className="text-xs text-fg-subtle">보고 통화: {query.data.currency}</p>
         </>
       )}
     </section>

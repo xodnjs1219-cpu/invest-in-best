@@ -29,7 +29,7 @@ export const DataSourceFooter = () => {
   }
 
   return (
-    <footer className="mt-4 flex flex-col gap-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
+    <footer className="flex flex-col gap-1 border-t border-border pt-3 text-xs text-fg-muted">
       <p>데이터 출처: {dataFreshness.sources.join(", ")}</p>
       <p className="flex flex-wrap gap-x-3">
         {(Object.keys(FRESHNESS_LABELS) as (keyof typeof FRESHNESS_LABELS)[]).map((key) => (

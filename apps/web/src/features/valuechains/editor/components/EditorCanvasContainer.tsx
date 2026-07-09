@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { EdgeBlockReason } from "@iib/domain";
 import { ChainCanvas } from "@/components/mindmap/ChainCanvas";
 import {
@@ -41,8 +41,44 @@ export function EditorCanvasContainer() {
   const [blockedReason, setBlockedReason] = useState<EdgeBlockReason | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ nodeIds: string[]; edgeIds: string[] } | null>(null);
 
-  const reactFlowNodes = selectReactFlowNodes(state);
-  const reactFlowEdges = selectReactFlowEdges(state, computed.relationTypeById, { edgeIds: [] });
+  /**
+   * 노드 우상단 삭제(×) 버튼 콜백 — 단일 문서 노드 삭제.
+   * 연결된 엣지가 있으면 확인 다이얼로그를 띄우고(handleElementsDelete와 동일 규칙), 없으면 즉시 삭제한다.
+   * selector에 주입되므로 참조 안정성이 필요해 useCallback으로 감싼다.
+   */
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      const connectedEdgeIds = selectConnectedEdgeIds(state, [nodeId]);
+      if (connectedEdgeIds.length > 0) {
+        setPendingDelete({ nodeIds: [nodeId], edgeIds: [] });
+        return;
+      }
+      deleteElements({ nodeIds: [nodeId], edgeIds: [] });
+    },
+    [state, deleteElements],
+  );
+
+  /**
+   * 엣지 라벨 우상단 삭제(×) 버튼 콜백 — 단일 관계(엣지) 삭제.
+   * 엣지는 다른 요소와 종속 관계가 없어(엣지 하나만 사라짐) 확인 없이 즉시 삭제한다.
+   */
+  const handleDeleteEdge = useCallback(
+    (edgeId: string) => {
+      deleteElements({ nodeIds: [], edgeIds: [edgeId] });
+    },
+    [deleteElements],
+  );
+
+  // selector는 매 호출 새 배열을 반환하므로 메모이즈해 참조를 안정화한다(ChainCanvas 동기화 effect의
+  // 불필요한 재실행 방지 — 노드/그룹이 실제로 바뀔 때만 새 배열이 흘러가게 한다).
+  const reactFlowNodes = useMemo(
+    () => selectReactFlowNodes(state, undefined, handleDeleteNode),
+    [state, handleDeleteNode],
+  );
+  const reactFlowEdges = useMemo(
+    () => selectReactFlowEdges(state, computed.relationTypeById, { edgeIds: [] }, handleDeleteEdge),
+    [state, computed.relationTypeById, handleDeleteEdge],
+  );
 
   const handleConnect = (params: { source: string; target: string }) => {
     setBlockedReason(null);
@@ -114,9 +150,38 @@ export function EditorCanvasContainer() {
 
   /**
    * 드래그 좌표 환원(UC-017 M13, G-5) — 소속 노드의 React Flow 상대 좌표를 절대 좌표로 환원해
-   * moveNode(015 기여분)에 전달한다. 그룹 노드 자체는 draggable:false라 이 경로를 타지 않는다.
+   * moveNode(015 기여분)에 전달한다.
+   * 그룹 노드 드래그 시에는 이동량(delta)을 그 그룹의 모든 멤버에 적용해 함께 옮긴다
+   * (그룹 좌표는 비영속 파생값이므로, 멤버를 옮기면 다음 렌더에서 그룹이 자연히 따라온다).
    */
   const handleNodeDragStop = (nodeId: string, position: { x: number; y: number }) => {
+    // ── 그룹 드래그 ──────────────────────────────────────
+    if (state.groups[nodeId] !== undefined) {
+      const memberPositions = Object.values(state.nodes)
+        .filter((n) => n.groupClientId === nodeId)
+        .map((n) => n.position);
+      if (memberPositions.length === 0) {
+        return; // 빈 그룹은 옮길 멤버가 없다(그룹 좌표는 파생값이라 영속 대상 아님).
+      }
+      const groupIndex = Object.keys(state.groups).indexOf(nodeId);
+      const before = computeGroupBounds(memberPositions, groupIndex);
+      const dx = position.x - before.position.x;
+      const dy = position.y - before.position.y;
+      if (dx === 0 && dy === 0) {
+        return;
+      }
+      for (const member of Object.values(state.nodes)) {
+        if (member.groupClientId === nodeId) {
+          moveNode(member.clientNodeId, {
+            x: member.position.x + dx,
+            y: member.position.y + dy,
+          });
+        }
+      }
+      return;
+    }
+
+    // ── 일반 노드 드래그 ─────────────────────────────────
     const node = state.nodes[nodeId];
     if (!node) {
       return;
@@ -125,11 +190,15 @@ export function EditorCanvasContainer() {
       moveNode(nodeId, position);
       return;
     }
-    const membersOfGroup = Object.values(state.nodes)
-      .filter((n) => n.groupClientId === node.groupClientId && n.clientNodeId !== nodeId)
+    // 그룹 소속 노드의 상대 좌표를 절대 좌표로 환원한다.
+    // React Flow가 자식 좌표 계산에 쓴 그룹 position은 "전체 멤버(드래그 노드 포함)의 드래그 전 위치"로
+    // 계산된 bounds다. 드래그 노드를 제외하면 bounds가 어긋나 위치가 튄다(경계 노드일수록 크게).
+    // 따라서 환원 기준은 반드시 전체 멤버의 드래그 전 위치로 계산해야 한다.
+    const allMemberPositions = Object.values(state.nodes)
+      .filter((n) => n.groupClientId === node.groupClientId)
       .map((n) => n.position);
     const groupIndex = Object.keys(state.groups).indexOf(node.groupClientId);
-    const bounds = computeGroupBounds(membersOfGroup.length > 0 ? membersOfGroup : [node.position], groupIndex);
+    const bounds = computeGroupBounds(allMemberPositions, groupIndex);
     const absolute = toAbsolutePosition(position, bounds.position);
     moveNode(nodeId, absolute);
   };
@@ -158,7 +227,7 @@ export function EditorCanvasContainer() {
       />
 
       {blockedReason && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 shadow">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-[var(--radius)] bg-danger-soft px-3 py-2 text-sm text-danger shadow-[var(--shadow-sm)]">
           {EDGE_BLOCK_MESSAGES[blockedReason]}
         </div>
       )}

@@ -2,6 +2,7 @@
 
 import { useReducer, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Heading } from "@/components/ui";
 import { ProposalDetailPanel } from "@/features/admin-llm-proposals/components/ProposalDetailPanel";
 import { ProposalFilterTabs } from "@/features/admin-llm-proposals/components/ProposalFilterTabs";
 import { ProposalPagination } from "@/features/admin-llm-proposals/components/ProposalPagination";
@@ -24,10 +25,10 @@ import { ApiError } from "@/lib/http/api-client";
 type Toast = { variant: ToastVariant; message: string };
 
 const toastStyles: Record<ToastVariant, string> = {
-  success: "bg-green-600",
-  info: "bg-blue-600",
-  warning: "bg-yellow-600",
-  error: "bg-red-600",
+  success: "bg-success",
+  info: "bg-accent",
+  warning: "bg-warning",
+  error: "bg-danger",
 };
 
 /**
@@ -97,11 +98,11 @@ export default function AdminLlmProposalsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">LLM 관계 변경안 검토 큐</h1>
+      <Heading level={1}>LLM 관계 변경안 검토 큐</Heading>
 
       {toast && (
         <div
-          className={`fixed right-4 top-4 z-50 rounded px-4 py-2 text-sm text-white shadow-lg ${toastStyles[toast.variant]}`}
+          className={`fixed right-4 top-4 z-50 rounded-[var(--radius)] px-4 py-2 text-sm text-white shadow-lg ${toastStyles[toast.variant]}`}
         >
           {toast.message}
         </div>

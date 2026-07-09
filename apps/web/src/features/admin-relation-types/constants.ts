@@ -1,4 +1,5 @@
 import { RELATION_TYPE_NAME_MAX_LENGTH } from "@iib/domain";
+import type { BadgeTone } from "@/components/ui";
 
 /** 방향성 배지 라벨(spec Main-2). */
 export const DIRECTION_LABELS = {
@@ -15,13 +16,13 @@ export const ACTIVE_STATE_LABELS = {
 /** 사용 여부 배지 라벨(isInUse — 비활성화 영향 사전 인지, spec Main-2). */
 export const IN_USE_BADGE_LABEL = "사용 중";
 
-/** 활성 상태 배지 CSS 클래스(Tailwind, shadcn 미설치 — 순수 유틸리티). */
-export const ACTIVE_STATE_BADGE_CLASSES = {
-  active: "bg-green-100 text-green-800",
-  inactive: "bg-gray-100 text-gray-600",
-} as const;
+/** 활성 상태 배지 톤 맵(디자인 시스템 Badge tone). */
+export const ACTIVE_STATE_BADGE_TONES: Record<"active" | "inactive", BadgeTone> = {
+  active: "success",
+  inactive: "neutral",
+};
 
-export const IN_USE_BADGE_CLASSES = "bg-blue-100 text-blue-800";
+export const IN_USE_BADGE_TONE: BadgeTone = "accent";
 
 /** 행 액션 버튼 라벨. */
 export const ROW_ACTION_LABELS = {

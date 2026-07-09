@@ -1,3 +1,4 @@
+import { Badge, Button, Heading } from "@/components/ui";
 import type { ProposalListItem } from "@/features/admin-llm-proposals/lib/dto";
 import {
   APPLICABILITY_REASON_LABELS,
@@ -32,14 +33,14 @@ export function ProposalDetailPanel({
   const isPending = proposal.status === "pending";
 
   return (
-    <aside className="flex flex-col gap-4 rounded border p-4">
+    <aside className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-[var(--shadow-sm)]">
       <div className="flex items-start justify-between">
-        <h2 className="text-base font-semibold">
+        <Heading level={2}>
           {PROPOSAL_TYPE_LABELS[proposal.proposalType]} · {proposal.chain.name}
-        </h2>
-        <button type="button" onClick={onClose} className="text-sm text-gray-500 hover:text-gray-800">
+        </Heading>
+        <Button variant="ghost" size="sm" onClick={onClose}>
           닫기
-        </button>
+        </Button>
       </div>
 
       <div className="text-sm">
@@ -47,27 +48,27 @@ export function ProposalDetailPanel({
           {nodeLabel(proposal.sourceNode)} → {nodeLabel(proposal.targetNode)}
         </p>
         {proposal.relationType && (
-          <p className="text-gray-600">
+          <p className="text-fg-muted">
             관계 종류: {proposal.relationType.name}
             {!proposal.relationType.isActive && "(비활성)"}
           </p>
         )}
-        <p className="rounded bg-gray-100 px-2 py-0.5 text-xs inline-block mt-1">
-          {PROPOSAL_STATUS_LABELS[proposal.status]}
-        </p>
+        <div className="mt-1">
+          <Badge tone="neutral">{PROPOSAL_STATUS_LABELS[proposal.status]}</Badge>
+        </div>
       </div>
 
       {proposal.disclosure && (
-        <div className="rounded border p-3 text-sm">
+        <div className="rounded-[var(--radius)] border border-border p-3 text-sm">
           <p className="font-medium">{proposal.disclosure.title}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-fg-muted">
             {proposal.disclosure.disclosureDate} · {proposal.disclosure.source}
           </p>
           <a
             href={proposal.disclosure.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 underline"
+            className="text-accent underline hover:text-accent-hover"
           >
             원문 보기
           </a>
@@ -75,12 +76,12 @@ export function ProposalDetailPanel({
       )}
 
       <div>
-        <h3 className="text-sm font-medium">LLM 근거 설명</h3>
-        <p className="text-sm text-gray-700">{proposal.rationale}</p>
+        <Heading level={3}>LLM 근거 설명</Heading>
+        <p className="text-sm text-fg-muted">{proposal.rationale}</p>
       </div>
 
       {/* 메타데이터(plan P4) — 생성일·기준 스냅샷. */}
-      <dl className="text-xs text-gray-500">
+      <dl className="text-xs text-fg-muted">
         <div className="flex gap-1">
           <dt>생성일:</dt>
           <dd>{proposal.createdAt}</dd>
@@ -92,7 +93,7 @@ export function ProposalDetailPanel({
       </dl>
 
       {!proposal.applicability.isApplicable && (
-        <p className="rounded bg-orange-50 p-2 text-xs text-orange-800">
+        <p className="rounded-[var(--radius)] bg-warning-soft p-2 text-xs text-warning">
           {proposal.applicability.reason
             ? APPLICABILITY_REASON_LABELS[
                 proposal.applicability.reason as keyof typeof APPLICABILITY_REASON_LABELS
@@ -104,26 +105,26 @@ export function ProposalDetailPanel({
 
       {isPending && (
         <div className="flex gap-2">
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             disabled={isProcessing}
             onClick={() => {
               if (window.confirm(APPROVE_CONFIRM_MESSAGE)) {
                 onApprove(proposal.proposalId);
               }
             }}
-            className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
           >
             승인
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={isProcessing}
             onClick={() => onRejectClick(proposal.proposalId)}
-            className="rounded border px-3 py-1.5 text-sm disabled:opacity-50"
           >
             거부
-          </button>
+          </Button>
         </div>
       )}
     </aside>

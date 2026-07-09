@@ -1,0 +1,48 @@
+import { Fragment } from "react";
+import { Handle, Position } from "@xyflow/react";
+
+/**
+ * 노드 연결 핸들 — 뷰/편집 공용. 상하좌우 4변 모두에 연결점을 둔다.
+ * 각 변에 source와 target 핸들을 겹쳐 배치해, 노드가 어디 있든 가장 가까운 변끼리 자연스럽게
+ * 이을 수 있다(어느 변에서 시작해도 연결 가능). 방향(누가→누구)은 핸들 위치가 아니라 엣지의
+ * 화살표·라벨 방향 아이콘이 담당한다(RelationEdge).
+ *
+ * 같은 변에 source/target을 겹치므로 각 핸들에 고유 id를 부여한다. React Flow는 연결 시
+ * 커서에 가장 가까운 핸들을 선택하며, source/target 조합만 유효 연결로 처리한다.
+ */
+
+const HANDLE_BASE =
+  "!h-2.5 !w-2.5 !rounded-full !border-2 !border-accent !bg-surface-raised transition-colors hover:!bg-accent";
+
+/** 4변 정의 — 각 변마다 source/target 핸들을 함께 렌더한다. */
+const SIDES = [
+  { pos: Position.Top, key: "t" },
+  { pos: Position.Right, key: "r" },
+  { pos: Position.Bottom, key: "b" },
+  { pos: Position.Left, key: "l" },
+] as const;
+
+export function NodeHandles({ isConnectable }: { isConnectable?: boolean }) {
+  return (
+    <>
+      {SIDES.map(({ pos, key }) => (
+        <Fragment key={key}>
+          <Handle
+            id={`${key}-t`}
+            type="target"
+            position={pos}
+            isConnectable={isConnectable}
+            className={HANDLE_BASE}
+          />
+          <Handle
+            id={`${key}-s`}
+            type="source"
+            position={pos}
+            isConnectable={isConnectable}
+            className={HANDLE_BASE}
+          />
+        </Fragment>
+      ))}
+    </>
+  );
+}

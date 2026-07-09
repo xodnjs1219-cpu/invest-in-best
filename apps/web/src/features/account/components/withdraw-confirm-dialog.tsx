@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button, Card, Heading, Input } from "@/components/ui";
 import { ACCOUNT_MESSAGES, WITHDRAW_CONFIRM_PHRASE } from "@/features/account/constants";
 
 type WithdrawConfirmDialogProps = {
@@ -24,17 +25,17 @@ export function WithdrawConfirmDialog({
   const isMatched = inputValue === WITHDRAW_CONFIRM_PHRASE;
 
   return (
-    <div className="flex flex-col gap-4 border p-4">
-      <h2 className="text-lg font-semibold">{ACCOUNT_MESSAGES.confirmDialogTitle}</h2>
+    <Card className="flex flex-col gap-4 p-6">
+      <Heading level={2}>{ACCOUNT_MESSAGES.confirmDialogTitle}</Heading>
 
       {errorMessage && (
-        <p role="alert" className="text-red-600">
+        <p role="alert" className="text-danger">
           {errorMessage}
         </p>
       )}
 
       <label htmlFor="withdraw-confirm-input">{ACCOUNT_MESSAGES.confirmInputLabel}</label>
-      <input
+      <Input
         id="withdraw-confirm-input"
         type="text"
         value={inputValue}
@@ -42,13 +43,13 @@ export function WithdrawConfirmDialog({
       />
 
       <div className="flex gap-3">
-        <button type="button" onClick={onClose}>
+        <Button type="button" variant="secondary" onClick={onClose}>
           {ACCOUNT_MESSAGES.closeLabel}
-        </button>
-        <button type="button" onClick={onConfirm} disabled={!isMatched || isPending}>
+        </Button>
+        <Button type="button" variant="danger" onClick={onConfirm} disabled={!isMatched || isPending}>
           {isPending ? ACCOUNT_MESSAGES.confirmSubmittingLabel : ACCOUNT_MESSAGES.confirmSubmitLabel}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }

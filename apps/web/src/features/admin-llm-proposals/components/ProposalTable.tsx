@@ -1,3 +1,4 @@
+import { Badge, Button, EmptyState, ErrorState } from "@/components/ui";
 import type { ProposalListItem } from "@/features/admin-llm-proposals/lib/dto";
 import {
   APPLICABILITY_REASON_LABELS,
@@ -40,32 +41,27 @@ export function ProposalTable({
   onRejectClick,
 }: ProposalTableProps) {
   if (isLoading) {
-    return <p className="p-6 text-center text-sm text-gray-500">로딩 중...</p>;
+    return <p className="p-6 text-center text-sm text-fg-muted">로딩 중...</p>;
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center gap-3 p-6 text-center">
-        <p className="text-sm text-red-600">{LIST_LOAD_ERROR_MESSAGE}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded border px-3 py-1.5 text-sm hover:bg-gray-50"
-        >
-          {LIST_RETRY_BUTTON_LABEL}
-        </button>
-      </div>
+      <ErrorState
+        message={LIST_LOAD_ERROR_MESSAGE}
+        onRetry={onRetry}
+        retryLabel={LIST_RETRY_BUTTON_LABEL}
+      />
     );
   }
 
   if (items.length === 0) {
-    return <p className="p-6 text-center text-sm text-gray-500">{EMPTY_QUEUE_MESSAGE}</p>;
+    return <EmptyState message={EMPTY_QUEUE_MESSAGE} />;
   }
 
   return (
     <table className="w-full border-collapse text-sm">
       <thead>
-        <tr className="border-b text-left text-gray-500">
+        <tr className="border-b border-border text-left text-fg-muted">
           <th className="p-2">유형</th>
           <th className="p-2">대상 노드</th>
           <th className="p-2">관계 종류</th>
@@ -84,12 +80,10 @@ export function ProposalTable({
             <tr
               key={item.proposalId}
               onClick={() => onSelect(item.proposalId)}
-              className={`cursor-pointer border-b hover:bg-gray-50 ${isSelected ? "bg-blue-50" : ""}`}
+              className={`cursor-pointer border-b border-border hover:bg-surface-hover ${isSelected ? "bg-accent-soft" : ""}`}
             >
               <td className="p-2">
-                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs">
-                  {PROPOSAL_TYPE_LABELS[item.proposalType]}
-                </span>
+                <Badge tone="neutral">{PROPOSAL_TYPE_LABELS[item.proposalType]}</Badge>
               </td>
               <td className="p-2">
                 {nodeLabel(item.sourceNode)} → {nodeLabel(item.targetNode)}
@@ -99,13 +93,13 @@ export function ProposalTable({
                   <span>
                     {item.relationType.name}
                     {!item.relationType.isActive && (
-                      <span className="ml-1 rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-800">
+                      <Badge tone="warning" className="ml-1">
                         비활성
-                      </span>
+                      </Badge>
                     )}
                   </span>
                 ) : (
-                  <span className="text-gray-400">-</span>
+                  <span className="text-fg-subtle">-</span>
                 )}
               </td>
               <td className="p-2">
@@ -116,54 +110,52 @@ export function ProposalTable({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(event) => event.stopPropagation()}
-                      className="text-blue-600 underline"
+                      className="text-accent underline hover:text-accent-hover"
                     >
                       {item.disclosure.title}
                     </a>
-                    <span className="text-xs text-gray-500">{item.disclosure.disclosureDate}</span>
+                    <span className="text-xs text-fg-muted">{item.disclosure.disclosureDate}</span>
                   </div>
                 ) : (
-                  <span className="text-gray-400">-</span>
+                  <span className="text-fg-subtle">-</span>
                 )}
               </td>
               <td className="p-2">
-                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs">
-                  {PROPOSAL_STATUS_LABELS[item.status]}
-                </span>
+                <Badge tone="neutral">{PROPOSAL_STATUS_LABELS[item.status]}</Badge>
                 {isPending && !item.applicability.isApplicable && (
-                  <span className="ml-1 rounded bg-orange-100 px-1.5 py-0.5 text-xs text-orange-800">
+                  <Badge tone="warning" className="ml-1">
                     재검토
                     {item.applicability.reason
                       ? `: ${APPLICABILITY_REASON_LABELS[
                           item.applicability.reason as keyof typeof APPLICABILITY_REASON_LABELS
                         ]}`
                       : ""}
-                  </span>
+                  </Badge>
                 )}
               </td>
               <td className="p-2">
                 {isPending && (
                   <div className="flex gap-2" onClick={(event) => event.stopPropagation()}>
-                    <button
-                      type="button"
+                    <Button
+                      variant="primary"
+                      size="sm"
                       disabled={isProcessing}
                       onClick={() => {
                         if (window.confirm(APPROVE_CONFIRM_MESSAGE)) {
                           onApprove(item.proposalId);
                         }
                       }}
-                      className="rounded bg-blue-600 px-2 py-1 text-xs text-white disabled:opacity-50"
                     >
                       승인
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       disabled={isProcessing}
                       onClick={() => onRejectClick(item.proposalId)}
-                      className="rounded border px-2 py-1 text-xs disabled:opacity-50"
                     >
                       거부
-                    </button>
+                    </Button>
                   </div>
                 )}
               </td>

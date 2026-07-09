@@ -1,6 +1,7 @@
 "use client";
 
 import { useReducer } from "react";
+import { Heading } from "@/components/ui";
 import { ApiError } from "@/lib/http/api-client";
 import { BackfillProgressCard } from "@/features/admin-batches/components/BackfillProgressCard";
 import { BatchFailuresTable } from "@/features/admin-batches/components/BatchFailuresTable";
@@ -42,7 +43,7 @@ export default function AdminBatchesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">배치 작업 모니터링</h1>
+      <Heading level={1}>배치 작업 모니터링</Heading>
 
       <BackfillProgressCard
         progress={backfillQuery.data ?? null}

@@ -1,26 +1,292 @@
 @import "tailwindcss";
 
+/*
+ * ─────────────────────────────────────────────────────────────
+ * invest-in-best 디자인 토큰 (SOT)
+ * 뉴트럴은 순수 회색이 아니라 slate(청색 편향) — 액센트(indigo/cyan)와 계보를 잇는다.
+ * 라이트가 기본, 다크는 아래에서 토큰만 재정의한다(컴포넌트는 토큰만 참조).
+ * 랜딩은 자체 다크 세계를 강제하므로 이 토큰과 독립적으로 어두운 배경을 고정한다.
+ * ─────────────────────────────────────────────────────────────
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* 배경 계층 */
+  --surface: #f8fafc; /* 페이지 바닥 (slate-50) */
+  --surface-raised: #ffffff; /* 카드·패널 */
+  --surface-sunken: #f1f5f9; /* 인풋·코드·테이블 헤더 (slate-100) */
+  --surface-hover: #f1f5f9;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* 텍스트 */
+  --fg: #0f172a; /* 본문 (slate-900) */
+  --fg-muted: #475569; /* 보조 (slate-600) */
+  --fg-subtle: #94a3b8; /* 캡션·placeholder (slate-400) */
+
+  /* 경계 */
+  --border: #e2e8f0; /* slate-200 */
+  --border-strong: #cbd5e1; /* slate-300 */
+
+  /* 액센트 (primary = indigo-violet, 랜딩 네온의 앵커) */
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-fg: #ffffff;
+  --accent-soft: #eef2ff; /* 액센트 배경 틴트 (indigo-50) */
+  --accent-soft-fg: #4338ca;
+
+  /* 데이터 보조 액센트 (cyan — 시각화·KRX) */
+  --data: #0891b2;
+  --data-soft: #ecfeff;
+
+  /* 의미색 (액센트와 분리 — good/warn/bad) */
+  --success: #16a34a;
+  --success-soft: #f0fdf4;
+  --warning: #d97706;
+  --warning-soft: #fffbeb;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-soft: #fef2f2;
+
+  /* 포커스 링 */
+  --ring: #818cf8;
+
+  /* 차트 (SVG/recharts용 — chartTheme.ts의 LIGHT 팔레트와 값 일치) */
+  --chart-surface: #ffffff;
+  --chart-text: #475569;
+  --chart-grid: #e2e8f0;
+  --chart-series-1: #6366f1;
+  --chart-series-emphasis: #4338ca;
+
+  /* 반경·그림자 (rounded-lg 남발 대신 절제된 스케일) */
+  --radius-sm: 0.375rem;
+  --radius: 0.5rem;
+  --radius-lg: 0.75rem;
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.1), 0 2px 6px -2px rgb(15 23 42 / 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --surface: #0b0f1a;
+    --surface-raised: #111827;
+    --surface-sunken: #0f172a;
+    --surface-hover: #1e293b;
+
+    --fg: #e5e9f0;
+    --fg-muted: #9aa7bd;
+    --fg-subtle: #64748b;
+
+    --border: #1f2937;
+    --border-strong: #334155;
+
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --accent-fg: #0b0f1a;
+    --accent-soft: #1e1b4b;
+    --accent-soft-fg: #c7d2fe;
+
+    --data: #22d3ee;
+    --data-soft: #083344;
+
+    --success: #4ade80;
+    --success-soft: #052e16;
+    --warning: #fbbf24;
+    --warning-soft: #422006;
+    --danger: #f87171;
+    --danger-hover: #fca5a5;
+    --danger-soft: #450a0a;
+
+    --ring: #6366f1;
+
+    --chart-surface: #111827;
+    --chart-text: #9aa7bd;
+    --chart-grid: #1f2937;
+    --chart-series-1: #818cf8;
+    --chart-series-emphasis: #a5b4fc;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
   }
 }
 
+/* Tailwind 유틸로 토큰 노출 — bg-surface, text-fg, border-border, ring-ring 등 */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+
+  --color-data: var(--data);
+  --color-data-soft: var(--data-soft);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+
+  --color-ring: var(--ring);
+
+  --radius-sm: var(--radius-sm);
+  --radius-DEFAULT: var(--radius);
+  --radius-lg: var(--radius-lg);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* 랜딩 진입 애니메이션 키프레임 */
+  --animate-landing-rise: landing-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-landing-float: landing-float 6s ease-in-out infinite;
+  --animate-landing-pulse-line: landing-pulse-line 3.2s ease-in-out infinite;
+  --animate-landing-aurora: landing-aurora 14s ease-in-out infinite alternate;
+
+  /* 마인드맵 캔버스 배경 오로라(랜딩보다 절제) */
+  --animate-mm-aurora: mm-aurora 16s ease-in-out infinite alternate;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 숫자가 열로 정렬되는 곳(지표·티커)에서 자동 tabular 정렬 */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ── 랜딩페이지 애니메이션 ──────────────────────────────── */
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* 마인드맵 엣지 위를 흐르는 데이터 펄스 */
+@keyframes landing-pulse-line {
+  0% {
+    stroke-dashoffset: 220;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+/* 히어로 배경 오로라 글로우 이동 */
+@keyframes landing-aurora {
+  0% {
+    transform: translate3d(-6%, -4%, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(6%, 4%, 0) scale(1.12);
+  }
+}
+
+/* ── 마인드맵(밸류체인 뷰어·에디터) 시각 강화 ──────────────── */
+
+/* 유향 엣지 위를 source→target 방향으로 흐르는 빛(데이터 흐름). 짧은 대시가 path를 따라 흐른다. */
+@keyframes mm-edge-flow {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 마인드맵 노드 진입 — 부드러운 페이드인 + 스케일업. */
+@keyframes mm-node-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 캔버스 배경 은은한 오로라 글로우 이동(랜딩보다 절제된 진폭). */
+@keyframes mm-aurora {
+  0% {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+  }
+}
+
+/* 흐르는 빛 오버레이 path — 유향 엣지에만 적용. */
+.mm-edge-flow {
+  stroke-dasharray: 4 8;
+  animation: mm-edge-flow 0.9s linear infinite;
+}
+
+/* 노드 진입 애니메이션 클래스(노드 래퍼에 부여). */
+.mm-node-enter {
+  animation: mm-node-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* hover 강조/흐림(dim) — React Flow 노드/엣지 래퍼에 상태 클래스로 제어.
+   캔버스에 data-mm-hovering 이 있을 때, dimmed는 흐려지고 highlighted는 또렷해진다. */
+.react-flow__node,
+.react-flow__edge {
+  transition:
+    opacity 0.18s ease,
+    filter 0.18s ease;
+}
+[data-mm-hovering="true"] .mm-dimmed {
+  opacity: 0.25;
+}
+[data-mm-hovering="true"] .mm-highlighted {
+  opacity: 1;
+}
+
+/* 접근성: 모션 최소화 선호 시 진입/장식 애니메이션 정지 */
+@media (prefers-reduced-motion: reduce) {
+  [data-animate-landing],
+  .mm-edge-flow,
+  .mm-node-enter {
+    animation: none !important;
+  }
 }

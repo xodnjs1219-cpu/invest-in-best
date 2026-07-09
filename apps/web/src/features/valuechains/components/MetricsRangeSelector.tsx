@@ -16,17 +16,17 @@ export const MetricsRangeSelector = ({ range, onChange }: MetricsRangeSelectorPr
   const activePreset: MetricsRangePreset | null = range.kind === "preset" ? range.preset : null;
 
   return (
-    <div className="inline-flex rounded-md border border-gray-200 dark:border-gray-700" role="group" aria-label="지표 조회 기간">
+    <div className="inline-flex gap-1" role="group" aria-label="지표 조회 기간">
       {METRICS_RANGE_PRESETS.map((preset) => (
         <button
           key={preset}
           type="button"
           onClick={() => onChange({ kind: "preset", preset })}
           aria-pressed={activePreset === preset}
-          className={`px-3 py-1.5 text-xs font-medium first:rounded-l-md last:rounded-r-md ${
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
             activePreset === preset
-              ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
-              : "bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+              ? "bg-accent text-accent-fg"
+              : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"
           }`}
         >
           {preset}

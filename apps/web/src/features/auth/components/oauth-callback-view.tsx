@@ -47,7 +47,10 @@ export function OAuthCallbackView({ phase, errorCode }: OAuthCallbackViewProps) 
   return (
     <div className="flex flex-col gap-4">
       <p>{view.message}</p>
-      <Link href={view.href} className="underline">
+      <Link
+        href={view.href}
+        className="text-accent hover:text-accent-hover underline underline-offset-2"
+      >
         {view.label}
       </Link>
     </div>

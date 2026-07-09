@@ -1,3 +1,4 @@
+import { Button, Card } from "@/components/ui";
 import {
   buildDeleteConfirmDescription,
   DELETE_CANCEL_LABEL,
@@ -37,30 +38,20 @@ export function DeleteChainConfirmDialog({
       aria-labelledby="delete-chain-dialog-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
     >
-      <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-lg">
-        <h2 id="delete-chain-dialog-title" className="text-base font-semibold text-gray-900">
+      <Card className="w-full max-w-sm p-5 shadow-[var(--shadow-md)]">
+        <h2 id="delete-chain-dialog-title" className="text-base font-semibold text-fg">
           {DELETE_CONFIRM_TITLE}
         </h2>
-        <p className="mt-2 text-sm text-gray-600">{buildDeleteConfirmDescription(chainName)}</p>
+        <p className="mt-2 text-sm text-fg-muted">{buildDeleteConfirmDescription(chainName)}</p>
         <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isDeleting}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <Button variant="secondary" onClick={onCancel} disabled={isDeleting}>
             {DELETE_CANCEL_LABEL}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={isDeleting}
-            className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          </Button>
+          <Button variant="danger" onClick={onConfirm} disabled={isDeleting}>
             {isDeleting ? DELETE_PENDING_LABEL : DELETE_CONFIRM_ACTION_LABEL}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

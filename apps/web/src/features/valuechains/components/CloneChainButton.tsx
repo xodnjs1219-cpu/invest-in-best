@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui";
 import { CLONE_BUTTON_LABEL, CLONE_PENDING_LABEL } from "@/features/valuechains/constants/clone";
 import { useCloneChainAction } from "@/features/valuechains/hooks/useCloneChainAction";
 
@@ -24,18 +25,18 @@ export function CloneChainButton({ chainId, variant = "header" }: CloneChainButt
     requestClone();
   };
 
-  const baseClassName =
-    variant === "header"
-      ? "rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-      : "rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50";
-
   return (
     <span className="inline-flex flex-col items-end gap-1">
-      <button type="button" onClick={handleClick} disabled={isCloning} className={baseClassName}>
+      <Button
+        variant="secondary"
+        size={variant === "header" ? "md" : "sm"}
+        onClick={handleClick}
+        disabled={isCloning}
+      >
         {isCloning ? CLONE_PENDING_LABEL : CLONE_BUTTON_LABEL}
-      </button>
-      {errorMessage && <span className="text-xs text-red-600">{errorMessage}</span>}
-      {successMessage && <span className="text-xs text-green-600">{successMessage}</span>}
+      </Button>
+      {errorMessage && <span className="text-xs text-danger">{errorMessage}</span>}
+      {successMessage && <span className="text-xs text-success">{successMessage}</span>}
     </span>
   );
 }

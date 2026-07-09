@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useReducer, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { getTimelineToday, isWithinTimelineRange, type IsoDate } from "@iib/domain";
 import {
   buildRenderGraph,
@@ -23,7 +22,6 @@ import { useChainTimeline } from "@/features/valuechains/hooks/useChainTimeline"
 import { useChainSnapshotAt } from "@/features/valuechains/hooks/useChainSnapshotAt";
 import { useTimelineUrlSync } from "@/features/valuechains/hooks/effects/useTimelineUrlSync";
 import { useRestoreResultSync } from "@/features/valuechains/hooks/effects/useRestoreResultSync";
-import { useNodeClickRouting } from "@/features/valuechains/hooks/effects/useNodeClickRouting";
 import {
   ChainViewActionsContext,
   ChainViewStateContext,
@@ -54,8 +52,6 @@ const NOT_FOUND_LIKE_STATUSES = new Set([400, 401, 403, 404]);
  * 배선과 함께 활성화한다 — 그래야 유효한 과거 날짜 딥링크가 무한 로딩에 빠지지 않는다.
  */
 export const ChainViewProvider = ({ chainId, atParam, children }: ChainViewProviderProps) => {
-  const router = useRouter();
-
   // `today`는 Asia/Seoul 기준(결정 C-6)으로 렌더 시 1회 계산해 주입한다(reducer 순수성 유지).
   const today = useMemo(() => getTimelineToday(), []);
 
@@ -268,13 +264,9 @@ export const ChainViewProvider = ({ chainId, atParam, children }: ChainViewProvi
     [selectedNodeId, nodeDetailQuery.isPending, nodeDetailQuery.isError, nodeDetailQuery.data],
   );
 
-  useNodeClickRouting({
-    selectedNodeId,
-    nodeDetailQuery,
-    selectedDate,
-    dispatch,
-    router,
-  });
+  // 노드 클릭 시 상세 페이지로 자동 이동하지 않는다 — 클릭한 노드와 연결 엣지·이웃 노드를
+  // 강조하는 것이 UX(마인드맵 탐색 중심). 기업 상세는 검색·소속체인 목록 등 다른 경로로 진입한다.
+  // (기존 useNodeClickRouting 라우팅 이펙트 제거)
 
   // ── UC-012: 타임라인 메타 + 배지 ──
   const timelineMeta: TimelineMetaView = useMemo(() => {

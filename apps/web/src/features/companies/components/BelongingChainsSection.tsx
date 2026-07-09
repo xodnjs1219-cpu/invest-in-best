@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { UseQueryResult } from "@tanstack/react-query";
+import { Badge, EmptyState, ErrorState, Heading, Skeleton } from "@/components/ui";
 import {
   CHAINS_EMPTY_MESSAGE,
   CHAINS_FOCUS_TYPE_LABEL,
@@ -25,21 +26,16 @@ type BelongingChainsSectionProps = {
  */
 export function BelongingChainsSection({ query }: BelongingChainsSectionProps) {
   if (query.isPending) {
-    return <div data-testid="chains-loading" className="h-24 animate-pulse rounded-md bg-gray-100" />;
+    return <Skeleton data-testid="chains-loading" className="h-24" />;
   }
 
   if (query.isError) {
     return (
-      <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <p className="text-gray-700">{CHAINS_SECTION_ERROR_MESSAGE}</p>
-        <button
-          type="button"
-          onClick={() => query.refetch()}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          {SECTION_RETRY_LABEL}
-        </button>
-      </div>
+      <ErrorState
+        message={CHAINS_SECTION_ERROR_MESSAGE}
+        onRetry={() => query.refetch()}
+        retryLabel={SECTION_RETRY_LABEL}
+      />
     );
   }
 
@@ -47,27 +43,27 @@ export function BelongingChainsSection({ query }: BelongingChainsSectionProps) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-lg font-semibold text-gray-900">소속 밸류체인</h2>
+      <Heading level={2}>소속 밸류체인</Heading>
 
       {items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">{CHAINS_EMPTY_MESSAGE}</p>
+        <EmptyState message={CHAINS_EMPTY_MESSAGE} />
       ) : (
         <ul className="flex flex-col gap-1">
           {items.map((item) => (
             <li key={item.chainId}>
               <Link
                 href={`/valuechains/${item.chainId}`}
-                className="flex flex-col gap-1 rounded-md border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
+                className="flex flex-col gap-1 rounded-[var(--radius)] border border-border px-3 py-2 text-sm hover:bg-surface-hover"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-gray-900">{item.name}</span>
-                  <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                  <span className="font-medium text-fg">{item.name}</span>
+                  <Badge tone="neutral">
                     {item.chainType === "official" ? CHAINS_OFFICIAL_BADGE_LABEL : CHAINS_USER_BADGE_LABEL}
-                  </span>
-                  <span className="text-xs text-gray-500">{CHAINS_FOCUS_TYPE_LABEL[item.focusType]}</span>
-                  <span className="text-xs text-gray-500">노드 {item.nodeCount}개</span>
+                  </Badge>
+                  <span className="text-xs text-fg-muted">{CHAINS_FOCUS_TYPE_LABEL[item.focusType]}</span>
+                  <span className="text-xs text-fg-muted">노드 {item.nodeCount}개</span>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-fg-muted">
                   {item.summary ? (
                     <span>
                       {formatKrwCompactOrNull(item.summary.totalMarketCapKrw, "-")} · 반영{" "}

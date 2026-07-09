@@ -9,6 +9,7 @@ import {
   selectIsNearNodeLimit,
   selectUsedSecurityIds,
   selectConnectedEdgeIds,
+  selectNodeListItems,
   selectReactFlowEdges,
   selectReactFlowNodes,
   selectGroupMembership,
@@ -133,6 +134,44 @@ describe("chainEditorSelectors", () => {
     expect(new Set(connected)).toEqual(new Set(["e1", "e2"]));
   });
 
+  it("selectNodeListItems: 종목/자유주체 구분·삽입 순서·연결 엣지 수 집계", () => {
+    let state = initEditor();
+    state = chainEditorReducer(state, {
+      type: "LISTED_NODE_ADDED",
+      payload: {
+        clientNodeId: "n1",
+        security: { securityId: "s1", ticker: "005930", name: "삼성전자", market: "KRX" },
+        position: { x: 0, y: 0 },
+      },
+    });
+    state = chainEditorReducer(state, {
+      type: "FREE_SUBJECT_NODE_ADDED",
+      payload: { clientNodeId: "n2", subjectType: "consumer", subjectName: "소비자", subjectMemo: null, position: { x: 0, y: 0 } },
+    });
+    state = chainEditorReducer(state, {
+      type: "EDGE_ADDED",
+      payload: { clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n2", relationTypeId: "rt1" },
+    });
+
+    const items = selectNodeListItems(state);
+    expect(items.map((i) => i.clientNodeId)).toEqual(["n1", "n2"]); // 삽입 순서 유지
+
+    const [company, free] = items;
+    expect(company).toMatchObject({
+      kind: "listed_company",
+      label: "삼성전자",
+      sublabel: "005930",
+      market: "KRX",
+      connectedEdgeCount: 1,
+    });
+    expect(free).toMatchObject({
+      kind: "free_subject",
+      label: "소비자",
+      market: null,
+      connectedEdgeCount: 1,
+    });
+  });
+
   // ==========================================================================
   // UC-016: 엣지 React Flow 매핑 셀렉터
   // ==========================================================================
@@ -168,6 +207,18 @@ describe("chainEditorSelectors", () => {
     });
     const edges = selectReactFlowEdges(state, relationTypeById, { edgeIds: [] });
     expect(edges[0]?.data?.label).toBe("공급");
+  });
+
+  it("onDeleteEdge 콜백을 edge data.onDelete로 주입한다(미전달 시 undefined)", () => {
+    const state = chainEditorReducer(initEditor(), {
+      type: "EDGE_ADDED",
+      payload: { clientEdgeId: "e1", sourceClientNodeId: "n1", targetClientNodeId: "n2", relationTypeId: supplyType.id },
+    });
+    const onDeleteEdge = () => {};
+    expect(selectReactFlowEdges(state, relationTypeById, { edgeIds: [] })[0]?.data?.onDelete).toBeUndefined();
+    expect(
+      selectReactFlowEdges(state, relationTypeById, { edgeIds: [] }, onDeleteEdge)[0]?.data?.onDelete,
+    ).toBe(onDeleteEdge);
   });
 
   it("마스터에 없는 relationTypeId → 폴백 라벨, throw 없음", () => {
@@ -320,13 +371,13 @@ describe("chainEditorSelectors", () => {
     expect(n3?.position).toEqual({ x: 400, y: 0 });
   });
 
-  it("RF 매핑: 그룹 노드가 배열에서 소속 노드보다 앞 / draggable=false", () => {
+  it("RF 매핑: 그룹 노드가 배열에서 소속 노드보다 앞 / draggable=true(그룹 이동 지원)", () => {
     const state = buildGroupedState();
     const nodes = selectReactFlowNodes(state);
     const groupIndex = nodes.findIndex((n) => n.id === "g1");
     const memberIndex = nodes.findIndex((n) => n.id === "n1");
     expect(groupIndex).toBeLessThan(memberIndex);
-    expect(nodes[groupIndex]?.draggable).toBe(false);
+    expect(nodes[groupIndex]?.draggable).toBe(true);
   });
 
   it("RF 매핑: 빈 그룹 → data.isEmpty=true + 폴백 크기", () => {

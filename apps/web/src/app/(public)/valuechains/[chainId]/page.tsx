@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ChainViewHeader } from "@/features/valuechains/components/ChainViewHeader";
+import { ChainSummaryStrip } from "@/features/valuechains/components/ChainSummaryStrip";
 import { DataSourceFooter } from "@/features/valuechains/components/DataSourceFooter";
 import { MindmapCanvas } from "@/features/valuechains/components/MindmapCanvas";
 import { NodeInfoPanel } from "@/features/valuechains/components/NodeInfoPanel";
@@ -77,13 +78,35 @@ export default async function ValuechainViewPage({ params, searchParams }: PageP
 
   return (
     <ChainViewProvider chainId={chainId} atParam={at ?? null}>
-      <div className="mx-auto max-w-5xl px-4 py-8">
-        <ChainViewHeader />
-        <MindmapCanvas />
-        <NodeInfoPanel />
-        <DashboardPanel />
-        <TimelinePanel />
-        <DataSourceFooter />
+      {/*
+       * 뷰어 리뉴얼 — 데이터 콘솔 레이아웃(요약 먼저).
+       * 헤더 → 요약 지표 스트립 → 히어로 마인드맵(전체 폭) → 하단(지표 차트 + 타임라인).
+       * 마인드맵은 화면 전체 폭으로 펼치고, 나머지는 가독 폭(max-w-6xl)으로 감싼다.
+       */}
+      <div className="flex w-full flex-col gap-8 px-4 py-8 lg:px-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
+          <ChainViewHeader />
+          <ChainSummaryStrip />
+        </div>
+
+        {/* 히어로 — 밸류체인 마인드맵(전체 폭) + 선택 시 노드 정보 패널 */}
+        <div className="flex flex-col gap-3">
+          <MindmapCanvas />
+          <div className="mx-auto w-full max-w-6xl">
+            <NodeInfoPanel />
+          </div>
+        </div>
+
+        {/* 하단 — 지표 대시보드(넓게) + 타임라인/데이터 출처 */}
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 lg:grid-cols-[1fr_20rem]">
+          <div className="min-w-0">
+            <DashboardPanel />
+          </div>
+          <div className="flex flex-col gap-6">
+            <TimelinePanel />
+            <DataSourceFooter />
+          </div>
+        </div>
       </div>
     </ChainViewProvider>
   );

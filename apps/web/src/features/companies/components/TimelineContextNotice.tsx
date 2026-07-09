@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui";
 import { TIMELINE_NOTICE_DISMISS_LABEL, TIMELINE_NOTICE_TEMPLATE } from "@/features/companies/constants";
 
 type TimelineContextNoticeProps = {
@@ -18,16 +19,12 @@ export function TimelineContextNotice({ asOfDate, isDismissed, onDismiss }: Time
   return (
     <div
       role="status"
-      className="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+      className="flex items-center justify-between gap-3 rounded-[var(--radius)] border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning"
     >
       <p>{TIMELINE_NOTICE_TEMPLATE(asOfDate)}</p>
-      <button
-        type="button"
-        onClick={onDismiss}
-        className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
-      >
+      <Button variant="ghost" size="sm" onClick={onDismiss} className="shrink-0">
         {TIMELINE_NOTICE_DISMISS_LABEL}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui";
+
 type BatchRunsPaginationProps = {
   page: number;
   pageSize: number;
@@ -11,25 +13,20 @@ export function BatchRunsPagination({ page, pageSize, totalCount, onPageChange }
 
   return (
     <div className="flex items-center justify-center gap-4 py-4">
-      <button
-        type="button"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        className="rounded border px-3 py-1.5 text-sm disabled:opacity-50"
-      >
+      <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
         이전
-      </button>
-      <span className="text-sm text-gray-600">
+      </Button>
+      <span className="text-sm text-fg-muted">
         {page} / {totalPages} 페이지 (총 {totalCount.toLocaleString("ko-KR")}건)
       </span>
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        size="sm"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
-        className="rounded border px-3 py-1.5 text-sm disabled:opacity-50"
       >
         다음
-      </button>
+      </Button>
     </div>
   );
 }

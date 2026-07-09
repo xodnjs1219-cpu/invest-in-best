@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { EditorGroup, GroupBlockReason } from "@iib/domain";
 import type { ActionResult } from "@/features/valuechains/editor/context/ChainEditorContext";
+import { Badge, Button, Input, Select } from "@/components/ui";
 
 const GROUP_BLOCK_MESSAGES: Record<GroupBlockReason, string> = {
   NAME_REQUIRED: "이름을 입력하세요",
@@ -88,38 +89,32 @@ export function GroupPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <label htmlFor="group-name-input" className="text-sm font-medium text-gray-700">
+        <label htmlFor="group-name-input" className="text-sm font-medium text-fg-muted">
           그룹 이름
         </label>
-        <input
+        <Input
           id="group-name-input"
           aria-label="그룹 이름"
           type="text"
           value={nameInput}
           onChange={(e) => setNameInput(e.target.value)}
-          className="rounded-md border border-gray-300 px-2 py-1 text-sm"
         />
-        {createError && <p className="text-xs text-red-600">{GROUP_BLOCK_MESSAGES[createError]}</p>}
-        <button
-          type="button"
-          onClick={handleCreate}
-          className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
-        >
+        {createError && <p className="text-xs text-danger">{GROUP_BLOCK_MESSAGES[createError]}</p>}
+        <Button type="button" size="sm" onClick={handleCreate}>
           그룹 만들기
-        </button>
+        </Button>
       </div>
 
       {selectedNodeIds.length > 0 && groups.length > 0 && (
-        <div className="flex flex-col gap-2 border-t border-gray-200 pt-3">
-          <label htmlFor="group-assign-select" className="text-sm font-medium text-gray-700">
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <label htmlFor="group-assign-select" className="text-sm font-medium text-fg-muted">
             선택 노드 그룹 지정
           </label>
-          <select
+          <Select
             id="group-assign-select"
             aria-label="선택 노드 그룹 지정"
             value={assignTarget}
             onChange={(e) => setAssignTarget(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1 text-sm"
           >
             <option value={NO_GROUP_OPTION}>그룹 없음</option>
             {groups.map((group) => (
@@ -127,18 +122,14 @@ export function GroupPanel({
                 {group.name}
               </option>
             ))}
-          </select>
-          <button
-            type="button"
-            onClick={handleAssign}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+          </Select>
+          <Button type="button" variant="secondary" size="sm" onClick={handleAssign}>
             적용
-          </button>
+          </Button>
         </div>
       )}
 
-      <ul className="flex flex-col gap-2 border-t border-gray-200 pt-3">
+      <ul className="flex flex-col gap-2 border-t border-border pt-3">
         {groups.map((group) => {
           const memberCount = groupMembership.get(group.clientGroupId)?.length ?? 0;
           const isEmpty = emptyGroupIdSet.has(group.clientGroupId);
@@ -146,65 +137,45 @@ export function GroupPanel({
           const isRenaming = renamingGroupId === group.clientGroupId;
 
           return (
-            <li key={group.clientGroupId} className="flex flex-col gap-1 rounded-md border border-gray-200 p-2">
+            <li key={group.clientGroupId} className="flex flex-col gap-1 rounded-[var(--radius)] border border-border p-2">
               {isRenaming ? (
                 <div className="flex flex-col gap-1">
-                  <input
+                  <Input
                     type="text"
                     value={renameInput}
                     onChange={(e) => setRenameInput(e.target.value)}
-                    className="rounded-md border border-gray-300 px-2 py-1 text-sm"
                   />
-                  {renameError && <p className="text-xs text-red-600">{GROUP_BLOCK_MESSAGES[renameError]}</p>}
+                  {renameError && <p className="text-xs text-danger">{GROUP_BLOCK_MESSAGES[renameError]}</p>}
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={confirmRename}
-                      className="rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white"
-                    >
+                    <Button type="button" size="sm" onClick={confirmRename}>
                       확인
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRenamingGroupId(null)}
-                      className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700"
-                    >
+                    </Button>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setRenamingGroupId(null)}>
                       취소
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">{group.name}</span>
-                    <span className="text-xs text-gray-500">멤버 {memberCount}개</span>
-                    {isEmpty && (
-                      <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600">
-                        저장 시 제외
-                      </span>
-                    )}
-                    {isDuplicate && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                        이름 중복
-                      </span>
-                    )}
+                    <span className="text-sm font-medium text-fg">{group.name}</span>
+                    <span className="text-xs text-fg-muted">멤버 {memberCount}개</span>
+                    {isEmpty && <Badge tone="accent">저장 시 제외</Badge>}
+                    {isDuplicate && <Badge tone="warning">이름 중복</Badge>}
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => startRename(group)}
-                      className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                    >
+                    <Button type="button" variant="secondary" size="sm" onClick={() => startRename(group)}>
                       이름 변경
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="danger"
+                      size="sm"
                       title="노드는 유지됩니다"
                       onClick={() => onDissolveGroup(group.clientGroupId)}
-                      className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
                     >
                       그룹 해제
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
