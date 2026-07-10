@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MAX_NODES_PER_CHAIN } from "@iib/domain";
 import {
   useChainEditorActions,
@@ -23,6 +23,13 @@ export function EditorToolbar() {
   const { save } = useChainEditorActions();
   const [toast, setToast] = useState<string | null>(null);
   const [isOfficialDialogOpen, setIsOfficialDialogOpen] = useState(false);
+
+  // §14 Success: 토스트는 3s 자동 소멸. 메시지가 바뀌면 타이머를 리셋한다.
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const runSave = async (options?: { disclosureDate?: string | null }) => {
     const result = await save(options);
@@ -65,7 +72,11 @@ export function EditorToolbar() {
         <span className="text-sm text-fg-muted">
           {computed.nodeCount}/{MAX_NODES_PER_CHAIN}
         </span>
-        {toast && <span className="text-xs text-fg-muted">{toast}</span>}
+        {toast && (
+          <span key={toast} role="status" className="panel-enter text-xs text-fg-muted">
+            {toast}
+          </span>
+        )}
         <Button
           type="button"
           size="sm"

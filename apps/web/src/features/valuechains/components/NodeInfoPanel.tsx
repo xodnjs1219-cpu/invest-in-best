@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { SUBJECT_TYPE_LABELS } from "@iib/domain";
 import { Badge, Button, Card, ErrorState, Heading, Skeleton } from "@/components/ui";
 import {
@@ -15,12 +16,31 @@ export const NodeInfoPanel = () => {
   const { nodePanel } = useChainViewState();
   const { closeNodePanel, retryNodeDetail } = useChainViewActions();
 
-  if (nodePanel.status === "closed" || nodePanel.status === "routing") {
+  // 패널이 캔버스 아래에 렌더되므로, 열리는 순간 화면 안으로 끌어와 상태 변화를 보이게 한다
+  // (모바일에서 노드 클릭이 "무반응"처럼 보이는 문제 — NN/g 상태 가시성). 열림 전이에만 1회.
+  const isOpen = nodePanel.status !== "closed" && nodePanel.status !== "routing";
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    panelRef.current?.scrollIntoView?.({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "nearest",
+    });
+  }, [isOpen]);
+
+  if (!isOpen) {
     return null;
   }
 
   return (
-    <Card as="aside" data-testid="node-info-panel" className="panel-enter p-4" aria-label="노드 정보 패널">
+    <Card
+      ref={panelRef}
+      as="aside"
+      data-testid="node-info-panel"
+      className="panel-enter p-4"
+      aria-label="노드 정보 패널"
+    >
       {nodePanel.status === "loading" && (
         <div data-testid="node-panel-skeleton" className="space-y-2">
           <Skeleton className="h-4 w-1/2" />

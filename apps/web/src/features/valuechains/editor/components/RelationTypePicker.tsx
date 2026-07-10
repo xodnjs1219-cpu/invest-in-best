@@ -1,7 +1,7 @@
 "use client";
 
 import type { RelationType } from "@iib/domain";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Card, useDialogA11y } from "@/components/ui";
 
 /**
  * 관계 종류 선택 팝오버(UC-016 plan 모듈 M20) — 신규 연결·관계 변경 공용.
@@ -23,11 +23,15 @@ export function RelationTypePicker({
   onCancel,
   currentRelationTypeId,
 }: RelationTypePickerProps) {
+  // 팝오버형 다이얼로그 — Escape 닫기·초기 포커스·포커스 복원(마운트 = 열림).
+  const dialogRef = useDialogA11y(true, onCancel);
+
   return (
     <Card
+      ref={dialogRef}
       role="dialog"
       aria-label="관계 종류 선택"
-      className="flex w-64 flex-col gap-1 p-2"
+      className="panel-enter flex w-64 flex-col gap-1 p-2"
     >
       {relationTypes.length === 0 ? (
         <p className="px-2 py-3 text-sm text-fg-muted">
