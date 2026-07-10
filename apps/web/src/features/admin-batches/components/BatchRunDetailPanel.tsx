@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Badge, Button, Heading, NumericText } from "@/components/ui";
+import { Badge, Button, Card, Heading, NumericText } from "@/components/ui";
 import type { BatchRunDetailDto } from "@/features/admin-batches/backend/schema";
 import {
   BATCH_JOB_TYPE_LABELS,
@@ -37,31 +37,31 @@ export function BatchRunDetailPanel({
 }: BatchRunDetailPanelProps) {
   if (isNotFound) {
     return (
-      <aside className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center shadow-ambient">
+      <Card as="aside" className="flex flex-col gap-3 p-4 text-center">
         <p className="text-sm text-danger">{RUN_NOT_FOUND_MESSAGE}</p>
         <Button variant="secondary" size="sm" onClick={onClose}>
           {RUN_NOT_FOUND_BACK_BUTTON_LABEL}
         </Button>
-      </aside>
+      </Card>
     );
   }
 
   if (isLoading) {
     return (
-      <aside className="rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center text-sm text-fg-muted shadow-ambient">
+      <Card as="aside" className="p-4 text-center text-sm text-fg-muted">
         로딩 중...
-      </aside>
+      </Card>
     );
   }
 
   if (isError) {
     return (
-      <aside className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center shadow-ambient">
+      <Card as="aside" className="flex flex-col items-center gap-3 p-4 text-center">
         <p className="text-sm text-danger">실행 상세를 불러오지 못했습니다.</p>
         <Button variant="secondary" size="sm" onClick={onRetry}>
           다시 시도
         </Button>
-      </aside>
+      </Card>
     );
   }
 
@@ -70,7 +70,7 @@ export function BatchRunDetailPanel({
   }
 
   return (
-    <aside className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-ambient">
+    <Card as="aside" className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-between">
         <Heading level={2}>{BATCH_JOB_TYPE_LABELS[run.jobType]}</Heading>
         <Button variant="ghost" size="sm" onClick={onClose}>
@@ -118,6 +118,6 @@ export function BatchRunDetailPanel({
         <Heading level={3}>종목 단위 실패 목록</Heading>
         <div className="mt-1">{failuresSlot}</div>
       </div>
-    </aside>
+    </Card>
   );
 }

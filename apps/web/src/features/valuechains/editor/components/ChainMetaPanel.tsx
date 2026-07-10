@@ -87,6 +87,7 @@ export function ChainMetaPanel() {
           {FOCUS_TYPE_OPTIONS.map((option) => (
             <label
               key={option.value}
+              // ui-exception: 라디오 선택 카드 — has-[:checked] 상태를 label이 직접 가져 Card 프리미티브 밖
               className="group relative flex cursor-pointer flex-col gap-1 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-3 transition-colors hover:border-border-strong has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
             >
               <input

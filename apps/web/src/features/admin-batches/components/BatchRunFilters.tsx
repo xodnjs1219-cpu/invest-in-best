@@ -1,6 +1,6 @@
 import { BATCH_JOB_TYPES, BATCH_RUN_STATUSES } from "@iib/domain";
 import type { BatchJobType, BatchRunStatus } from "@iib/domain";
-import { Button } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import {
   BATCH_JOB_TYPE_LABELS,
   BATCH_RUN_STATUS_LABELS,
@@ -27,7 +27,7 @@ export function BatchRunFilters({ value, onChange, onReset }: BatchRunFiltersPro
   const isFromAfterTo = Boolean(value.from && value.to && value.from > value.to);
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-[var(--radius-lg)] border border-border p-3">
+    <Card className="flex flex-wrap items-end gap-3 p-3">
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-fg-muted">작업 종류</span>
         <select
@@ -94,6 +94,6 @@ export function BatchRunFilters({ value, onChange, onReset }: BatchRunFiltersPro
       {isFromAfterTo && (
         <p className="basis-full text-xs text-danger">시작일(부터)은 시작일(까지)보다 이후일 수 없습니다.</p>
       )}
-    </div>
+    </Card>
   );
 }

@@ -1,4 +1,4 @@
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Heading } from "@/components/ui";
 import {
   buildDeleteConfirmDescription,
   DELETE_CANCEL_LABEL,
@@ -39,9 +39,9 @@ export function DeleteChainConfirmDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
     >
       <Card className="w-full max-w-sm p-5 shadow-deep">
-        <h2 id="delete-chain-dialog-title" className="text-base text-fg">
+        <Heading level={3} id="delete-chain-dialog-title">
           {DELETE_CONFIRM_TITLE}
-        </h2>
+        </Heading>
         <p className="mt-2 text-sm text-fg-muted">{buildDeleteConfirmDescription(chainName)}</p>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel} disabled={isDeleting}>

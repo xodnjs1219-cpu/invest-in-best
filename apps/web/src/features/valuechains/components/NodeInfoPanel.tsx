@@ -1,7 +1,7 @@
 "use client";
 
 import { SUBJECT_TYPE_LABELS } from "@iib/domain";
-import { Badge, Button, ErrorState, Heading, Skeleton } from "@/components/ui";
+import { Badge, Button, Card, ErrorState, Heading, Skeleton } from "@/components/ui";
 import {
   useChainViewActions,
   useChainViewState,
@@ -20,11 +20,7 @@ export const NodeInfoPanel = () => {
   }
 
   return (
-    <aside
-      data-testid="node-info-panel"
-      className="rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-ambient"
-      aria-label="노드 정보 패널"
-    >
+    <Card as="aside" data-testid="node-info-panel" className="p-4" aria-label="노드 정보 패널">
       {nodePanel.status === "loading" && (
         <div data-testid="node-panel-skeleton" className="space-y-2">
           <Skeleton className="h-4 w-1/2" />
@@ -83,6 +79,6 @@ export const NodeInfoPanel = () => {
           {nodePanel.data.groupName && <Badge tone="neutral">그룹: {nodePanel.data.groupName}</Badge>}
         </div>
       )}
-    </aside>
+    </Card>
   );
 };

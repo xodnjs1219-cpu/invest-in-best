@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Skeleton } from "@/components/ui";
+import { Card, Skeleton } from "@/components/ui";
 import { formatKrwCompactOrNull } from "@/lib/formatting/number";
 import { useChainViewState } from "@/features/valuechains/context/chain-view-context";
 
@@ -25,7 +25,7 @@ function StatCard({
   accent?: "value" | "data";
 }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-ambient">
+    <Card className="flex flex-col gap-1.5 p-4">
       <span className="text-[11px] uppercase tracking-wide text-fg-subtle">
         {eyebrow}
       </span>
@@ -39,7 +39,7 @@ function StatCard({
         </span>
       )}
       {meta && <span className="text-xs text-fg-muted">{meta}</span>}
-    </div>
+    </Card>
   );
 }
 

@@ -1,4 +1,4 @@
-import { Badge, Button, Heading } from "@/components/ui";
+import { Badge, Button, Card, Heading } from "@/components/ui";
 import type { ProposalListItem } from "@/features/admin-llm-proposals/lib/dto";
 import {
   APPLICABILITY_REASON_LABELS,
@@ -33,7 +33,7 @@ export function ProposalDetailPanel({
   const isPending = proposal.status === "pending";
 
   return (
-    <aside className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-ambient">
+    <Card as="aside" className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-between">
         <Heading level={2}>
           {PROPOSAL_TYPE_LABELS[proposal.proposalType]} · {proposal.chain.name}
@@ -127,6 +127,6 @@ export function ProposalDetailPanel({
           </Button>
         </div>
       )}
-    </aside>
+    </Card>
   );
 }

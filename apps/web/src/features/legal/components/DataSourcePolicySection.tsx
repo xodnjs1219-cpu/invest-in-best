@@ -1,5 +1,5 @@
 import { DATA_SOURCE_LABELS, DATA_SOURCE_POLICY_TEXT } from "@iib/domain";
-import { Badge, Heading } from "@/components/ui";
+import { Badge, Card, Heading } from "@/components/ui";
 
 /**
  * 데이터 출처 표기 정책 섹션 (UC-025 plan B-2) — 면책 페이지 전용.
@@ -8,9 +8,10 @@ import { Badge, Heading } from "@/components/ui";
  */
 export function DataSourcePolicySection() {
   return (
-    <section
+    <Card
+      as="section"
       aria-labelledby="data-source-policy-heading"
-      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border p-4"
+      className="flex flex-col gap-3 p-4"
     >
       <Heading level={2} id="data-source-policy-heading">
         데이터 출처 표기 정책
@@ -23,6 +24,6 @@ export function DataSourcePolicySection() {
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }
