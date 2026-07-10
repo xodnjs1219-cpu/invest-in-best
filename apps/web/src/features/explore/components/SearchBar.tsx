@@ -66,7 +66,7 @@ export function SearchBar({
               role="tab"
               aria-selected={isActive}
               onClick={() => onFilterChange(tab.value)}
-              className={`rounded-full px-3 py-1 text-sm font-medium ${
+              className={`rounded-sm px-3 py-1 text-sm ${
                 isActive
                   ? "bg-accent text-accent-fg"
                   : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"

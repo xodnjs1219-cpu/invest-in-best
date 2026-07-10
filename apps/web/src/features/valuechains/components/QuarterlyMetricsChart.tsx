@@ -38,7 +38,7 @@ export const QuarterlyMetricsChart = ({ view }: QuarterlyMetricsChartProps) => {
         const series = view.series.find((s) => quarterLabel(s.calendarYear, s.calendarQuarter) === point.x);
         return (
           <div className="space-y-0.5">
-            <p className="font-medium">{point.x}</p>
+            <p className="font-mono tabular">{point.x}</p>
             <p>{formatKrwCompactOrNull(point.y, "미제공")}</p>
             {series && (
               <p className="text-fg-muted">

@@ -21,7 +21,7 @@ export function ProposalFilterTabs({ value, onChange }: ProposalFilterTabsProps)
             onClick={() => onChange(status)}
             className={
               isActive
-                ? "border-b-2 border-accent px-3 py-2 text-sm font-semibold text-accent"
+                ? "border-b-2 border-accent px-3 py-2 text-sm text-accent"
                 : "px-3 py-2 text-sm text-fg-muted hover:text-fg"
             }
           >

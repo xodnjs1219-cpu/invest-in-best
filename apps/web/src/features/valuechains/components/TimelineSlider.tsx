@@ -74,7 +74,7 @@ export const TimelineSlider = ({ range, markers, selectedDate, onSelectDate }: T
           })}
         </div>
       </div>
-      <div className="flex justify-between text-xs text-fg-muted">
+      <div className="flex justify-between font-mono tabular text-xs text-fg-muted">
         <span>{range.minDate}</span>
         <span data-testid="timeline-slider-current">{currentDate}</span>
         <span>{range.maxDate}</span>

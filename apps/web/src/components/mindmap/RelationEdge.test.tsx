@@ -109,11 +109,11 @@ describe("RelationEdge", () => {
 describe("directedArrowMarker (뷰/편집 공용 화살표 마커)", () => {
   it("유향 → 화살표 마커 반환(accent 색), 무향 → undefined", () => {
     const directed = directedArrowMarker(true);
-    expect(directed).toMatchObject({ color: "#6366f1", width: 18, height: 18 });
+    expect(directed).toMatchObject({ color: "var(--accent)", width: 18, height: 18 });
     expect(directedArrowMarker(false)).toBeUndefined();
   });
 
   it("하이라이트(422) 유향 → danger 색 화살표", () => {
-    expect(directedArrowMarker(true, true)).toMatchObject({ color: "#dc2626" });
+    expect(directedArrowMarker(true, true)).toMatchObject({ color: "var(--danger)" });
   });
 });

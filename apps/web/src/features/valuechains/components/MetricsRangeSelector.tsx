@@ -23,7 +23,7 @@ export const MetricsRangeSelector = ({ range, onChange }: MetricsRangeSelectorPr
           type="button"
           onClick={() => onChange({ kind: "preset", preset })}
           aria-pressed={activePreset === preset}
-          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={`rounded-sm px-3 py-1.5 text-xs transition-colors ${
             activePreset === preset
               ? "bg-accent text-accent-fg"
               : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"

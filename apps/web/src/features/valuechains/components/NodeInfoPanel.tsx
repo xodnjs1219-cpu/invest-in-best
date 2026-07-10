@@ -22,7 +22,7 @@ export const NodeInfoPanel = () => {
   return (
     <aside
       data-testid="node-info-panel"
-      className="rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-[var(--shadow-sm)]"
+      className="rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-ambient"
       aria-label="노드 정보 패널"
     >
       {nodePanel.status === "loading" && (

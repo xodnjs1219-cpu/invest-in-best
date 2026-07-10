@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Badge, Button, Heading } from "@/components/ui";
+import { Badge, Button, Heading, NumericText } from "@/components/ui";
 import type { BatchRunDetailDto } from "@/features/admin-batches/backend/schema";
 import {
   BATCH_JOB_TYPE_LABELS,
@@ -88,19 +88,19 @@ export function BatchRunDetailPanel({
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
         <dt className="text-fg-muted">시작</dt>
-        <dd>{formatKstDateTime(run.startedAt)}</dd>
+        <NumericText as="dd">{formatKstDateTime(run.startedAt)}</NumericText>
         <dt className="text-fg-muted">종료</dt>
-        <dd>{run.finishedAt ? formatKstDateTime(run.finishedAt) : "-"}</dd>
+        <NumericText as="dd">{run.finishedAt ? formatKstDateTime(run.finishedAt) : "-"}</NumericText>
         {run.finishedAt && (
           <>
             <dt className="text-fg-muted">소요 시간</dt>
-            <dd>{formatRunDuration(run.startedAt, run.finishedAt)}</dd>
+            <NumericText as="dd">{formatRunDuration(run.startedAt, run.finishedAt)}</NumericText>
           </>
         )}
         <dt className="text-fg-muted">처리 건수</dt>
-        <dd>{run.processedCount.toLocaleString("ko-KR")}</dd>
+        <NumericText as="dd">{run.processedCount.toLocaleString("ko-KR")}</NumericText>
         <dt className="text-fg-muted">실패 건수</dt>
-        <dd>{run.failedCount.toLocaleString("ko-KR")}</dd>
+        <NumericText as="dd">{run.failedCount.toLocaleString("ko-KR")}</NumericText>
       </dl>
 
       <div>

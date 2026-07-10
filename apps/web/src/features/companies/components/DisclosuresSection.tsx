@@ -1,7 +1,7 @@
 "use client";
 
 import type { InfiniteData, UseInfiniteQueryResult } from "@tanstack/react-query";
-import { Button, EmptyState, ErrorState, Heading, Skeleton } from "@/components/ui";
+import { Button, EmptyState, ErrorState, Heading, NumericText, Skeleton } from "@/components/ui";
 import {
   DISCLOSURES_EMPTY_MESSAGE,
   DISCLOSURES_LOADING_MORE_LABEL,
@@ -54,7 +54,7 @@ export function DisclosuresSection({ query }: DisclosuresSectionProps) {
                 className="flex items-center justify-between gap-3 rounded-[var(--radius)] px-2 py-2 text-sm hover:bg-surface-hover"
               >
                 <span className="text-fg">{item.title}</span>
-                <span className="shrink-0 text-xs text-fg-muted">{item.disclosureDate}</span>
+                <NumericText className="shrink-0 text-xs text-fg-muted">{item.disclosureDate}</NumericText>
               </a>
             </li>
           ))}

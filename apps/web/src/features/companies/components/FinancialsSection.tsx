@@ -3,7 +3,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { FINANCIALS_PERIOD_PRESETS, type FinancialsPeriodPreset } from "@iib/domain";
 import { CategoryBarChart } from "@/components/charts/CategoryBarChart";
-import { EmptyState, ErrorState, Heading, Skeleton } from "@/components/ui";
+import { EmptyState, ErrorState, Heading, NumericText, Skeleton } from "@/components/ui";
 import {
   FINANCIALS_ANNUAL_ONLY_NOTE,
   FINANCIALS_DERIVED_FROM_CUMULATIVE_NOTE,
@@ -51,7 +51,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
               type="button"
               onClick={() => onPeriodChange(preset)}
               aria-pressed={period === preset}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
+              className={`rounded-sm px-3 py-1 text-xs ${
                 period === preset
                   ? "bg-accent text-accent-fg"
                   : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"
@@ -111,16 +111,16 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
               <tbody>
                 {query.data.items.map((item) => (
                   <tr key={`${item.fiscalYear}-${item.fiscalQuarter ?? "annual"}`} className="border-b border-border">
-                    <td className="py-2 pr-4">{buildAxisLabel(item)}</td>
-                    <td className="py-2 pr-4">
+                    <NumericText as="td" className="py-2 pr-4">{buildAxisLabel(item)}</NumericText>
+                    <NumericText as="td" className="py-2 pr-4">
                       {item.revenue === null && item.isRevenueTagUnmapped
                         ? FINANCIALS_REVENUE_UNMAPPED_NOTE
                         : formatCurrencyAmount(item.revenue, query.data.currency, "-")}
-                    </td>
-                    <td className="py-2 pr-4">
+                    </NumericText>
+                    <NumericText as="td" className="py-2 pr-4">
                       {formatCurrencyAmount(item.operatingIncome, query.data.currency, "-")}
-                    </td>
-                    <td className="py-2 pr-4">
+                    </NumericText>
+                    <NumericText as="td" className="py-2 pr-4">
                       {formatCurrencyAmount(item.netIncome, query.data.currency, "-")}
                       {item.amountBasis === "derived_from_cumulative" && (
                         <span
@@ -130,7 +130,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
                           *
                         </span>
                       )}
-                    </td>
+                    </NumericText>
                   </tr>
                 ))}
               </tbody>

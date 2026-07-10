@@ -36,7 +36,7 @@ export const ChainViewHeader = () => {
       {/* 브레드크럼 — 탐색으로 복귀 */}
       <Link
         href="/explore"
-        className="inline-flex w-fit items-center gap-1 text-xs font-medium text-fg-muted transition-colors hover:text-fg"
+        className="inline-flex w-fit items-center gap-1 text-xs text-fg-muted transition-colors hover:text-fg"
       >
         <span aria-hidden>←</span> 탐색으로
       </Link>
@@ -51,7 +51,7 @@ export const ChainViewHeader = () => {
 
           {chain.focusType === "company" && chain.focusSecurity && (
             <p className="text-sm text-fg-muted">
-              <span className="tabular">{chain.focusSecurity.ticker}</span> · {chain.focusSecurity.name}
+              <span className="font-mono tabular">{chain.focusSecurity.ticker}</span> · {chain.focusSecurity.name}
             </p>
           )}
 
@@ -59,16 +59,16 @@ export const ChainViewHeader = () => {
           <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted">
             <div className="flex items-center gap-1">
               <dt>노드</dt>
-              <dd className="tabular font-semibold text-fg">{nodeCount}</dd>
+              <dd className="font-mono tabular text-fg">{nodeCount}</dd>
             </div>
             <div className="flex items-center gap-1">
               <dt>관계</dt>
-              <dd className="tabular font-semibold text-fg">{edgeCount}</dd>
+              <dd className="font-mono tabular text-fg">{edgeCount}</dd>
             </div>
             {groupCount > 0 && (
               <div className="flex items-center gap-1">
                 <dt>그룹</dt>
-                <dd className="tabular font-semibold text-fg">{groupCount}</dd>
+                <dd className="font-mono tabular text-fg">{groupCount}</dd>
               </div>
             )}
           </dl>

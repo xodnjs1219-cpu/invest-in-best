@@ -17,7 +17,10 @@ export const TimelineBadge = ({ badge, onReturnToLatest }: TimelineBadgeProps) =
     className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] bg-accent-soft px-3 py-2 text-sm text-accent-soft-fg ring-1 ring-inset ring-accent/25"
   >
     <span>
-      {badge.selectedDate} 시점 조회 중 · 기준 스냅샷 {new Date(badge.snapshotEffectiveAt).toLocaleString("ko-KR")}
+      <span className="font-mono tabular">{badge.selectedDate}</span> 시점 조회 중 · 기준 스냅샷{" "}
+      <span className="font-mono tabular">
+        {new Date(badge.snapshotEffectiveAt).toLocaleString("ko-KR")}
+      </span>
     </span>
     <Button variant="secondary" size="sm" onClick={onReturnToLatest}>
       최신으로 돌아가기

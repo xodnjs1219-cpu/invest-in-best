@@ -29,8 +29,8 @@ export type RelationEdgeData = {
 
 export type RelationEdgeType = Edge<RelationEdgeData>;
 
-/** 화살표 색(뷰/편집 공용) — accent(기본)/danger(하이라이트). React Flow가 marker SVG로 생성. */
-const ARROW_COLOR = { default: "#6366f1", highlight: "#dc2626" } as const;
+/** 화살표 색(뷰/편집 공용) — accent(기본)/danger(하이라이트) 토큰 참조. React Flow가 marker SVG로 생성. */
+const ARROW_COLOR = { default: "var(--accent)", highlight: "var(--danger)" } as const;
 
 /**
  * 유향 관계용 화살표 markerEnd 생성 — 뷰(MindmapCanvas)·편집(selectReactFlowEdges) 공용.

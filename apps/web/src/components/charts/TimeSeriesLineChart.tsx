@@ -49,13 +49,13 @@ export const TimeSeriesLineChart = ({
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
             dataKey="x"
-            tick={{ fontSize: 11, fill: "var(--chart-text)" }}
+            tick={{ fontSize: 11, fill: "var(--chart-text)", fontFamily: "var(--font-mono)" }}
             axisLine={{ stroke: "var(--chart-grid)" }}
             tickLine={false}
             minTickGap={24}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "var(--chart-text)" }}
+            tick={{ fontSize: 11, fill: "var(--chart-text)", fontFamily: "var(--font-mono)" }}
             axisLine={false}
             tickLine={false}
             tickFormatter={yFormatter}
@@ -69,7 +69,7 @@ export const TimeSeriesLineChart = ({
                 }
                 const point = payload[0]?.payload as TimeSeriesPoint;
                 return (
-                  <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-sm">
+                  <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-ambient">
                     {renderTooltip(point)}
                   </div>
                 );

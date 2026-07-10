@@ -22,10 +22,15 @@ export interface CategorySeriesDefinition {
 }
 
 /**
- * 다중 시리즈 막대 색 — 디자인 토큰 팔레트(chartTheme.LIGHT.series)와 값 일치.
- * 다중 시리즈는 recharts `fill`에 정적 값이 필요해 CSS 변수 대신 hex를 쓴다(단일 시리즈는 var 사용).
+ * 다중 시리즈 막대 색 — globals.css `--chart-series-*` 토큰 참조(chartTheme.ts 팔레트와 값 일치).
+ * recharts `fill`은 SVG 속성이라 CSS 변수가 그대로 동작하고, 다크 전환도 토큰 재정의로 자동 대응된다.
  */
-const SERIES_COLORS = ["#6366f1", "#0891b2", "#16a34a", "#d97706"] as const;
+const SERIES_COLORS = [
+  "var(--chart-series-1)",
+  "var(--chart-series-2)",
+  "var(--chart-series-3)",
+  "var(--chart-series-4)",
+] as const;
 
 export interface CategoryBarChartProps {
   /** 단일 시리즈(기존 계약, UC-010) 또는 다중 시리즈(UC-020 확장) — series 지정 시 data는 CategorySeriesPoint[]. */
@@ -78,12 +83,12 @@ export const CategoryBarChart = ({
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
             dataKey="x"
-            tick={{ fontSize: 11, fill: "var(--chart-text)" }}
+            tick={{ fontSize: 11, fill: "var(--chart-text)", fontFamily: "var(--font-mono)" }}
             axisLine={{ stroke: "var(--chart-grid)" }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "var(--chart-text)" }}
+            tick={{ fontSize: 11, fill: "var(--chart-text)", fontFamily: "var(--font-mono)" }}
             axisLine={false}
             tickLine={false}
             tickFormatter={yFormatter}
@@ -99,13 +104,13 @@ export const CategoryBarChart = ({
                 const point = payload[0]?.payload as CategoryPoint;
                 if (point.y === null) {
                   return (
-                    <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-sm">
+                    <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-ambient">
                       {point.x}: {nullLabel}
                     </div>
                   );
                 }
                 return (
-                  <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-sm">
+                  <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-ambient">
                     {renderTooltip(point)}
                   </div>
                 );
@@ -119,8 +124,8 @@ export const CategoryBarChart = ({
                   return null;
                 }
                 return (
-                  <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-sm">
-                    <div className="mb-1 font-medium">{label}</div>
+                  <div className="rounded border border-[var(--chart-grid)] bg-[var(--chart-surface)] px-3 py-2 text-xs shadow-ambient">
+                    <div className="mb-1 font-mono tabular">{label}</div>
                     {(series ?? []).map((s) => {
                       const entry = payload.find((p) => p.dataKey === s.key);
                       const value = entry?.value as number | null | undefined;

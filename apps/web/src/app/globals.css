@@ -51,7 +51,10 @@
   --chart-surface: #ffffff;
   --chart-text: #475569;
   --chart-grid: #e2e8f0;
-  --chart-series-1: #6366f1;
+  --chart-series-1: #6366f1; /* accent(indigo) */
+  --chart-series-2: #0891b2; /* data(cyan) */
+  --chart-series-3: #16a34a; /* success */
+  --chart-series-4: #d97706; /* warning */
   --chart-series-emphasis: #4338ca;
 
   /* 반경·그림자 (rounded-lg 남발 대신 절제된 스케일) */
@@ -116,6 +119,9 @@
     --chart-text: #9aa7bd;
     --chart-grid: #1f2937;
     --chart-series-1: #818cf8;
+    --chart-series-2: #22d3ee;
+    --chart-series-3: #4ade80;
+    --chart-series-4: #fbbf24;
     --chart-series-emphasis: #a5b4fc;
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);

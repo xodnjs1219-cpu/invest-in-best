@@ -25,15 +25,15 @@ function StatCard({
   accent?: "value" | "data";
 }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-[var(--shadow-sm)]">
-      <span className="text-[11px] font-medium uppercase tracking-wide text-fg-subtle">
+    <div className="flex flex-col gap-1.5 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-ambient">
+      <span className="text-[11px] uppercase tracking-wide text-fg-subtle">
         {eyebrow}
       </span>
       {loading ? (
         <Skeleton className="h-7 w-28" />
       ) : (
         <span
-          className={`tabular text-2xl font-semibold ${accent === "data" ? "text-data" : "text-fg"}`}
+          className={`font-mono tabular text-2xl ${accent === "data" ? "text-data" : "text-fg"}`}
         >
           {value}
         </span>

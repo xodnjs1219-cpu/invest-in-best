@@ -38,7 +38,7 @@ export function QuotesSection({ query, period, onPeriodChange }: QuotesSectionPr
               type="button"
               onClick={() => onPeriodChange(preset)}
               aria-pressed={period === preset}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
+              className={`rounded-sm px-3 py-1 text-xs ${
                 period === preset
                   ? "bg-accent text-accent-fg"
                   : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"

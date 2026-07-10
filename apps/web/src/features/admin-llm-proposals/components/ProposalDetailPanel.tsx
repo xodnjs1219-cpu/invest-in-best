@@ -60,7 +60,7 @@ export function ProposalDetailPanel({
 
       {proposal.disclosure && (
         <div className="rounded-[var(--radius)] border border-border p-3 text-sm">
-          <p className="font-medium">{proposal.disclosure.title}</p>
+          <p className="text-fg">{proposal.disclosure.title}</p>
           <p className="text-xs text-fg-muted">
             {proposal.disclosure.disclosureDate} · {proposal.disclosure.source}
           </p>

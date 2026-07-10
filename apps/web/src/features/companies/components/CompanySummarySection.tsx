@@ -3,7 +3,7 @@
 import { formatInTimeZone } from "date-fns-tz";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { TIMELINE_TIMEZONE } from "@iib/domain";
-import { ErrorState, Heading, Skeleton } from "@/components/ui";
+import { ErrorState, Heading, NumericText, Skeleton } from "@/components/ui";
 import { ListingStatusBadge, MarketBadge } from "@/features/securities/components/SecurityBadges";
 import { CompanyNotFoundFallback } from "@/features/companies/components/CompanyNotFoundFallback";
 import { MarketSelectPrompt } from "@/features/companies/components/MarketSelectPrompt";
@@ -70,7 +70,7 @@ export function CompanySummarySection({ query, onMarketSelect }: CompanySummaryS
         <MarketBadge market={security.market} />
         <ListingStatusBadge status={security.listingStatus} />
       </div>
-      <p className="text-sm text-fg-muted">{security.ticker}</p>
+      <p className="font-mono tabular text-sm text-fg-muted">{security.ticker}</p>
 
       {profile ? (
         <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
@@ -89,7 +89,7 @@ export function CompanySummarySection({ query, onMarketSelect }: CompanySummaryS
           {profile.establishedDate && (
             <div>
               <dt className="text-fg-muted">설립일</dt>
-              <dd className="text-fg">{profile.establishedDate}</dd>
+              <NumericText as="dd" className="text-fg">{profile.establishedDate}</NumericText>
             </div>
           )}
           {profile.homepageUrl && (

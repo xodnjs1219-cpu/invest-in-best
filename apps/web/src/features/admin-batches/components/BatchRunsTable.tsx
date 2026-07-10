@@ -1,4 +1,4 @@
-import { Badge, EmptyState, ErrorState } from "@/components/ui";
+import { Badge, EmptyState, ErrorState, NumericText } from "@/components/ui";
 import type { BatchRunSummaryDto } from "@/features/admin-batches/backend/schema";
 import {
   BATCH_JOB_TYPE_LABELS,
@@ -92,13 +92,15 @@ export function BatchRunsTable({
                   </span>
                 )}
               </td>
-              <td className="p-2">{formatKstDateTime(run.startedAt)}</td>
-              <td className="p-2">
+              <NumericText as="td" className="p-2">
+                {formatKstDateTime(run.startedAt)}
+              </NumericText>
+              <NumericText as="td" className="p-2">
                 {isRunning ? formatElapsed(run.startedAt, now) : run.finishedAt ? formatKstDateTime(run.finishedAt) : "-"}
-              </td>
-              <td className="p-2">
+              </NumericText>
+              <NumericText as="td" className="p-2">
                 {run.processedCount.toLocaleString("ko-KR")} / {run.failedCount.toLocaleString("ko-KR")}
-              </td>
+              </NumericText>
               <td className="p-2">{run.targetMarket ?? "-"}</td>
             </tr>
           );

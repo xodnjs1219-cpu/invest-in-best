@@ -59,7 +59,7 @@ export const DashboardPanel = () => {
           {dailyMetrics.status === "ready" && (
             <div className="space-y-3">
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-semibold text-fg">
+                <span className="font-mono tabular text-2xl text-fg">
                   {formatKrwCompactOrNull(dailyMetrics.current?.totalMarketCapKrw ?? null, "지표 미산출")}
                 </span>
                 {dailyMetrics.current?.isCarriedForward && <Badge tone="warning">이월값</Badge>}
@@ -106,7 +106,7 @@ export const DashboardPanel = () => {
           {quarterlyMetrics.status === "ready" && (
             <div className="space-y-3">
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-semibold text-fg">
+                <span className="font-mono tabular text-2xl text-fg">
                   {quarterlyMetrics.current
                     ? formatKrwCompactOrNull(quarterlyMetrics.current.totalRevenueKrw, "지표 미산출")
                     : "미제공"}
