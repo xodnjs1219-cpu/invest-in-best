@@ -21,13 +21,37 @@ export interface GroupBounds {
   height: number;
 }
 
+/** bounds 계산에서 가정할 노드 치수/패딩 — 미지정 시 카드형(box) 기본값. */
+export interface GroupBoundsOptions {
+  nodeWidth?: number;
+  nodeHeight?: number;
+  padding?: number;
+}
+
+/**
+ * 뷰어 원형(circle) 모드 bounds 옵션 — 노드 프레젠터의 92px 원(`h-[92px]`)과 짝.
+ * 그룹이 rounded-full(타원)로 렌더되어 모서리가 깎이므로 패딩을 넉넉히 줘
+ * 경계가 멤버 원을 자르지 않게 한다.
+ */
+export const CIRCLE_NODE_BOUNDS: GroupBoundsOptions = {
+  nodeWidth: 92,
+  nodeHeight: 92,
+  padding: 36,
+};
+
 /**
  * 멤버 절대 좌표들의 bounding box + 패딩·헤더 여백을 계산한다.
  * 멤버 0개(빈 그룹)는 EMPTY_GROUP_SIZE와 인덱스 기반 스택 폴백 위치를 반환한다
  * (결정적 — 그룹 좌표는 비영속이므로 파생 배치. 빈 그룹 전환 시 위치가 폴백으로
  * 이동하는 것은 알려진 MVP 제약).
+ * `options`로 노드 치수를 표시 모양에 맞출 수 있다(뷰어 원형 모드 — 렌더·드래그 환원이
+ * 반드시 같은 옵션을 써야 좌표가 튀지 않는다).
  */
-export function computeGroupBounds(memberPositions: XYPosition[], index: number): GroupBounds {
+export function computeGroupBounds(
+  memberPositions: XYPosition[],
+  index: number,
+  options?: GroupBoundsOptions,
+): GroupBounds {
   if (memberPositions.length === 0) {
     return {
       position: {
@@ -39,6 +63,10 @@ export function computeGroupBounds(memberPositions: XYPosition[], index: number)
     };
   }
 
+  const nodeWidth = options?.nodeWidth ?? NODE_DEFAULT_WIDTH;
+  const nodeHeight = options?.nodeHeight ?? NODE_DEFAULT_HEIGHT;
+  const padding = options?.padding ?? GROUP_PADDING;
+
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -47,14 +75,14 @@ export function computeGroupBounds(memberPositions: XYPosition[], index: number)
   for (const pos of memberPositions) {
     minX = Math.min(minX, pos.x);
     minY = Math.min(minY, pos.y);
-    maxX = Math.max(maxX, pos.x + NODE_DEFAULT_WIDTH);
-    maxY = Math.max(maxY, pos.y + NODE_DEFAULT_HEIGHT);
+    maxX = Math.max(maxX, pos.x + nodeWidth);
+    maxY = Math.max(maxY, pos.y + nodeHeight);
   }
 
   return {
-    position: { x: minX - GROUP_PADDING, y: minY - GROUP_PADDING - GROUP_HEADER_HEIGHT },
-    width: maxX - minX + GROUP_PADDING * 2,
-    height: maxY - minY + GROUP_PADDING * 2 + GROUP_HEADER_HEIGHT,
+    position: { x: minX - padding, y: minY - padding - GROUP_HEADER_HEIGHT },
+    width: maxX - minX + padding * 2,
+    height: maxY - minY + padding * 2 + GROUP_HEADER_HEIGHT,
   };
 }
 

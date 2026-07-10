@@ -26,6 +26,7 @@ import { GroupNode, type GroupNodeType } from "@/components/mindmap/GroupNode";
 import { RelationEdge, directedArrowMarker } from "@/components/mindmap/RelationEdge";
 import type { NodeShape, RenderGraph } from "@/components/mindmap/types";
 import {
+  CIRCLE_NODE_BOUNDS,
   computeGroupBounds,
   toAbsolutePosition,
   toRelativePosition,
@@ -56,12 +57,15 @@ const toReactFlowElements = (
 ): { nodes: Node[]; edges: Edge[] } => {
   // 그룹 크기는 고정이 아니라 멤버 노드들의 bounding box에 맞춰 계산한다(편집기와 동일 규칙).
   // 그룹 좌표는 비영속 파생값이므로 항상 멤버 절대 좌표에서 유도하고, 멤버는 상대 좌표로 변환한다.
+  // 원형 모드는 노드 치수가 92px 원이므로 bounds도 같은 치수로 계산한다(박스 치수로 계산하면
+  // 원이 그룹 경계 아래로 삐져나오고 우측 여백이 과도해진다).
+  const boundsOptions = nodeShape === "circle" ? CIRCLE_NODE_BOUNDS : undefined;
   const groupBoundsById = new Map<string, ReturnType<typeof computeGroupBounds>>();
   renderGraph.groups.forEach((group, index) => {
     const memberPositions = renderGraph.nodes
       .filter((n) => n.groupId === group.id)
       .map((n) => n.position);
-    groupBoundsById.set(group.id, computeGroupBounds(memberPositions, index));
+    groupBoundsById.set(group.id, computeGroupBounds(memberPositions, index, boundsOptions));
   });
 
   const groupNodes: Node<GroupNodeType["data"]>[] = renderGraph.groups.map((group, groupIndex) => {
@@ -245,6 +249,8 @@ const MindmapCanvasInner = () => {
    * 멤버 노드들에 적용해 함께 옮긴다(그룹 좌표는 멤버에서 파생되므로 멤버를 옮기면 그룹이 따라온다).
    */
   const handleDragStop = (nodeId: string, position: { x: number; y: number }) => {
+    // bounds 옵션은 렌더(toReactFlowElements)와 반드시 동일해야 드래그 좌표가 튀지 않는다.
+    const boundsOptions = nodeShape === "circle" ? CIRCLE_NODE_BOUNDS : undefined;
     if (nodeId.startsWith("group:") && renderGraph) {
       const groupId = nodeId.slice("group:".length);
       const memberPositions = renderGraph.nodes
@@ -252,7 +258,7 @@ const MindmapCanvasInner = () => {
         .map((n) => n.position);
       if (memberPositions.length === 0) return;
       const groupIndex = renderGraph.groups.findIndex((g) => g.id === groupId);
-      const before = computeGroupBounds(memberPositions, groupIndex);
+      const before = computeGroupBounds(memberPositions, groupIndex, boundsOptions);
       const dx = position.x - before.position.x;
       const dy = position.y - before.position.y;
       if (dx === 0 && dy === 0) return;
@@ -272,7 +278,7 @@ const MindmapCanvasInner = () => {
         .filter((n) => n.groupId === dragged.groupId)
         .map((n) => n.position);
       const groupIndex = renderGraph!.groups.findIndex((g) => g.id === dragged.groupId);
-      const bounds = computeGroupBounds(memberPositions, groupIndex);
+      const bounds = computeGroupBounds(memberPositions, groupIndex, boundsOptions);
       commitNodeDrag(nodeId, toAbsolutePosition(position, bounds.position));
       return;
     }

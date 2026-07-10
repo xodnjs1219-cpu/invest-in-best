@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  CIRCLE_NODE_BOUNDS,
   computeGroupBounds,
   toAbsolutePosition,
   toRelativePosition,
   GROUP_PADDING,
+  GROUP_HEADER_HEIGHT,
   NODE_DEFAULT_WIDTH,
   NODE_DEFAULT_HEIGHT,
   EMPTY_GROUP_SIZE,
@@ -16,6 +18,17 @@ describe("computeGroupBounds", () => {
     expect(bounds.position.y).toBeLessThan(0);
     expect(bounds.width).toBeGreaterThan(100);
     expect(bounds.height).toBeGreaterThan(50);
+  });
+
+  it("options 지정(원형 모드) → 노드 치수·패딩이 옵션 값으로 계산된다", () => {
+    const box = computeGroupBounds([{ x: 0, y: 0 }], 0);
+    const circle = computeGroupBounds([{ x: 0, y: 0 }], 0, CIRCLE_NODE_BOUNDS);
+    // 원형: 92 + 2×36 = 164 (박스: 160 + 2×24 = 208과 다름)
+    expect(circle.width).toBe(92 + 36 * 2);
+    expect(circle.height).toBe(92 + 36 * 2 + GROUP_HEADER_HEIGHT);
+    expect(circle.width).not.toBe(box.width);
+    // 미지정 시 기본(박스) 치수 유지 — 하위호환
+    expect(box.width).toBe(NODE_DEFAULT_WIDTH + GROUP_PADDING * 2);
   });
 
   it("멤버 1개 → 노드 추정 크기 기준 유한 bbox(0 크기 아님)", () => {

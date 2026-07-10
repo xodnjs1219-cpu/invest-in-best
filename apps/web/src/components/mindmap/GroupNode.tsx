@@ -83,8 +83,9 @@ export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
       data-tone={toneIndex}
       className={`h-full w-full border border-dashed p-2 ${shapeClass} ${chromeClass} ${selectedClass}`}
     >
+      {/* 원형(타원) 모드는 상단 곡선이 좁아 라벨을 안쪽(더 넓은 지점)으로 내리고 중앙 정렬한다. */}
       <div
-        className={`flex items-center gap-2 ${isCircle ? "justify-center" : "justify-between"}`}
+        className={`flex items-center gap-2 ${isCircle ? "justify-center px-6 pt-4" : "justify-between"}`}
       >
         <span className={`truncate text-xs ${tone.text}`}>{data.label}</span>
         {data.onToggleCollapse && (
