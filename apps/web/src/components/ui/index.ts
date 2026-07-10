@@ -8,4 +8,5 @@ export { Card } from "./Card";
 export { Badge, type BadgeTone } from "./Badge";
 export { PageShell } from "./PageShell";
 export { Heading } from "./Heading";
+export { NumericText } from "./NumericText";
 export { Skeleton, ErrorState, EmptyState } from "./states";

@@ -12,19 +12,20 @@ export type ButtonVariant = "primary" | "danger" | "secondary" | "ghost" | "link
 export type ButtonSize = "sm" | "md";
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap rounded-[var(--radius)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50";
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-accent text-accent-fg hover:bg-accent-hover shadow-[var(--shadow-sm)]",
-  danger: "bg-danger text-white hover:bg-danger-hover shadow-[var(--shadow-sm)]",
+  primary: "bg-accent text-accent-fg hover:bg-accent-hover shadow-ambient",
+  danger: "bg-danger text-accent-fg hover:bg-danger-hover shadow-ambient",
   secondary: "border border-border bg-surface-raised text-fg hover:bg-surface-hover",
   ghost: "text-fg-muted hover:bg-surface-hover hover:text-fg",
   link: "text-accent underline underline-offset-2 hover:text-accent-hover",
 };
 
+/* DESIGN.md §3 Button(16px/400) + §8 터치 타깃(md 40px / sm 32px — sm은 데스크톱 밀집 UI 전용) */
 const SIZES: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-xs",
-  md: "px-4 py-2 text-sm",
+  sm: "min-h-8 px-3 py-1 text-sm",
+  md: "min-h-10 px-4 py-2 text-base",
 };
 
 type CommonProps = {

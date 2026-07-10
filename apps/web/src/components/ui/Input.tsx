@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils/cn";
  * 감사 결과 모든 input이 무스타일 raw HTML이었다 — 테두리·포커스 링·placeholder 색을 토큰으로 통일한다.
  * `invalid` prop이 true면 danger 경계로 에러 상태를 시각화한다(aria-invalid도 함께 설정).
  */
+/* §4 Inputs: 가라앉은 표면(surface-sunken) + radius-sm — 카드 위에서 입력 영역이 스스로 구분된다. */
 const FIELD_BASE =
-  "w-full rounded-[var(--radius)] border bg-surface-raised px-3 py-2 text-sm text-fg placeholder:text-fg-subtle transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full rounded-sm border bg-surface-sunken px-3 py-2 text-sm text-fg placeholder:text-fg-subtle transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-60";
 
 const borderClass = (invalid?: boolean) => (invalid ? "border-danger" : "border-border");
 

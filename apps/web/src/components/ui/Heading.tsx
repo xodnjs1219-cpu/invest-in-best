@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
 /**
- * 공용 제목 프리미티브 (타입 스케일 통일).
- * 감사 결과 h1이 text-lg/xl/2xl, font-semibold/bold로 흩어져 있었다 — level 단위로 스케일을 확정한다.
- * level 1=페이지 제목, 2=섹션 제목, 3=패널 소제목.
+ * 공용 제목 프리미티브 (타입 스케일 통일, DESIGN.md §3).
+ * 시그니처 = weight 300 + 네거티브 트래킹(text-heading/subheading/body-lg 복합 토큰에 내장).
+ * 가벼움이 권위다 — 웨이트가 아니라 크기·트래킹·색으로 위계를 만든다.
+ * level 1=페이지 제목(32px), 2=섹션 제목(22px), 3=패널 소제목(18px).
  */
 type HeadingProps = {
   level?: 1 | 2 | 3;
@@ -14,9 +15,9 @@ type HeadingProps = {
 };
 
 const STYLES: Record<NonNullable<HeadingProps["level"]>, string> = {
-  1: "text-2xl font-bold tracking-tight text-fg text-balance",
-  2: "text-lg font-semibold text-fg",
-  3: "text-sm font-semibold text-fg",
+  1: "text-heading text-fg text-balance",
+  2: "text-subheading text-fg",
+  3: "text-body-lg text-fg",
 };
 
 export function Heading({ level = 2, className, children, id }: HeadingProps) {

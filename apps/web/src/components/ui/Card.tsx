@@ -12,9 +12,9 @@ export function Card({ className, interactive, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-lg)] border border-border bg-surface-raised shadow-[var(--shadow-sm)]",
+        "rounded-[var(--radius-lg)] border border-border bg-surface-raised shadow-standard",
         interactive &&
-          "cursor-pointer transition hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]",
+          "cursor-pointer transition hover:-translate-y-0.5 hover:border-border-strong hover:shadow-elevated",
         className,
       )}
       {...props}
