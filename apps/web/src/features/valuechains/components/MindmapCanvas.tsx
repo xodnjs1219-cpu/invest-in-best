@@ -211,11 +211,14 @@ const MindmapCanvasInner = () => {
     return set;
   }, [activeNodeId, edges]);
 
+  // hover마다 전체 노드/엣지를 새 객체로 만들면 React Flow가 전량 리렌더한다(대형 그래프 INP 스파이크).
+  // 강조 플래그가 실제로 바뀌는 항목만 새 객체로 교체하고 나머지는 참조를 보존한다.
   const displayNodes = useMemo(() => {
     if (!neighborIds) return nodes;
     return nodes.map((n) => {
       if (n.type === "groupNode") return n;
       const emphasized = neighborIds.has(n.id);
+      if (n.data.isEmphasized === emphasized && n.data.isDimmed === !emphasized) return n;
       return { ...n, data: { ...n.data, isEmphasized: emphasized, isDimmed: !emphasized } };
     });
   }, [nodes, neighborIds]);
@@ -224,6 +227,7 @@ const MindmapCanvasInner = () => {
     if (!activeNodeId) return edges;
     return edges.map((e) => {
       const connected = e.source === activeNodeId || e.target === activeNodeId;
+      if (e.data?.isEmphasized === connected && e.data?.isDimmed === !connected) return e;
       return { ...e, data: { ...e.data, isEmphasized: connected, isDimmed: !connected } };
     });
   }, [edges, activeNodeId]);
@@ -351,7 +355,7 @@ const MindmapCanvasInner = () => {
           className="pointer-events-none absolute inset-0 flex items-center justify-center bg-surface-raised/50"
         >
           <span className="rounded-[var(--radius)] bg-fg/80 px-4 py-2 text-sm text-surface-raised">
-            시점 구성을 불러오는 중…
+            시점 구성을 불러오는 중...
           </span>
         </div>
       )}

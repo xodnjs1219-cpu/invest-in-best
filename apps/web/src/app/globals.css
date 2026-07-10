@@ -18,15 +18,15 @@
   /* 텍스트 */
   --fg: #0f172a; /* 본문 (slate-900) */
   --fg-muted: #475569; /* 보조 (slate-600) */
-  --fg-subtle: #94a3b8; /* 캡션·placeholder (slate-400) */
+  --fg-subtle: #64748b; /* 캡션·placeholder (slate-500) — WCAG AA 4.76:1, 구 slate-400은 2.45:1 미달 */
 
   /* 경계 */
   --border: #e2e8f0; /* slate-200 */
   --border-strong: #cbd5e1; /* slate-300 */
 
-  /* 액센트 (primary = indigo-violet, 랜딩 네온의 앵커) */
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
+  /* 액센트 (primary = indigo-violet) — WCAG AA: 흰 텍스트 대비 6.3:1 (구 #6366f1은 4.46:1 미달) */
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
   --accent-fg: #ffffff;
   --accent-soft: #eef2ff; /* 액센트 배경 틴트 (indigo-50) */
   --accent-soft-fg: #4338ca;
@@ -89,7 +89,7 @@
 
     --fg: #e5e9f0;
     --fg-muted: #9aa7bd;
-    --fg-subtle: #64748b;
+    --fg-subtle: #7a8696; /* WCAG AA — 구 #64748b은 다크 바닥 대비 4.02:1 미달 */
 
     --border: #1f2937;
     --border-strong: #334155;
@@ -240,6 +240,13 @@ body {
   font-feature-settings: "tnum";
 }
 
+/* 브랜드 포커스 링 폴백(§4/§9) — focus-visible 클래스를 빠뜨린 raw 컨트롤도 UA 기본 대신
+   토큰 링을 받는다. Tailwind 유틸(ring)이 있는 요소는 그쪽 스타일이 우선 적용된다. */
+:where(button, [role="tab"], [role="button"], summary):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 /* ── 랜딩페이지 애니메이션 ──────────────────────────────── */
 
 @keyframes landing-rise {
@@ -315,15 +322,26 @@ body {
   }
 }
 
-/* 흐르는 빛 오버레이 path — 유향 엣지에만 적용. */
+/* 흐르는 빛 오버레이 path — 유향 엣지에만 적용.
+   stroke-dashoffset는 매 프레임 메인 스레드 페인트라, 기본은 정지시키고
+   hover로 강조된 엣지에만 재생한다(유휴 캔버스 페인트 N개→0, §15 "도구는 안정적"). */
 .mm-edge-flow {
   stroke-dasharray: 4 8;
   animation: mm-edge-flow 0.9s linear infinite;
+  animation-play-state: paused;
+}
+.mm-edge-flow.mm-highlighted {
+  animation-play-state: running;
 }
 
 /* 노드 진입 애니메이션 클래스(노드 래퍼에 부여). motion-slow + ease-enter. */
 .mm-node-enter {
   animation: mm-node-enter var(--motion-slow) cubic-bezier(0.2, 0.6, 0.25, 1) both;
+}
+
+/* 패널/시트 등장(§15.2) — motion-standard + ease-enter. 조건부 마운트되는 사이드 패널에 부여. */
+.panel-enter {
+  animation: mm-node-enter var(--motion-standard) cubic-bezier(0.2, 0.6, 0.25, 1) both;
 }
 
 /* hover 강조/흐림(dim) — React Flow 노드/엣지 래퍼에 상태 클래스로 제어.
@@ -362,7 +380,8 @@ body {
   }
   [data-animate-landing],
   .mm-edge-flow,
-  .mm-node-enter {
+  .mm-node-enter,
+  .panel-enter {
     animation: none !important;
   }
 }

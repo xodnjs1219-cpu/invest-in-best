@@ -34,7 +34,7 @@ export const FINANCIALS_RETRY_LABEL = "다시 시도";
 export const DISCLOSURES_EMPTY_MESSAGE = "공시 내역이 없습니다.";
 export const DISCLOSURES_SECTION_ERROR_MESSAGE = "공시 목록을 불러오지 못했습니다.";
 export const DISCLOSURES_LOAD_MORE_LABEL = "더보기";
-export const DISCLOSURES_LOADING_MORE_LABEL = "불러오는 중…";
+export const DISCLOSURES_LOADING_MORE_LABEL = "불러오는 중...";
 
 export const QUOTES_UNCONFIRMED_LABEL = "종가 미확정";
 export const QUOTES_SECTION_ERROR_MESSAGE = "주가·시가총액 정보를 불러오지 못했습니다.";

@@ -62,11 +62,12 @@ export const TimelineSlider = ({ range, markers, selectedDate, onSelectDate }: T
             const idx = toDayIndex(markerDate, range.minDate);
             const pct = maxIndex === 0 ? 0 : (idx / maxIndex) * 100;
             return (
+              /* 시각 마커(2×4px)는 ::before로 그리고 버튼 히트 영역은 20×16px로 확장(§8 터치 타깃) */
               <button
                 key={marker.snapshotId}
                 type="button"
                 aria-label={`스냅샷 마커 ${markerDate}`}
-                className="pointer-events-auto absolute h-2 w-1 -translate-x-1/2 rounded-[var(--radius-sm)] bg-fg-muted"
+                className="pointer-events-auto absolute -top-1.5 h-5 w-4 -translate-x-1/2 before:absolute before:left-1/2 before:top-1.5 before:h-2 before:w-1 before:-translate-x-1/2 before:rounded-[var(--radius-sm)] before:bg-fg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 style={{ left: `${pct}%` }}
                 onClick={() => onSelectDate(markerDate as IsoDate)}
               />

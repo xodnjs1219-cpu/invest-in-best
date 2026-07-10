@@ -20,7 +20,7 @@ export const NodeInfoPanel = () => {
   }
 
   return (
-    <Card as="aside" data-testid="node-info-panel" className="p-4" aria-label="노드 정보 패널">
+    <Card as="aside" data-testid="node-info-panel" className="panel-enter p-4" aria-label="노드 정보 패널">
       {nodePanel.status === "loading" && (
         <div data-testid="node-panel-skeleton" className="space-y-2">
           <Skeleton className="h-4 w-1/2" />
