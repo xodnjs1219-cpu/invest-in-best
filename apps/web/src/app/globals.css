@@ -2,10 +2,10 @@
 
 /*
  * ─────────────────────────────────────────────────────────────
- * invest-in-best 디자인 토큰 (SOT)
+ * invest-in-best 디자인 토큰 (SOT — DESIGN.md와 충돌 시 이 파일이 우선)
  * 뉴트럴은 순수 회색이 아니라 slate(청색 편향) — 액센트(indigo/cyan)와 계보를 잇는다.
- * 라이트가 기본, 다크는 아래에서 토큰만 재정의한다(컴포넌트는 토큰만 참조).
- * 랜딩은 자체 다크 세계를 강제하므로 이 토큰과 독립적으로 어두운 배경을 고정한다.
+ * 라이트가 기본, 다크는 아래에서 토큰만 재정의한다(컴포넌트는 토큰만 참조, dark: variant 금지).
+ * 랜딩을 포함한 전 화면이 이 토큰을 따른다 — 화면별 예외 없음.
  * ─────────────────────────────────────────────────────────────
  */
 :root {
@@ -221,9 +221,9 @@
   --text-body-lg--line-height: 1.4;
   --text-body-lg--font-weight: 300;
 
-  /* 랜딩 진입 애니메이션 키프레임 */
-  --animate-landing-rise: landing-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-  --animate-landing-float: landing-float 6s ease-in-out infinite;
+  /* 랜딩 진입 애니메이션 키프레임 — 진입은 motion-slow + ease-enter(§15).
+     aurora/pulse-line 루프는 전환이 아닌 앰비언스라 모션 토큰 지배 대상이 아니다. */
+  --animate-landing-rise: landing-rise var(--motion-slow) cubic-bezier(0.2, 0.6, 0.25, 1) both;
   --animate-landing-pulse-line: landing-pulse-line 3.2s ease-in-out infinite;
   --animate-landing-aurora: landing-aurora 14s ease-in-out infinite alternate;
 
@@ -254,16 +254,6 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes landing-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
   }
 }
 
