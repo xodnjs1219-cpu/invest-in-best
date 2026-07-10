@@ -74,4 +74,14 @@ describe("GroupNode", () => {
     // Assert
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
+  it("tone은 4색 순환 — tone=5는 data-tone=1로 렌더된다", () => {
+    renderNode(buildProps({ tone: 5 }));
+    expect(screen.getByTestId("group-node")).toHaveAttribute("data-tone", "1");
+  });
+
+  it("tone 미전달 시 data-tone=0 (기본)", () => {
+    renderNode(buildProps());
+    expect(screen.getByTestId("group-node")).toHaveAttribute("data-tone", "0");
+  });
+
 });

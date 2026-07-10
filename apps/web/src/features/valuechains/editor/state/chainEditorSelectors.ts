@@ -238,7 +238,7 @@ export function selectReactFlowNodes(
     groupBoundsById.set(group.clientGroupId, computeGroupBounds(memberPositions, index));
   });
 
-  const groupNodes: EditorFlowGroupNode[] = groupEntries.map((group) => {
+  const groupNodes: EditorFlowGroupNode[] = groupEntries.map((group, groupIndex) => {
     const bounds = groupBoundsById.get(group.clientGroupId)!;
     const memberCount = membership.get(group.clientGroupId)?.length ?? 0;
     return {
@@ -256,6 +256,7 @@ export function selectReactFlowNodes(
         memberCount,
         isEmpty: memberCount === 0,
         isHighlighted: highlightGroupIds.has(group.clientGroupId),
+        tone: groupIndex,
       },
     } satisfies EditorFlowGroupNode;
   });

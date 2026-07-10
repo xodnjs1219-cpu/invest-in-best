@@ -57,7 +57,7 @@ const toReactFlowElements = (
     groupBoundsById.set(group.id, computeGroupBounds(memberPositions, index));
   });
 
-  const groupNodes: Node<GroupNodeType["data"]>[] = renderGraph.groups.map((group) => {
+  const groupNodes: Node<GroupNodeType["data"]>[] = renderGraph.groups.map((group, groupIndex) => {
     const bounds = groupBoundsById.get(group.id)!;
     return {
       id: `group:${group.id}`,
@@ -71,6 +71,7 @@ const toReactFlowElements = (
         memberCount: group.memberCount,
         onToggleCollapse: () => onToggleCollapse(group.id),
         shape: nodeShape,
+        tone: groupIndex,
       },
       style: { width: bounds.width, height: bounds.height },
     };

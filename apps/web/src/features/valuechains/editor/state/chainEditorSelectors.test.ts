@@ -404,6 +404,17 @@ describe("chainEditorSelectors", () => {
     expect(groupNode?.data).toMatchObject({ isHighlighted: true });
   });
 
+  it("RF 매핑: 그룹 배열 인덱스가 data.tone으로 주입된다 (4색 순환 팔레트)", () => {
+    let state = buildGroupedState();
+    state = chainEditorReducer(state, {
+      type: "GROUP_CREATED",
+      payload: { clientGroupId: "g2", name: "두번째", memberNodeIds: ["n3"] },
+    });
+    const nodes = selectReactFlowNodes(state);
+    expect(nodes.find((n) => n.id === "g1")?.data).toMatchObject({ tone: 0 });
+    expect(nodes.find((n) => n.id === "g2")?.data).toMatchObject({ tone: 1 });
+  });
+
   // ==========================================================================
   // UC-018: 저장 직렬화·이슈 하이라이트 셀렉터
   // ==========================================================================

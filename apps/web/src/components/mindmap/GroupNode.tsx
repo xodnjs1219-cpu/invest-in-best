@@ -14,11 +14,41 @@ export type GroupNodeData = {
   isHighlighted?: boolean;
   /** 뷰어 노드 모양 — "circle"이면 클러스터도 원형(타원)으로 표시. 기본 "box"(둥근 사각형). */
   shape?: NodeShape;
+  /** 그룹 배열 인덱스 — 4색 순환 tone(DESIGN.md §2 그룹 팔레트). 미전달 시 0. */
+  tone?: number;
 };
 
 export type GroupNodeType = Node<GroupNodeData>;
 
 const EMPTY_BADGE_LABEL = "저장 시 제외";
+
+/** 그룹 tone 4색 순환(§2) — chart-series 계보. 정적 클래스 배열(JIT 퍼지 안전). */
+const GROUP_TONES = [
+  {
+    border: "border-mm-group-1/40",
+    fill: "bg-mm-group-1-soft/60",
+    fillEmpty: "bg-mm-group-1-soft/40",
+    text: "text-mm-group-1-fg",
+  },
+  {
+    border: "border-mm-group-2/40",
+    fill: "bg-mm-group-2-soft/60",
+    fillEmpty: "bg-mm-group-2-soft/40",
+    text: "text-mm-group-2-fg",
+  },
+  {
+    border: "border-mm-group-3/40",
+    fill: "bg-mm-group-3-soft/60",
+    fillEmpty: "bg-mm-group-3-soft/40",
+    text: "text-mm-group-3-fg",
+  },
+  {
+    border: "border-mm-group-4/40",
+    fill: "bg-mm-group-4-soft/60",
+    fillEmpty: "bg-mm-group-4-soft/40",
+    text: "text-mm-group-4-fg",
+  },
+] as const;
 
 /**
  * 그룹(클러스터) 노드 컴포넌트 (plan 모듈 A8·UC-017 M11) — 배경 영역 + 그룹 라벨.
@@ -26,18 +56,21 @@ const EMPTY_BADGE_LABEL = "저장 시 제외";
  * 뷰: 접힘 상태면 라벨 + "노드 n개" 요약만 표시(E4). 멤버 0개여도 라벨만 있는 빈 클러스터 렌더(C-1).
  * 편집: `isEmpty`(빈 그룹 — 점선 강조 + "저장 시 제외" 배지)·`isHighlighted`(오류 위치 표시)·
  * `selected`(React Flow 표준 prop — 선택 강조) 스타일 분기. 연결 핸들 없음(그룹은 엣지 대상 아님).
+ * 색은 그룹 인덱스 기반 4색 순환(tone) — 422 하이라이트(danger)는 tone보다 우선한다.
  */
 export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
   const isEmpty = data.isEmpty ?? false;
   const isHighlighted = data.isHighlighted ?? false;
+  const toneIndex = (data.tone ?? 0) % GROUP_TONES.length;
+  const tone = GROUP_TONES[toneIndex];
 
   const isCircle = data.shape === "circle";
-  const borderClass = isHighlighted
+  const chromeClass = isHighlighted
     ? "border-danger/50 bg-danger-soft/50"
     : isEmpty
-      ? "border-accent/40 bg-accent-soft/40"
-      : "border-accent/30 bg-accent-soft/60";
-  const selectedClass = selected ? (isCircle ? "ring-2 ring-accent/50" : "ring-2 ring-accent/50") : "";
+      ? `${tone.border} ${tone.fillEmpty}`
+      : `${tone.border} ${tone.fill}`;
+  const selectedClass = selected ? "ring-2 ring-ring" : "";
   // 원형 클러스터는 rounded-full로 타원/원형 영역을 만든다(bounds가 정사각이면 정원).
   // 둥근 모서리에 라벨이 잘리지 않도록, 원형에서는 라벨을 상단 중앙에 배치한다.
   const shapeClass = isCircle ? "rounded-full" : "rounded-xl";
@@ -47,30 +80,33 @@ export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
       data-testid="group-node"
       data-empty={isEmpty || undefined}
       data-highlighted={isHighlighted || undefined}
-      className={`h-full w-full border-2 border-dashed p-2 ${shapeClass} ${borderClass} ${selectedClass}`}
+      data-tone={toneIndex}
+      className={`h-full w-full border border-dashed p-2 ${shapeClass} ${chromeClass} ${selectedClass}`}
     >
       <div
         className={`flex items-center gap-2 ${isCircle ? "justify-center" : "justify-between"}`}
       >
-        <span className="truncate text-xs text-accent-soft-fg">{data.label}</span>
+        <span className={`truncate text-xs ${tone.text}`}>{data.label}</span>
         {data.onToggleCollapse && (
           <button
             type="button"
             onClick={data.onToggleCollapse}
-            className="rounded px-1.5 py-0.5 text-[10px] text-accent hover:bg-accent-soft"
+            className={`rounded-sm px-1.5 py-0.5 text-xs ${tone.text} hover:bg-surface-raised/60`}
             aria-label={data.isCollapsed ? "그룹 펼치기" : "그룹 접기"}
           >
             {data.isCollapsed ? "펼치기" : "접기"}
           </button>
         )}
         {isEmpty && (
-          <span className="rounded-sm bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent-soft-fg ring-1 ring-inset ring-accent/25">
+          <span
+            className={`rounded-sm bg-surface-raised/80 px-1.5 py-0.5 text-[10px] ${tone.text} ring-1 ring-inset ring-border`}
+          >
             {EMPTY_BADGE_LABEL}
           </span>
         )}
       </div>
       {data.isCollapsed && (
-        <div className="mt-1 text-[11px] text-accent-soft-fg">노드 {data.memberCount}개</div>
+        <div className={`mt-1 text-xs ${tone.text}`}>노드 {data.memberCount}개</div>
       )}
     </div>
   );
