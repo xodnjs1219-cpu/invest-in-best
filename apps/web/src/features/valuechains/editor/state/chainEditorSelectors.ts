@@ -253,7 +253,6 @@ export function selectReactFlowNodes(
       zIndex: -1,
       data: {
         label: group.name,
-        memberCount,
         isEmpty: memberCount === 0,
         isHighlighted: highlightGroupIds.has(group.clientGroupId),
         tone: groupIndex,

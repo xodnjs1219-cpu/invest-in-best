@@ -27,7 +27,6 @@ vi.mock("@/features/valuechains/context/chain-view-context", async () => {
 const mockActions = () => {
   const actions = {
     commitNodeDrag: vi.fn(),
-    toggleGroupCollapse: vi.fn(),
     retryStructure: vi.fn(),
     changeDashboardRange: vi.fn(),
     retryDailyMetrics: vi.fn(),
@@ -161,7 +160,7 @@ describe("MindmapCanvas", () => {
       renderGraph: {
         nodes: [],
         edges: [],
-        groups: [{ id: "g1", label: "소재", isCollapsed: false, memberCount: 0 }],
+        groups: [{ id: "g1", label: "소재" }],
       },
       selectedNodeId: null,
     } as never);

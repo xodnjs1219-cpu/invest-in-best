@@ -56,7 +56,6 @@ describe("createInitialChainViewState", () => {
     expect(state.nodePanel.selectedNodeId).toBeNull();
     expect(state.dashboard.range).toEqual({ kind: "preset", preset: "1Y" });
     expect(state.canvas.localNodePositions).toEqual({});
-    expect(state.canvas.collapsedGroupIds).toEqual([]);
   });
 });
 
@@ -64,11 +63,11 @@ describe("chainViewReducer", () => {
   const baseState: ChainViewState = createInitialChainViewState({ atParam: null, today: TODAY });
 
   describe("TIMELINE_DATE_SELECTED", () => {
-    it("S1=D + S3=null·S5={}·S6=[] 동시 초기화, S2·S4는 불변", () => {
+    it("S1=D + S3=null·S5={} 동시 초기화, S2·S4는 불변", () => {
       const dirtyState: ChainViewState = {
         ...baseState,
         nodePanel: { selectedNodeId: "n1" },
-        canvas: { localNodePositions: { n1: { x: 1, y: 2 } }, collapsedGroupIds: ["g1"] },
+        canvas: { localNodePositions: { n1: { x: 1, y: 2 } } },
         timeline: { selectedDate: null, lastAppliedDate: D2 },
       };
 
@@ -80,7 +79,6 @@ describe("chainViewReducer", () => {
       expect(next.timeline.selectedDate).toBe(D1);
       expect(next.nodePanel.selectedNodeId).toBeNull();
       expect(next.canvas.localNodePositions).toEqual({});
-      expect(next.canvas.collapsedGroupIds).toEqual([]);
       expect(next.timeline.lastAppliedDate).toBe(D2);
       expect(next.dashboard.range).toEqual(dirtyState.dashboard.range);
     });
@@ -159,12 +157,12 @@ describe("chainViewReducer", () => {
   });
 
   describe("TIMELINE_RETURNED_TO_LATEST", () => {
-    it("S1=null + S3/S5/S6 초기화, S4 유지", () => {
+    it("S1=null + S3/S5 초기화, S4 유지", () => {
       const state: ChainViewState = {
         ...baseState,
         timeline: { selectedDate: D1, lastAppliedDate: D1 },
         nodePanel: { selectedNodeId: "n1" },
-        canvas: { localNodePositions: { n1: { x: 1, y: 2 } }, collapsedGroupIds: ["g1"] },
+        canvas: { localNodePositions: { n1: { x: 1, y: 2 } } },
         dashboard: { range: { kind: "preset", preset: "3M" } },
       };
 
@@ -173,7 +171,6 @@ describe("chainViewReducer", () => {
       expect(next.timeline.selectedDate).toBeNull();
       expect(next.nodePanel.selectedNodeId).toBeNull();
       expect(next.canvas.localNodePositions).toEqual({});
-      expect(next.canvas.collapsedGroupIds).toEqual([]);
       expect(next.dashboard.range).toEqual({ kind: "preset", preset: "3M" });
     });
 
@@ -233,7 +230,7 @@ describe("chainViewReducer", () => {
     });
   });
 
-  describe("NODE_DRAG_ENDED / GROUP_COLLAPSE_TOGGLED", () => {
+  describe("NODE_DRAG_ENDED", () => {
     it("NODE_DRAG_ENDED 2회 누적 병합, 원본 비변이", () => {
       const first = chainViewReducer(baseState, {
         type: "NODE_DRAG_ENDED",
@@ -252,20 +249,6 @@ describe("chainViewReducer", () => {
       expect(first.canvas.localNodePositions).not.toBe(second.canvas.localNodePositions);
     });
 
-    it("GROUP_COLLAPSE_TOGGLED 추가↔제거 왕복, 원본 비변이", () => {
-      const collapsed = chainViewReducer(baseState, {
-        type: "GROUP_COLLAPSE_TOGGLED",
-        payload: { groupId: "g1" },
-      });
-      expect(collapsed.canvas.collapsedGroupIds).toEqual(["g1"]);
-      expect(baseState.canvas.collapsedGroupIds).toEqual([]);
-
-      const expanded = chainViewReducer(collapsed, {
-        type: "GROUP_COLLAPSE_TOGGLED",
-        payload: { groupId: "g1" },
-      });
-      expect(expanded.canvas.collapsedGroupIds).toEqual([]);
-    });
   });
 
   it("모든 액션에서 입력 state는 변이되지 않는다(참조 불변)", () => {
@@ -278,7 +261,6 @@ describe("chainViewReducer", () => {
       type: "NODE_DRAG_ENDED",
       payload: { nodeId: "n1", position: { x: 1, y: 1 } },
     });
-    chainViewReducer(state, { type: "GROUP_COLLAPSE_TOGGLED", payload: { groupId: "g1" } });
 
     expect(state).toEqual(snapshot);
   });

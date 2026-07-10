@@ -13,5 +13,4 @@ export type ChainViewAction =
   | { type: "NODE_SELECTED"; payload: { nodeId: string } }
   | { type: "NODE_PANEL_CLOSED" }
   | { type: "DASHBOARD_RANGE_CHANGED"; payload: { range: MetricsRange } }
-  | { type: "NODE_DRAG_ENDED"; payload: { nodeId: string; position: NodePosition } }
-  | { type: "GROUP_COLLAPSE_TOGGLED"; payload: { groupId: string } };
+  | { type: "NODE_DRAG_ENDED"; payload: { nodeId: string; position: NodePosition } };

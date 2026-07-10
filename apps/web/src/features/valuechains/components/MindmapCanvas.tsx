@@ -51,7 +51,6 @@ const edgeTypes: EdgeTypes = {
 /** RenderGraph를 React Flow nodes/edges로 변환한다(그룹은 parent 노드 + 멤버 parentId). */
 const toReactFlowElements = (
   renderGraph: RenderGraph,
-  onToggleCollapse: (groupId: string) => void,
   selectedNodeId: string | null,
   nodeShape: NodeShape,
 ): { nodes: Node[]; edges: Edge[] } => {
@@ -78,9 +77,6 @@ const toReactFlowElements = (
       draggable: true,
       data: {
         label: group.label,
-        isCollapsed: group.isCollapsed,
-        memberCount: group.memberCount,
-        onToggleCollapse: () => onToggleCollapse(group.id),
         shape: nodeShape,
         tone: groupIndex,
       },
@@ -168,7 +164,7 @@ const NodeShapeToggleButton = ({
 
 const MindmapCanvasInner = () => {
   const { structure, renderGraph, selectedNodeId } = useChainViewState();
-  const { commitNodeDrag, toggleGroupCollapse, selectNode, closeNodePanel } = useChainViewActions();
+  const { commitNodeDrag, selectNode, closeNodePanel } = useChainViewActions();
 
   // 노드 표시 모양(카드/원) — 뷰 전용 로컬 상태(영속 불필요). 우상단 토글로 전환한다.
   const [nodeShape, setNodeShape] = useState<NodeShape>("box");
@@ -177,8 +173,8 @@ const MindmapCanvasInner = () => {
     if (!renderGraph) {
       return { nodes: [] as Node[], edges: [] as Edge[] };
     }
-    return toReactFlowElements(renderGraph, toggleGroupCollapse, selectedNodeId, nodeShape);
-  }, [renderGraph, toggleGroupCollapse, selectedNodeId, nodeShape]);
+    return toReactFlowElements(renderGraph, selectedNodeId, nodeShape);
+  }, [renderGraph, selectedNodeId, nodeShape]);
 
   // React Flow controlled 배선(v12, error#015) — onNodesChange 미배선 시 노드 측정이 갱신되지 않아
   // 더블클릭/줌 등에서 노드가 사라진다. 내부 상태를 두고, 그래프 파생 노드를 id 기준으로 병합한다

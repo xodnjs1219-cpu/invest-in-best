@@ -103,7 +103,6 @@ export interface ChainViewStateValue {
   selectedNodeId: string | null; // S3
   dashboardRange: MetricsRange; // S4
   localNodePositions: Readonly<Record<string, NodePosition>>; // S5
-  collapsedGroupIds: readonly string[]; // S6
 
   // computed (상태 + 서버 캐시 파생)
   isTimeTraveling: boolean;
@@ -129,7 +128,6 @@ export interface ChainViewStateValue {
 export interface ChainViewActionsValue {
   /** React Flow onNodeDragStop에서 호출 — 로컬 표시용, 서버 저장 없음(BR-3). */
   commitNodeDrag(nodeId: string, position: NodePosition): void;
-  toggleGroupCollapse(groupId: string): void;
   /** 서버 상태 재시도(refetch 래퍼 — Action 아님). */
   retryStructure(): void;
 

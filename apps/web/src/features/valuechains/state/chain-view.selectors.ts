@@ -30,30 +30,17 @@ export const selectIsTimeTraveling = (state: Pick<ChainViewState, "timeline">): 
 /**
  * 렌더링용 그래프 조립 (plan 모듈 C4, state_management.md §5) — 순수 함수.
  * 좌표 우선순위: S5 오버라이드 > 서버 position > `applyAutoLayout`(E11).
- * 접힌 그룹(S6)의 소속 노드·해당 노드로 이어지는 엣지는 숨기고 클러스터 요약(멤버 수)만 남긴다(E4).
  * 빈 그룹은 라벨만 있는 빈 클러스터로 유지한다(C-1). 미소속·고립 노드는 그대로 통과한다(E6).
  */
 export const buildRenderGraph = (input: {
   structure: ChainViewResponse;
   localPositions: Readonly<Record<string, NodePosition>>;
-  collapsedGroupIds: readonly string[];
 }): RenderGraph => {
-  const { structure, localPositions, collapsedGroupIds } = input;
-
-  // 1. 그룹별 멤버 수 집계(빈 그룹 포함 — C-1/E7).
-  const memberCountByGroup = new Map<string, number>();
-  for (const node of structure.nodes) {
-    if (node.groupId) {
-      memberCountByGroup.set(node.groupId, (memberCountByGroup.get(node.groupId) ?? 0) + 1);
-    }
-  }
-  const collapsedSet = new Set(collapsedGroupIds);
+  const { structure, localPositions } = input;
 
   const groups: RenderGroup[] = structure.groups.map((group) => ({
     id: group.id,
     label: group.name,
-    isCollapsed: collapsedSet.has(group.id),
-    memberCount: memberCountByGroup.get(group.id) ?? 0,
   }));
 
   // 2. auto-layout 폴백 좌표 계산(서버 position이 없는 노드만 대상 — E11).
@@ -69,14 +56,8 @@ export const buildRenderGraph = (input: {
   );
   const autoLayoutPositions = applyAutoLayout(autoLayoutInputNodes, groups);
 
-  // 3. 숨겨야 할 노드(접힌 그룹 소속) 집합.
-  const hiddenNodeIds = new Set(
-    structure.nodes.filter((node) => node.groupId && collapsedSet.has(node.groupId)).map((n) => n.id),
-  );
-
-  // 4. 노드 렌더 모델 조립 — 좌표 우선순위: S5 > 서버 position > auto-layout.
+  // 3. 노드 렌더 모델 조립 — 좌표 우선순위: S5 > 서버 position > auto-layout.
   const nodes: RenderNode[] = structure.nodes
-    .filter((node) => !hiddenNodeIds.has(node.id))
     .map((node) => {
       const fallbackPosition = autoLayoutPositions[node.id] ?? { x: 0, y: 0 };
       const position = localPositions[node.id] ?? node.position ?? fallbackPosition;
@@ -93,9 +74,8 @@ export const buildRenderGraph = (input: {
       };
     });
 
-  // 5. 엣지 렌더 모델 — 숨겨진 노드에 닿는 엣지는 제외(E4).
+  // 4. 엣지 렌더 모델.
   const edges: RenderEdge[] = structure.edges
-    .filter((edge) => !hiddenNodeIds.has(edge.sourceNodeId) && !hiddenNodeIds.has(edge.targetNodeId))
     .map((edge) => ({
       id: edge.id,
       source: edge.sourceNodeId,

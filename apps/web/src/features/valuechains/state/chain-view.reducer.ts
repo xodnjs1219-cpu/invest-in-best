@@ -28,7 +28,6 @@ export interface ChainViewState {
   };
   readonly canvas: {
     readonly localNodePositions: Readonly<Record<string, NodePosition>>; // S5
-    readonly collapsedGroupIds: readonly string[]; // S6
   };
 }
 
@@ -58,7 +57,7 @@ export function createInitialChainViewState(input: {
     timeline: { selectedDate, lastAppliedDate: null },
     nodePanel: { selectedNodeId: null },
     dashboard: { range: DASHBOARD_DEFAULT_RANGE },
-    canvas: { localNodePositions: {}, collapsedGroupIds: [] },
+    canvas: { localNodePositions: {} },
   };
 }
 
@@ -80,7 +79,7 @@ export function chainViewReducer(state: ChainViewState, action: ChainViewAction)
         ...state,
         timeline: { selectedDate: action.payload.date, lastAppliedDate: state.timeline.lastAppliedDate },
         nodePanel: { selectedNodeId: null },
-        canvas: { localNodePositions: {}, collapsedGroupIds: [] },
+        canvas: { localNodePositions: {} },
       };
     }
 
@@ -92,7 +91,7 @@ export function chainViewReducer(state: ChainViewState, action: ChainViewAction)
         ...state,
         timeline: { selectedDate: null, lastAppliedDate: state.timeline.lastAppliedDate },
         nodePanel: { selectedNodeId: null },
-        canvas: { localNodePositions: {}, collapsedGroupIds: [] },
+        canvas: { localNodePositions: {} },
       };
     }
 
@@ -151,15 +150,6 @@ export function chainViewReducer(state: ChainViewState, action: ChainViewAction)
           },
         },
       };
-    }
-
-    case "GROUP_COLLAPSE_TOGGLED": {
-      const { groupId } = action.payload;
-      const exists = state.canvas.collapsedGroupIds.includes(groupId);
-      const nextCollapsed = exists
-        ? state.canvas.collapsedGroupIds.filter((id) => id !== groupId)
-        : [...state.canvas.collapsedGroupIds, groupId];
-      return { ...state, canvas: { ...state.canvas, collapsedGroupIds: nextCollapsed } };
     }
 
     default: {

@@ -202,9 +202,8 @@ export const ChainViewProvider = ({ chainId, atParam, children }: ChainViewProvi
     return buildRenderGraph({
       structure: structure.data,
       localPositions: state.canvas.localNodePositions,
-      collapsedGroupIds: state.canvas.collapsedGroupIds,
     });
-  }, [structure, state.canvas.localNodePositions, state.canvas.collapsedGroupIds]);
+  }, [structure, state.canvas.localNodePositions]);
 
   const dataFreshness = structure.status === "ready" ? structure.data.dataFreshness : null;
   const isOwner = structure.status === "ready" ? structure.data.chain.isOwner : false;
@@ -298,10 +297,6 @@ export const ChainViewProvider = ({ chainId, atParam, children }: ChainViewProvi
     dispatch({ type: "NODE_DRAG_ENDED", payload: { nodeId, position } });
   }, []);
 
-  const toggleGroupCollapse = useCallback((groupId: string) => {
-    dispatch({ type: "GROUP_COLLAPSE_TOGGLED", payload: { groupId } });
-  }, []);
-
   const retryStructure = useCallback(() => {
     void structureQuery.refetch();
   }, [structureQuery]);
@@ -358,7 +353,6 @@ export const ChainViewProvider = ({ chainId, atParam, children }: ChainViewProvi
       selectedNodeId,
       dashboardRange: state.dashboard.range,
       localNodePositions: state.canvas.localNodePositions,
-      collapsedGroupIds: state.canvas.collapsedGroupIds,
       isTimeTraveling: selectedDate !== null,
       structure,
       renderGraph,
@@ -377,7 +371,6 @@ export const ChainViewProvider = ({ chainId, atParam, children }: ChainViewProvi
       selectedNodeId,
       state.dashboard.range,
       state.canvas.localNodePositions,
-      state.canvas.collapsedGroupIds,
       structure,
       renderGraph,
       dataFreshness,
@@ -395,7 +388,6 @@ export const ChainViewProvider = ({ chainId, atParam, children }: ChainViewProvi
   const actionsValue: ChainViewActionsValue = useMemo(
     () => ({
       commitNodeDrag,
-      toggleGroupCollapse,
       retryStructure,
       changeDashboardRange,
       retryDailyMetrics,
@@ -409,7 +401,6 @@ export const ChainViewProvider = ({ chainId, atParam, children }: ChainViewProvi
     }),
     [
       commitNodeDrag,
-      toggleGroupCollapse,
       retryStructure,
       changeDashboardRange,
       retryDailyMetrics,

@@ -3,11 +3,6 @@ import type { NodeShape } from "@/components/mindmap/types";
 
 export type GroupNodeData = {
   label: string;
-  memberCount: number;
-  /** 뷰(UC-009) 전용 — 접힘 상태. 편집(UC-017)에서는 미사용(접기 기능 없음). */
-  isCollapsed?: boolean;
-  /** 뷰(UC-009) 전용 — 접기/펼치기 토글. 미전달 시 토글 버튼 미렌더(편집 캔버스). */
-  onToggleCollapse?: () => void;
   /** 편집(UC-017) 전용 — 멤버 0개 그룹(저장 시 스냅샷 제외 예고, C-1). */
   isEmpty?: boolean;
   /** 편집(UC-017) 전용 — 저장 422 오류 위치 하이라이트(clientGroupIds). */
@@ -53,7 +48,7 @@ const GROUP_TONES = [
 /**
  * 그룹(클러스터) 노드 컴포넌트 (plan 모듈 A8·UC-017 M11) — 배경 영역 + 그룹 라벨.
  * 뷰(UC-009)/편집(UC-017) 공용 프레젠테이션 — `data`로만 렌더 분기(도메인 로직·dispatch 없음).
- * 뷰: 접힘 상태면 라벨 + "노드 n개" 요약만 표시(E4). 멤버 0개여도 라벨만 있는 빈 클러스터 렌더(C-1).
+ * 뷰: 멤버 0개여도 라벨만 있는 빈 클러스터 렌더(C-1).
  * 편집: `isEmpty`(빈 그룹 — 점선 강조 + "저장 시 제외" 배지)·`isHighlighted`(오류 위치 표시)·
  * `selected`(React Flow 표준 prop — 선택 강조) 스타일 분기. 연결 핸들 없음(그룹은 엣지 대상 아님).
  * 색은 그룹 인덱스 기반 4색 순환(tone) — 422 하이라이트(danger)는 tone보다 우선한다.
@@ -88,16 +83,6 @@ export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
         className={`flex items-center gap-2 ${isCircle ? "justify-center px-6 pt-4" : "justify-between"}`}
       >
         <span className={`truncate text-xs ${tone.text}`}>{data.label}</span>
-        {data.onToggleCollapse && (
-          <button
-            type="button"
-            onClick={data.onToggleCollapse}
-            className={`rounded-sm px-1.5 py-0.5 text-xs ${tone.text} hover:bg-surface-raised/60`}
-            aria-label={data.isCollapsed ? "그룹 펼치기" : "그룹 접기"}
-          >
-            {data.isCollapsed ? "펼치기" : "접기"}
-          </button>
-        )}
         {isEmpty && (
           <span
             className={`rounded-sm bg-surface-raised/80 px-1.5 py-0.5 text-[10px] ${tone.text} ring-1 ring-inset ring-border`}
@@ -106,9 +91,6 @@ export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
           </span>
         )}
       </div>
-      {data.isCollapsed && (
-        <div className={`mt-1 text-xs ${tone.text}`}>노드 {data.memberCount}개</div>
-      )}
     </div>
   );
 };

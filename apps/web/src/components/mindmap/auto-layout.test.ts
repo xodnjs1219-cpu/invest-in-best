@@ -37,8 +37,8 @@ describe("applyAutoLayout", () => {
       buildNode({ id: "n3", groupId: "g2", position: null as unknown as { x: number; y: number } }),
     ];
     const groups: RenderGroup[] = [
-      { id: "g1", label: "그룹1", isCollapsed: false, memberCount: 2 },
-      { id: "g2", label: "그룹2", isCollapsed: false, memberCount: 1 },
+      { id: "g1", label: "그룹1" },
+      { id: "g2", label: "그룹2" },
     ];
 
     // Act
@@ -55,7 +55,7 @@ describe("applyAutoLayout", () => {
       buildNode({ id: "n1", groupId: "g1", position: null as unknown as { x: number; y: number } }),
       buildNode({ id: "n2", groupId: null, position: null as unknown as { x: number; y: number } }),
     ];
-    const groups: RenderGroup[] = [{ id: "g1", label: "그룹1", isCollapsed: false, memberCount: 1 }];
+    const groups: RenderGroup[] = [{ id: "g1", label: "그룹1" }];
 
     // Act
     const result = applyAutoLayout(nodes, groups);
@@ -69,7 +69,7 @@ describe("applyAutoLayout", () => {
     const nodes = [
       buildNode({ id: "n1", groupId: "g1", position: null as unknown as { x: number; y: number } }),
     ];
-    const groups: RenderGroup[] = [{ id: "g1", label: "그룹1", isCollapsed: false, memberCount: 1 }];
+    const groups: RenderGroup[] = [{ id: "g1", label: "그룹1" }];
     const nodesCopy = JSON.parse(JSON.stringify(nodes));
 
     // Act

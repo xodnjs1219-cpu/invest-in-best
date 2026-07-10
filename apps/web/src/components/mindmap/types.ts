@@ -36,8 +36,6 @@ export type RenderEdge = {
 export type RenderGroup = {
   id: string;
   label: string;
-  isCollapsed: boolean;
-  memberCount: number;
 };
 
 export type RenderGraph = {

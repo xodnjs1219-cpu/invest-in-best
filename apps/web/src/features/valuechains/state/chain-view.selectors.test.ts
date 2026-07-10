@@ -86,7 +86,7 @@ const buildStructure = (
 describe("buildRenderGraph", () => {
   it("서버 position이 있는 노드는 그 좌표를 사용한다", () => {
     const structure = buildStructure();
-    const graph = buildRenderGraph({ structure, localPositions: {}, collapsedGroupIds: [] });
+    const graph = buildRenderGraph({ structure, localPositions: {} });
 
     const n1 = graph.nodes.find((n) => n.id === "n1");
     expect(n1?.position).toEqual({ x: 10, y: 20 });
@@ -94,7 +94,7 @@ describe("buildRenderGraph", () => {
 
   it("position이 null인 노드는 auto-layout 좌표로 폴백한다(E11)", () => {
     const structure = buildStructure();
-    const graph = buildRenderGraph({ structure, localPositions: {}, collapsedGroupIds: [] });
+    const graph = buildRenderGraph({ structure, localPositions: {} });
 
     const n2 = graph.nodes.find((n) => n.id === "n2");
     expect(n2?.position).toBeDefined();
@@ -105,27 +105,13 @@ describe("buildRenderGraph", () => {
     const structure = buildStructure();
     const graph = buildRenderGraph({
       structure,
-      localPositions: { n1: { x: 999, y: 888 } },
-      collapsedGroupIds: [],
+      localPositions: { n1: { x: 999, y: 888 } }
     });
 
     const n1 = graph.nodes.find((n) => n.id === "n1");
     expect(n1?.position).toEqual({ x: 999, y: 888 });
   });
 
-  it("접힌 그룹의 멤버 노드와 그에 닿는 엣지는 숨기고 memberCount만 남긴다(E4)", () => {
-    const structure = buildStructure();
-    const graph = buildRenderGraph({ structure, localPositions: {}, collapsedGroupIds: ["g1"] });
-
-    expect(graph.nodes.find((n) => n.id === "n1")).toBeUndefined();
-    expect(graph.nodes.find((n) => n.id === "n2")).toBeUndefined();
-    expect(graph.edges.find((e) => e.id === "e1")).toBeUndefined();
-    const group = graph.groups.find((g) => g.id === "g1");
-    expect(group?.isCollapsed).toBe(true);
-    expect(group?.memberCount).toBe(2);
-    // 미소속 고립 노드는 그룹과 무관하게 유지된다.
-    expect(graph.nodes.find((n) => n.id === "n3")).toBeDefined();
-  });
 
   it("빈 그룹은 라벨만 있는 빈 클러스터로 유지된다(C-1)", () => {
     const structure = buildStructure({
@@ -133,16 +119,14 @@ describe("buildRenderGraph", () => {
       nodes: [],
       edges: [],
     });
-    const graph = buildRenderGraph({ structure, localPositions: {}, collapsedGroupIds: [] });
+    const graph = buildRenderGraph({ structure, localPositions: {} });
 
-    expect(graph.groups).toEqual([
-      { id: "g-empty", label: "빈 그룹", isCollapsed: false, memberCount: 0 },
-    ]);
+    expect(graph.groups).toEqual([{ id: "g-empty", label: "빈 그룹" }]);
   });
 
   it("고립 노드·그룹 미소속 노드는 정상 통과한다(E6)", () => {
     const structure = buildStructure();
-    const graph = buildRenderGraph({ structure, localPositions: {}, collapsedGroupIds: [] });
+    const graph = buildRenderGraph({ structure, localPositions: {} });
 
     const n3 = graph.nodes.find((n) => n.id === "n3");
     expect(n3).toBeDefined();
@@ -151,7 +135,7 @@ describe("buildRenderGraph", () => {
 
   it("상장기업 노드는 티커·시장·상장상태를 RenderNode로 매핑한다", () => {
     const structure = buildStructure();
-    const graph = buildRenderGraph({ structure, localPositions: {}, collapsedGroupIds: [] });
+    const graph = buildRenderGraph({ structure, localPositions: {} });
 
     const n1 = graph.nodes.find((n) => n.id === "n1");
     expect(n1?.kind).toBe("listed_company");
@@ -163,7 +147,7 @@ describe("buildRenderGraph", () => {
 
   it("자유 주체 노드는 subjectName·subjectType을 RenderNode로 매핑한다", () => {
     const structure = buildStructure();
-    const graph = buildRenderGraph({ structure, localPositions: {}, collapsedGroupIds: [] });
+    const graph = buildRenderGraph({ structure, localPositions: {} });
 
     const n2 = graph.nodes.find((n) => n.id === "n2");
     expect(n2?.kind).toBe("free_subject");
