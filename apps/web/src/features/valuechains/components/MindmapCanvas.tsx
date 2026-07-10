@@ -12,6 +12,13 @@ import {
   type EdgeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { Background } from "@xyflow/react";
+import {
+  CanvasControls,
+  CanvasLegend,
+  CanvasMiniMap,
+  MM_BACKGROUND_PROPS,
+} from "@/components/mindmap/CanvasChrome";
 import { Skeleton } from "@/components/ui";
 import { CompanyNode, type CompanyNodeType } from "@/components/mindmap/CompanyNode";
 import { FreeSubjectNode, type FreeSubjectNodeType } from "@/components/mindmap/FreeSubjectNode";
@@ -290,7 +297,7 @@ const MindmapCanvasInner = () => {
   return (
     // 뷰어 마인드맵은 넓은 화면을 활용하도록 높이를 화면 비례로 키운다(작은 화면은 480px 하한).
     <div
-      className="relative h-[clamp(480px,68vh,720px)] w-full rounded-[var(--radius-lg)] border border-border"
+      className="relative h-[clamp(480px,68vh,720px)] w-full overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface-sunken"
       data-mm-hovering={activeNodeId ? "true" : undefined}
     >
       <ReactFlow
@@ -323,32 +330,33 @@ const MindmapCanvasInner = () => {
         // 노드 클릭 선택 시 연결 엣지 SVG가 라벨 위로 올라가 관계 타이틀을 덮는 것을 막는다.
         elevateEdgesOnSelect={false}
         zoomOnDoubleClick={false}
-      />
-      {/* 노드 모양 전환(카드/원) — 우상단. 원형은 종목명만 담은 옵시디언 그래프뷰식 표시. */}
-      <div
-        className="absolute right-3 top-3 z-10 flex items-center gap-0.5 rounded-[var(--radius)] border border-border bg-surface-raised/90 p-0.5 shadow-ambient backdrop-blur"
-        role="group"
-        aria-label="노드 표시 모양"
       >
-        <NodeShapeToggleButton
-          active={nodeShape === "box"}
-          onClick={() => setNodeShape("box")}
-          label="카드형 노드"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <rect x="4" y="7" width="16" height="10" rx="2.5" />
-          </svg>
-        </NodeShapeToggleButton>
-        <NodeShapeToggleButton
-          active={nodeShape === "circle"}
-          onClick={() => setNodeShape("circle")}
-          label="원형 노드"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <circle cx="12" cy="12" r="7" />
-          </svg>
-        </NodeShapeToggleButton>
-      </div>
+        <Background {...MM_BACKGROUND_PROPS} />
+        <CanvasMiniMap />
+      </ReactFlow>
+      {/* 캔버스 컨트롤(확대/축소/전체 보기) + 노드 모양 전환(카드/원) — 우상단 단일 클러스터. */}
+      <CanvasControls>
+        <span role="group" aria-label="노드 표시 모양" className="flex items-center gap-0.5">
+          <NodeShapeToggleButton
+            active={nodeShape === "box"}
+            onClick={() => setNodeShape("box")}
+            label="카드형 노드"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <rect x="4" y="7" width="16" height="10" rx="2.5" />
+            </svg>
+          </NodeShapeToggleButton>
+          <NodeShapeToggleButton
+            active={nodeShape === "circle"}
+            onClick={() => setNodeShape("circle")}
+            label="원형 노드"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <circle cx="12" cy="12" r="7" />
+            </svg>
+          </NodeShapeToggleButton>
+        </span>
+      </CanvasControls>
       {/* 시점 복원 중 인디케이터(UC-012) — 스냅샷 조회 중 캔버스 위에 표시. */}
       {isRestoring && (
         <div
@@ -360,12 +368,14 @@ const MindmapCanvasInner = () => {
           </span>
         </div>
       )}
-      {/* 조작 힌트 — 옵시디언식 인터랙션 발견성(좌하단, 장식이라 클릭 불가). */}
-      <div className="pointer-events-none absolute bottom-3 left-3 hidden items-center gap-2 rounded-[var(--radius)] border border-border bg-surface-raised/80 px-3 py-1 text-[11px] text-fg-muted backdrop-blur sm:flex">
-        <span>노드 클릭 → 상세</span>
-        <span className="text-border-strong" aria-hidden>·</span>
-        <span>hover → 연결 강조</span>
-      </div>
+      {/* 범례 + 조작 힌트 — 그룹 tone 스와치·표기 관례·발견성(좌하단, 클릭 불가). */}
+      <CanvasLegend
+        groups={(renderGraph?.groups ?? []).map((group, index) => ({
+          label: group.label,
+          tone: index,
+        }))}
+        hints={["노드 클릭 → 상세", "hover → 연결 강조"]}
+      />
       {selectedNodeId !== null && (
         <span data-testid="mindmap-selected-node-id" className="sr-only">
           {selectedNodeId}
