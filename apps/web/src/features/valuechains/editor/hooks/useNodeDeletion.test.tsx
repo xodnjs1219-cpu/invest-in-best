@@ -45,7 +45,7 @@ describe("useNodeDeletion", () => {
   });
 
   it("연결 엣지가 없으면 즉시 삭제한다(다이얼로그 미표시)", () => {
-    let s = chainEditorReducer(CHAIN_EDITOR_INITIAL_STATE, {
+    const s = chainEditorReducer(CHAIN_EDITOR_INITIAL_STATE, {
       type: "FREE_SUBJECT_NODE_ADDED",
       payload: { clientNodeId: "n1", subjectType: "other", subjectName: "A", subjectMemo: null, position: { x: 0, y: 0 } },
     });
