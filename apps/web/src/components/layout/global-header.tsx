@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { UserMenu } from "@/components/layout/user-menu";
+import { Button } from "@/components/ui";
 import { AUTH_LOGOUT_MESSAGES } from "@/features/auth/constants";
 import { useCurrentUser } from "@/features/auth/context/current-user-provider";
 import { useLogout } from "@/features/auth/hooks/useLogout";
@@ -16,28 +17,25 @@ export function GlobalHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 backdrop-blur-md">
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-surface/80 px-4 py-3 text-fg shadow-ambient backdrop-blur-md">
       <div className="flex items-center gap-5">
-        <Link href="/" className="font-semibold text-white">
+        <Link href="/" className="text-fg transition-colors hover:text-accent">
           invest-in-best
         </Link>
-        <Link href="/explore" className="text-sm text-slate-300 transition hover:text-white">
+        <Link href="/explore" className="text-sm text-fg-muted transition-colors hover:text-accent">
           탐색
         </Link>
       </div>
       {status === "authenticated" && user ? (
         <UserMenu email={user.email} role={user.role} isLoggingOut={isPending} onLogout={logout} />
       ) : (
-        <nav className="flex items-center gap-3 text-sm text-slate-300">
-          <Link href="/auth/login" className="transition hover:text-white">
+        <nav className="flex items-center gap-3 text-sm text-fg-muted">
+          <Link href="/auth/login" className="transition-colors hover:text-accent">
             {AUTH_LOGOUT_MESSAGES.loginLabel}
           </Link>
-          <Link
-            href="/auth/signup"
-            className="rounded-full bg-gradient-to-r from-cyan-400 to-violet-500 px-3.5 py-1.5 font-medium text-slate-950 transition hover:opacity-90"
-          >
+          <Button as="link" href="/auth/signup" size="sm">
             {AUTH_LOGOUT_MESSAGES.signupLabel}
-          </Link>
+          </Button>
         </nav>
       )}
     </header>

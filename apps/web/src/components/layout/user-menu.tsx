@@ -12,14 +12,14 @@ type UserMenuProps = {
 export function UserMenu({ email, role, isLoggingOut, onLogout }: UserMenuProps) {
   return (
     <div
-      className="flex items-center gap-3 text-slate-300"
+      className="flex items-center gap-3 text-fg-muted"
       aria-label={AUTH_LOGOUT_MESSAGES.menuLabel}
     >
-      <Link href="/account" className="text-sm transition hover:text-white">
+      <Link href="/account" className="text-sm transition-colors hover:text-accent">
         {email}
       </Link>
       {role === "admin" && (
-        <Link href="/admin" className="text-sm underline transition hover:text-white">
+        <Link href="/admin" className="text-sm underline transition-colors hover:text-accent">
           {AUTH_LOGOUT_MESSAGES.adminMenuLabel}
         </Link>
       )}
@@ -27,7 +27,7 @@ export function UserMenu({ email, role, isLoggingOut, onLogout }: UserMenuProps)
         type="button"
         onClick={onLogout}
         disabled={isLoggingOut}
-        className="text-sm underline transition hover:text-white disabled:opacity-60"
+        className="text-sm underline transition-colors hover:text-fg disabled:opacity-60"
       >
         {isLoggingOut ? AUTH_LOGOUT_MESSAGES.loggingOutLabel : AUTH_LOGOUT_MESSAGES.logoutLabel}
       </button>
