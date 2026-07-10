@@ -2,6 +2,7 @@
 
 import { useReducer } from "react";
 import { useRouter } from "next/navigation";
+import { Heading } from "@/components/ui";
 import { useCurrentUser } from "@/features/auth/context/current-user-provider";
 import { CreateChainButton } from "@/features/explore/components/CreateChainButton";
 import { SearchBar } from "@/features/explore/components/SearchBar";
@@ -61,7 +62,8 @@ export function MainExplorePage() {
   const showMyChainsSection = isAuthenticated && !isMyChainsUnauthorized;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
+      <Heading level={1}>탐색</Heading>
       <section className="flex flex-col gap-4">
         <SearchBar
           value={searchState.searchInput}
@@ -123,6 +125,6 @@ export function MainExplorePage() {
           )}
         />
       )}
-    </div>
+    </main>
   );
 }

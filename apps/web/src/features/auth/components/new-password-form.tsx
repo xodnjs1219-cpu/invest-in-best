@@ -50,9 +50,14 @@ export function NewPasswordForm({ onSubmit, isPending, errorCode }: NewPasswordF
           type="password"
           autoComplete="new-password"
           invalid={Boolean(errors.newPassword)}
+          aria-describedby={errors.newPassword ? "new-password-error" : undefined}
           {...register("newPassword")}
         />
-        {errors.newPassword && <p className="text-danger">{errors.newPassword.message}</p>}
+        {errors.newPassword && (
+          <p id="new-password-error" className="text-danger">
+            {errors.newPassword.message}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -64,6 +69,7 @@ export function NewPasswordForm({ onSubmit, isPending, errorCode }: NewPasswordF
           type="password"
           autoComplete="new-password"
           invalid={Boolean(errors.newPasswordConfirm)}
+          aria-describedby={errors.newPasswordConfirm ? "new-password-confirm-error" : undefined}
           {...register("newPasswordConfirm")}
         />
         {errors.newPasswordConfirm && (

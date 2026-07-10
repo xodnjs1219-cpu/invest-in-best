@@ -38,7 +38,7 @@ export function QuotesSection({ query, period, onPeriodChange }: QuotesSectionPr
               type="button"
               onClick={() => onPeriodChange(preset)}
               aria-pressed={period === preset}
-              className={`rounded-sm px-3 py-1 text-xs ${
+              className={`min-h-9 rounded-sm px-3 text-xs ${
                 period === preset
                   ? "bg-accent text-accent-fg"
                   : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"
@@ -51,7 +51,7 @@ export function QuotesSection({ query, period, onPeriodChange }: QuotesSectionPr
       </div>
 
       {query.isPending && (
-        <Skeleton data-testid="quotes-loading" className="h-64" />
+        <Skeleton data-testid="quotes-loading" className="h-[336px]" />
       )}
 
       {query.isError && (

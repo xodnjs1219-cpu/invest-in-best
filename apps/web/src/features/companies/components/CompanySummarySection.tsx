@@ -53,7 +53,11 @@ export function CompanySummarySection({ query, onMarketSelect }: CompanySummaryS
     }
     return (
       <ErrorState
-        message={error instanceof ApiError ? error.message : "오류가 발생했습니다."}
+        message={
+          error instanceof ApiError
+            ? error.message
+            : "기업 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
+        }
         onRetry={() => query.refetch()}
         retryLabel={SECTION_RETRY_LABEL}
       />

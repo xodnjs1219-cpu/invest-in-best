@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { MIN_SEARCH_QUERY_LENGTH } from "@iib/domain";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -32,7 +33,7 @@ describe("SearchBar", () => {
     render(<SearchBar {...baseProps} showTooShortNotice />);
 
     // Assert
-    expect(screen.getByText(/검색이 실행되지 않았습니다|검색어를 입력/)).toBeInTheDocument();
+    expect(screen.getByText(`검색어를 ${MIN_SEARCH_QUERY_LENGTH}자 이상 입력해 주세요.`)).toBeInTheDocument();
   });
 
   it("showTooShortNotice=false면 안내를 표시하지 않는다", () => {
@@ -40,7 +41,7 @@ describe("SearchBar", () => {
     render(<SearchBar {...baseProps} showTooShortNotice={false} />);
 
     // Assert
-    expect(screen.queryByText(/검색이 실행되지 않았습니다|검색어를 입력/)).not.toBeInTheDocument();
+    expect(screen.queryByText(`검색어를 ${MIN_SEARCH_QUERY_LENGTH}자 이상 입력해 주세요.`)).not.toBeInTheDocument();
   });
 
   it("시장 필터 탭 클릭 시 onFilterChange가 호출된다", async () => {

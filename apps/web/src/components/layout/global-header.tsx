@@ -29,7 +29,7 @@ export function GlobalHeader() {
       {status === "authenticated" && user ? (
         <UserMenu email={user.email} role={user.role} isLoggingOut={isPending} onLogout={logout} />
       ) : (
-        <nav className="flex items-center gap-3 text-sm text-fg-muted">
+        <nav aria-label="계정" className="flex items-center gap-3 text-sm text-fg-muted">
           <Link href="/auth/login" className="transition-colors hover:text-accent">
             {AUTH_LOGOUT_MESSAGES.loginLabel}
           </Link>

@@ -17,8 +17,8 @@ type ChainCardProps = {
 /**
  * 체인 카드 Presenter (UC-007 plan 모듈 D-4) — 이름·기준·노드 수·가치총액(또는 미표시)·커버리지·
  * 이월 배지를 렌더링한다. 파생 계산은 전부 `cardPresentation.ts`에 위임한다(로직 없음).
- * 최상위는 `role="button"`(div)이다 — `actionSlot`(버튼)을 내부에 배치해도 HTML 중첩 버튼 위반이
- * 발생하지 않도록 카드 전체 클릭과 액션 슬롯 클릭을 형제 요소로 분리한다(UC-014/019).
+ * 카드 전체 클릭은 제목 버튼의 스트레치드 오버레이(after:inset-0)가 담당한다 — 인터랙티브 요소
+ * 중첩(nested-interactive) 없이 actionSlot(버튼)은 z-10 형제로 오버레이 위에 놓인다(UC-014/019).
  */
 export function ChainCard({ card, onSelect, actionSlot }: ChainCardProps) {
   const focusLabel = formatFocusLabel(card.focusType, card.focusCompanyName);
@@ -26,26 +26,16 @@ export function ChainCard({ card, onSelect, actionSlot }: ChainCardProps) {
   const nodeCountLabel = formatNodeCount(card.nodeCount);
 
   return (
-    <Card
-      interactive
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect(card.id)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect(card.id);
-        }
-      }}
-      className="flex w-full flex-col gap-2 p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
+    <Card interactive className="relative flex w-full flex-col gap-2 p-4 text-left">
       <div className="flex items-start justify-between gap-2">
-        <span className="truncate text-base text-fg">{card.name}</span>
-        {actionSlot && (
-          <span onClick={(event) => event.stopPropagation()} className="shrink-0">
-            {actionSlot}
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={() => onSelect(card.id)}
+          className="truncate text-left text-base text-fg after:absolute after:inset-0 after:rounded-[var(--radius-lg)] after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+        >
+          {card.name}
+        </button>
+        {actionSlot && <span className="relative z-10 shrink-0">{actionSlot}</span>}
       </div>
       <span className="text-sm text-fg-muted">{focusLabel}</span>
       <span className="text-sm text-fg-muted">{nodeCountLabel}</span>

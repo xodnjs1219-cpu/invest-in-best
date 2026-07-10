@@ -51,7 +51,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
               type="button"
               onClick={() => onPeriodChange(preset)}
               aria-pressed={period === preset}
-              className={`rounded-sm px-3 py-1 text-xs ${
+              className={`min-h-9 rounded-sm px-3 text-xs ${
                 period === preset
                   ? "bg-accent text-accent-fg"
                   : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"
@@ -64,7 +64,7 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
       </div>
 
       {query.isPending && (
-        <Skeleton data-testid="financials-loading" className="h-48" />
+        <Skeleton data-testid="financials-loading" className="h-80" />
       )}
 
       {query.isError && (
@@ -99,28 +99,28 @@ export function FinancialsSection({ query, period, onPeriodChange }: FinancialsS
           />
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[34rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-fg-muted">
                   <th className="py-2 pr-4">기간</th>
-                  <th className="py-2 pr-4">매출</th>
-                  <th className="py-2 pr-4">영업이익</th>
-                  <th className="py-2 pr-4">순이익</th>
+                  <th className="py-2 pr-4 text-right">매출</th>
+                  <th className="py-2 pr-4 text-right">영업이익</th>
+                  <th className="py-2 pr-4 text-right">순이익</th>
                 </tr>
               </thead>
               <tbody>
                 {query.data.items.map((item) => (
                   <tr key={`${item.fiscalYear}-${item.fiscalQuarter ?? "annual"}`} className="border-b border-border">
                     <NumericText as="td" className="py-2 pr-4">{buildAxisLabel(item)}</NumericText>
-                    <NumericText as="td" className="py-2 pr-4">
+                    <NumericText as="td" align="right" className="py-2 pr-4">
                       {item.revenue === null && item.isRevenueTagUnmapped
                         ? FINANCIALS_REVENUE_UNMAPPED_NOTE
                         : formatCurrencyAmount(item.revenue, query.data.currency, "-")}
                     </NumericText>
-                    <NumericText as="td" className="py-2 pr-4">
+                    <NumericText as="td" align="right" className="py-2 pr-4">
                       {formatCurrencyAmount(item.operatingIncome, query.data.currency, "-")}
                     </NumericText>
-                    <NumericText as="td" className="py-2 pr-4">
+                    <NumericText as="td" align="right" className="py-2 pr-4">
                       {formatCurrencyAmount(item.netIncome, query.data.currency, "-")}
                       {item.amountBasis === "derived_from_cumulative" && (
                         <span

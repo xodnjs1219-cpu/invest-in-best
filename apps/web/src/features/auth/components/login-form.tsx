@@ -65,9 +65,14 @@ export function LoginForm({ returnTo }: LoginFormProps) {
           type="email"
           autoComplete="email"
           invalid={Boolean(errors.email)}
+          aria-describedby={errors.email ? "login-email-error" : undefined}
           {...register("email")}
         />
-        {errors.email && <p className="text-danger">{errors.email.message}</p>}
+        {errors.email && (
+          <p id="login-email-error" className="text-danger">
+            {errors.email.message}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -77,9 +82,14 @@ export function LoginForm({ returnTo }: LoginFormProps) {
           type="password"
           autoComplete="current-password"
           invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "login-password-error" : undefined}
           {...register("password")}
         />
-        {errors.password && <p className="text-danger">{errors.password.message}</p>}
+        {errors.password && (
+          <p id="login-password-error" className="text-danger">
+            {errors.password.message}
+          </p>
+        )}
       </div>
 
       <Button type="submit" disabled={isSubmitting || loginMutation.isPending}>

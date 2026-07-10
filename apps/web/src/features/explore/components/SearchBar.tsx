@@ -1,5 +1,6 @@
 "use client";
 
+import { MIN_SEARCH_QUERY_LENGTH } from "@iib/domain";
 import { Input } from "@/components/ui";
 import type { MarketFilter } from "@/features/explore/state/exploreReducer";
 
@@ -49,7 +50,7 @@ export function SearchBar({
             type="button"
             aria-label="검색어 지우기"
             onClick={onClear}
-            className="absolute right-2 flex h-5 w-5 items-center justify-center rounded-full text-fg-subtle hover:text-fg-muted"
+            className="absolute right-1 flex h-8 w-8 items-center justify-center rounded-full text-fg-subtle hover:text-fg-muted"
           >
             ×
           </button>
@@ -66,7 +67,7 @@ export function SearchBar({
               role="tab"
               aria-selected={isActive}
               onClick={() => onFilterChange(tab.value)}
-              className={`rounded-sm px-3 py-1 text-sm ${
+              className={`min-h-9 rounded-sm px-3 text-sm ${
                 isActive
                   ? "bg-accent text-accent-fg"
                   : "bg-surface-sunken text-fg-muted hover:bg-surface-hover"
@@ -79,7 +80,7 @@ export function SearchBar({
       </div>
 
       {showTooShortNotice && (
-        <p className="text-sm text-fg-muted">검색어를 입력하면 검색이 실행됩니다.</p>
+        <p className="text-sm text-fg-muted">{`검색어를 ${MIN_SEARCH_QUERY_LENGTH}자 이상 입력해 주세요.`}</p>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Heading } from "@/components/ui";
 import { SignupForm } from "@/features/auth/components/signup-form";
 import { SignupSuccessNotice } from "@/features/auth/components/signup-success-notice";
 
@@ -19,5 +20,10 @@ export function SignupPageClient({ redirectTo }: SignupPageClientProps) {
     return <SignupSuccessNotice email={submittedEmail} redirectTo={redirectTo} />;
   }
 
-  return <SignupForm onSuccess={setSubmittedEmail} redirectTo={redirectTo} />;
+  return (
+    <>
+      <Heading level={1}>회원가입</Heading>
+      <SignupForm onSuccess={setSubmittedEmail} redirectTo={redirectTo} />
+    </>
+  );
 }

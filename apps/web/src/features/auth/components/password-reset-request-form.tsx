@@ -64,9 +64,14 @@ export function PasswordResetRequestForm({
           type="email"
           autoComplete="email"
           invalid={Boolean(errors.email)}
+          aria-describedby={errors.email ? "reset-request-email-error" : undefined}
           {...register("email")}
         />
-        {errors.email && <p className="text-danger">{errors.email.message}</p>}
+        {errors.email && (
+          <p id="reset-request-email-error" className="text-danger">
+            {errors.email.message}
+          </p>
+        )}
       </div>
 
       <Button type="submit" disabled={isPending}>

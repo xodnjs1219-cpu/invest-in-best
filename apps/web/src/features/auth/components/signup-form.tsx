@@ -58,9 +58,14 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
           type="email"
           autoComplete="email"
           invalid={Boolean(errors.email)}
+          aria-describedby={errors.email ? "signup-email-error" : undefined}
           {...register("email")}
         />
-        {errors.email && <p className="text-danger">{errors.email.message}</p>}
+        {errors.email && (
+          <p id="signup-email-error" className="text-danger">
+            {errors.email.message}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -70,9 +75,14 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
           type="password"
           autoComplete="new-password"
           invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "signup-password-error" : undefined}
           {...register("password")}
         />
-        {errors.password && <p className="text-danger">{errors.password.message}</p>}
+        {errors.password && (
+          <p id="signup-password-error" className="text-danger">
+            {errors.password.message}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -82,9 +92,14 @@ export function SignupForm({ onSuccess, redirectTo }: SignupFormProps) {
           type="password"
           autoComplete="new-password"
           invalid={Boolean(errors.passwordConfirm)}
+          aria-describedby={errors.passwordConfirm ? "signup-password-confirm-error" : undefined}
           {...register("passwordConfirm")}
         />
-        {errors.passwordConfirm && <p className="text-danger">{errors.passwordConfirm.message}</p>}
+        {errors.passwordConfirm && (
+          <p id="signup-password-confirm-error" className="text-danger">
+            {errors.passwordConfirm.message}
+          </p>
+        )}
       </div>
 
       <div data-testid="terms-field" className="flex flex-col gap-1">

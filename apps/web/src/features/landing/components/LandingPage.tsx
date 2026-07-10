@@ -33,15 +33,27 @@ export function LandingPage() {
     <main className="relative overflow-hidden bg-surface text-fg">
       {/* ── 배경 워시(장식 전용 accent/data 저채도) ───────── */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        {/* filter blur 대신 radial-gradient — 스케일 애니메이션에도 리-래스터가 없어 페인트가 싸다 */}
         <div
           data-animate-landing
-          className="absolute -left-40 -top-40 h-[36rem] w-[36rem] rounded-full bg-accent/10 blur-[120px]"
-          style={{ animation: "var(--animate-landing-aurora)" }}
+          className="absolute -left-40 -top-40 h-[36rem] w-[36rem] rounded-full"
+          style={{
+            background:
+              "radial-gradient(closest-side, color-mix(in oklab, var(--accent) 12%, transparent), transparent)",
+            animation: "var(--animate-landing-aurora)",
+            willChange: "transform",
+          }}
         />
         <div
           data-animate-landing
-          className="absolute -right-32 top-20 h-[32rem] w-[32rem] rounded-full bg-data/10 blur-[120px]"
-          style={{ animation: "var(--animate-landing-aurora)", animationDelay: "-7s" }}
+          className="absolute -right-32 top-20 h-[32rem] w-[32rem] rounded-full"
+          style={{
+            background:
+              "radial-gradient(closest-side, color-mix(in oklab, var(--data) 10%, transparent), transparent)",
+            animation: "var(--animate-landing-aurora)",
+            animationDelay: "-7s",
+            willChange: "transform",
+          }}
         />
       </div>
 
@@ -65,7 +77,7 @@ export function LandingPage() {
           <HeroActions />
 
           {/* 신뢰 지표 */}
-          <dl className="mt-4 grid w-full max-w-lg grid-cols-3 gap-4 border-t border-border pt-6">
+          <dl className="mt-4 grid w-full max-w-lg grid-cols-1 gap-3 border-t border-border pt-6 sm:grid-cols-3 sm:gap-4">
             {HERO_STATS.map((stat) => (
               <div key={stat.label} className="flex flex-col gap-1">
                 <NumericText as="dt" className="text-xl text-fg sm:text-2xl">

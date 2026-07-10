@@ -15,7 +15,7 @@ export function AppFooter() {
   return (
     <footer className="mt-auto flex flex-col items-center gap-2 border-t border-border px-4 py-6 text-center text-xs text-fg-muted">
       <p className="max-w-2xl">{DISCLAIMER_SUMMARY_TEXT}</p>
-      <nav className="flex gap-4">
+      <nav aria-label="법적 고지" className="flex gap-4">
         {legalDocTypes.map((docType) => (
           <Link
             key={docType}
