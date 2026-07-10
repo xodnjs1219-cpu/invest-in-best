@@ -26,14 +26,14 @@ export const FreeSubjectNode = ({ id, data, isConnectable }: NodeProps<FreeSubje
     return (
       <div
         data-animate-landing
-        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border-2 border-dashed border-border-strong bg-surface-sunken text-center shadow-[var(--shadow-sm)] ${nodeStateClass(data)}`}
+        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border-2 border-dashed border-border-strong bg-surface-sunken text-center shadow-ambient ${nodeStateClass(data)}`}
       >
         {data.onDelete && (
           <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
         )}
         {/* 원형 표시에서는 상하좌우 연결점을 감춘다(엣지는 노드 경계로 자동 연결되어 그대로 렌더). */}
         <NodeHandles isConnectable={isConnectable} hidden />
-        <span className="line-clamp-3 px-2.5 text-[13px] font-semibold leading-tight text-fg break-keep">
+        <span className="line-clamp-3 px-2.5 text-[13px] leading-tight text-fg break-keep">
           {data.label}
         </span>
       </div>
@@ -43,14 +43,14 @@ export const FreeSubjectNode = ({ id, data, isConnectable }: NodeProps<FreeSubje
   return (
     <div
       data-animate-landing
-      className={`group relative min-w-[120px] rounded-[var(--radius-lg)] border-2 border-dashed border-border-strong bg-surface-sunken px-4 py-2 shadow-[var(--shadow-sm)] ${nodeStateClass(data)}`}
+      className={`group relative min-w-[120px] rounded-[var(--radius-lg)] border-2 border-dashed border-border-strong bg-surface-sunken px-4 py-2 shadow-ambient ${nodeStateClass(data)}`}
     >
       {data.onDelete && (
         <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
       )}
       <NodeHandles isConnectable={isConnectable} />
-      <div className="text-sm font-medium text-fg">{data.label}</div>
-      <span className="mt-1 inline-block rounded-full bg-surface-raised px-1.5 py-0.5 text-[10px] font-medium text-fg-muted ring-1 ring-inset ring-border">
+      <div className="text-sm text-fg">{data.label}</div>
+      <span className="mt-1 inline-block rounded-full bg-surface-raised px-1.5 py-0.5 text-[10px] text-fg-muted ring-1 ring-inset ring-border">
         {SUBJECT_TYPE_LABELS[data.subjectType]}
       </span>
     </div>

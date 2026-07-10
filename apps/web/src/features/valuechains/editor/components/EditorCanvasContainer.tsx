@@ -227,7 +227,7 @@ export function EditorCanvasContainer() {
       />
 
       {blockedReason && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-[var(--radius)] bg-danger-soft px-3 py-2 text-sm text-danger shadow-[var(--shadow-sm)]">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-[var(--radius)] bg-danger-soft px-3 py-2 text-sm text-danger shadow-ambient">
           {EDGE_BLOCK_MESSAGES[blockedReason]}
         </div>
       )}

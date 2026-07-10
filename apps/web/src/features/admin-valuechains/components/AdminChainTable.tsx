@@ -73,7 +73,7 @@ export function AdminChainTable({
       <tbody>
         {chains.map((chain) => (
           <tr key={chain.chainId} className="border-b border-border">
-            <td className="p-2 font-medium text-fg">{chain.name}</td>
+            <td className="p-2 text-fg">{chain.name}</td>
             <td className="p-2">
               <Badge tone="neutral">{FOCUS_TYPE_LABELS[chain.focusType]}</Badge>
             </td>

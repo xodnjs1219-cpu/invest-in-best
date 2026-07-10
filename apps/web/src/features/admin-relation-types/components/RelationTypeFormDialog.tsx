@@ -64,14 +64,14 @@ export function RelationTypeFormDialog({
       role="dialog"
       aria-modal="true"
       aria-label={FORM_DIALOG_TITLES[mode]}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
     >
       <Card className="w-full max-w-md bg-surface-raised p-6">
         <Heading level={2} className="mb-4">{FORM_DIALOG_TITLES[mode]}</Heading>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label htmlFor="relation-type-name" className="text-sm font-medium">
+            <label htmlFor="relation-type-name" className="text-sm">
               {NAME_FIELD_LABEL}
             </label>
             <Input
@@ -95,7 +95,7 @@ export function RelationTypeFormDialog({
 
           {mode === "create" && (
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium">{DIRECTION_FIELD_LABEL}</span>
+              <span className="text-sm">{DIRECTION_FIELD_LABEL}</span>
               <Controller
                 name="isDirected"
                 control={control}

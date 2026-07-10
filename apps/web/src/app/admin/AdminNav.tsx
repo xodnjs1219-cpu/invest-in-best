@@ -26,7 +26,7 @@ export function AdminNav({ items }: AdminNavProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              isActive ? "text-accent font-semibold" : "text-fg-muted hover:text-fg",
+              isActive ? "text-accent" : "text-fg-muted hover:text-fg",
             )}
           >
             {item.label}

@@ -89,7 +89,7 @@ export function GroupPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <label htmlFor="group-name-input" className="text-sm font-medium text-fg-muted">
+        <label htmlFor="group-name-input" className="text-sm text-fg-muted">
           그룹 이름
         </label>
         <Input
@@ -107,7 +107,7 @@ export function GroupPanel({
 
       {selectedNodeIds.length > 0 && groups.length > 0 && (
         <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <label htmlFor="group-assign-select" className="text-sm font-medium text-fg-muted">
+          <label htmlFor="group-assign-select" className="text-sm text-fg-muted">
             선택 노드 그룹 지정
           </label>
           <Select
@@ -158,7 +158,7 @@ export function GroupPanel({
               ) : (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-fg">{group.name}</span>
+                    <span className="text-sm text-fg">{group.name}</span>
                     <span className="text-xs text-fg-muted">멤버 {memberCount}개</span>
                     {isEmpty && <Badge tone="accent">저장 시 제외</Badge>}
                     {isDuplicate && <Badge tone="warning">이름 중복</Badge>}

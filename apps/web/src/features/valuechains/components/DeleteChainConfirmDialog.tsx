@@ -36,10 +36,10 @@ export function DeleteChainConfirmDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-chain-dialog-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
     >
-      <Card className="w-full max-w-sm p-5 shadow-[var(--shadow-md)]">
-        <h2 id="delete-chain-dialog-title" className="text-base font-semibold text-fg">
+      <Card className="w-full max-w-sm p-5 shadow-deep">
+        <h2 id="delete-chain-dialog-title" className="text-base text-fg">
           {DELETE_CONFIRM_TITLE}
         </h2>
         <p className="mt-2 text-sm text-fg-muted">{buildDeleteConfirmDescription(chainName)}</p>

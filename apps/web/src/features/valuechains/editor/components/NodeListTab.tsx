@@ -37,7 +37,7 @@ export function NodeListTab({ items, groupNameById, onDeleteNode }: NodeListTabP
             >
               <div className="flex min-w-0 flex-col gap-0.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="truncate text-sm font-medium text-fg">{item.label}</span>
+                  <span className="truncate text-sm text-fg">{item.label}</span>
                   {item.market && (
                     <Badge tone={item.market === "US" ? "accent" : "data"}>{item.market}</Badge>
                   )}
@@ -53,7 +53,7 @@ export function NodeListTab({ items, groupNameById, onDeleteNode }: NodeListTabP
                 onClick={() => onDeleteNode(item.clientNodeId)}
                 aria-label={`${item.label} 노드 삭제`}
                 title="노드 삭제"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius)] border border-border text-fg-muted transition-colors hover:border-danger hover:bg-danger hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius)] border border-border text-fg-muted transition-colors hover:border-danger hover:bg-danger hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
                   <path d="M6 6l12 12M18 6 6 18" />

@@ -144,9 +144,9 @@ const NodeShapeToggleButton = ({
     aria-label={label}
     aria-pressed={active}
     title={label}
-    className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+    className={`flex h-7 w-7 items-center justify-center rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
       active
-        ? "bg-accent text-accent-fg shadow-[var(--shadow-sm)]"
+        ? "bg-accent text-accent-fg shadow-ambient"
         : "text-fg-muted hover:bg-surface-sunken hover:text-fg"
     }`}
   >
@@ -321,7 +321,7 @@ const MindmapCanvasInner = () => {
       />
       {/* 노드 모양 전환(카드/원) — 우상단. 원형은 종목명만 담은 옵시디언 그래프뷰식 표시. */}
       <div
-        className="absolute right-3 top-3 z-10 flex items-center gap-0.5 rounded-full border border-border bg-surface-raised/90 p-0.5 shadow-[var(--shadow-sm)] backdrop-blur"
+        className="absolute right-3 top-3 z-10 flex items-center gap-0.5 rounded-[var(--radius)] border border-border bg-surface-raised/90 p-0.5 shadow-ambient backdrop-blur"
         role="group"
         aria-label="노드 표시 모양"
       >
@@ -350,13 +350,13 @@ const MindmapCanvasInner = () => {
           data-testid="mindmap-restoring-indicator"
           className="pointer-events-none absolute inset-0 flex items-center justify-center bg-surface-raised/50"
         >
-          <span className="rounded-full bg-fg/80 px-4 py-2 text-sm font-medium text-surface-raised">
+          <span className="rounded-[var(--radius)] bg-fg/80 px-4 py-2 text-sm text-surface-raised">
             시점 구성을 불러오는 중…
           </span>
         </div>
       )}
       {/* 조작 힌트 — 옵시디언식 인터랙션 발견성(좌하단, 장식이라 클릭 불가). */}
-      <div className="pointer-events-none absolute bottom-3 left-3 hidden items-center gap-2 rounded-full border border-border bg-surface-raised/80 px-3 py-1 text-[11px] text-fg-muted backdrop-blur sm:flex">
+      <div className="pointer-events-none absolute bottom-3 left-3 hidden items-center gap-2 rounded-[var(--radius)] border border-border bg-surface-raised/80 px-3 py-1 text-[11px] text-fg-muted backdrop-blur sm:flex">
         <span>노드 클릭 → 상세</span>
         <span className="text-border-strong" aria-hidden>·</span>
         <span>hover → 연결 강조</span>

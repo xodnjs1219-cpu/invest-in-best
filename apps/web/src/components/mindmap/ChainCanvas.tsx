@@ -224,7 +224,7 @@ function ChainCanvasInner({
       )}
       {!nodesConnectable && (
         <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center p-2">
-          <p className="rounded-[var(--radius)] bg-warning-soft px-3 py-1.5 text-xs font-medium text-warning">
+          <p className="rounded-[var(--radius)] bg-warning-soft px-3 py-1.5 text-xs text-warning">
             {CONNECT_DISABLED_MESSAGE}
           </p>
         </div>

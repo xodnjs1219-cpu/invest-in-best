@@ -32,7 +32,7 @@ export function ArchiveChainDialog({ target, isArchiving, onConfirm, onCancel }:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
       <Card role="alertdialog" aria-modal="true" className="w-full max-w-sm bg-surface-raised p-6">
         <Heading level={3}>{ARCHIVE_DIALOG_TEXT.title}</Heading>
         <p className="mt-2 text-sm text-fg-muted">

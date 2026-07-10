@@ -40,7 +40,7 @@ export function ChainCard({ card, onSelect, actionSlot }: ChainCardProps) {
       className="flex w-full flex-col gap-2 p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="truncate text-base font-semibold text-fg">{card.name}</span>
+        <span className="truncate text-base text-fg">{card.name}</span>
         {actionSlot && (
           <span onClick={(event) => event.stopPropagation()} className="shrink-0">
             {actionSlot}
@@ -54,7 +54,7 @@ export function ChainCard({ card, onSelect, actionSlot }: ChainCardProps) {
         <span className="text-sm text-fg-subtle">집계 준비 중</span>
       ) : (
         <span className="flex flex-col gap-0.5">
-          <span className="text-lg font-bold text-fg">{metricDisplay.text}</span>
+          <span className="text-lg text-fg">{metricDisplay.text}</span>
           <span className="flex items-center gap-1.5 text-xs text-fg-muted">
             <span>{metricDisplay.coverageText}</span>
             {metricDisplay.isCarriedForward && <Badge tone="warning">이월 집계</Badge>}

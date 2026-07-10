@@ -58,7 +58,7 @@ export function FreeSubjectFormTab({ onAdd, disabled }: FreeSubjectFormTabProps)
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <label htmlFor="free-subject-type" className="text-sm font-medium text-fg-muted">
+        <label htmlFor="free-subject-type" className="text-sm text-fg-muted">
           유형
         </label>
         <Select
@@ -78,7 +78,7 @@ export function FreeSubjectFormTab({ onAdd, disabled }: FreeSubjectFormTabProps)
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="free-subject-name" className="text-sm font-medium text-fg-muted">
+        <label htmlFor="free-subject-name" className="text-sm text-fg-muted">
           이름
         </label>
         <Input
@@ -92,7 +92,7 @@ export function FreeSubjectFormTab({ onAdd, disabled }: FreeSubjectFormTabProps)
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="free-subject-memo" className="text-sm font-medium text-fg-muted">
+        <label htmlFor="free-subject-memo" className="text-sm text-fg-muted">
           설명 메모
         </label>
         <Textarea

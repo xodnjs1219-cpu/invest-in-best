@@ -37,7 +37,7 @@ export function BatchRunDetailPanel({
 }: BatchRunDetailPanelProps) {
   if (isNotFound) {
     return (
-      <aside className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center shadow-[var(--shadow-sm)]">
+      <aside className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center shadow-ambient">
         <p className="text-sm text-danger">{RUN_NOT_FOUND_MESSAGE}</p>
         <Button variant="secondary" size="sm" onClick={onClose}>
           {RUN_NOT_FOUND_BACK_BUTTON_LABEL}
@@ -48,7 +48,7 @@ export function BatchRunDetailPanel({
 
   if (isLoading) {
     return (
-      <aside className="rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center text-sm text-fg-muted shadow-[var(--shadow-sm)]">
+      <aside className="rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center text-sm text-fg-muted shadow-ambient">
         로딩 중...
       </aside>
     );
@@ -56,7 +56,7 @@ export function BatchRunDetailPanel({
 
   if (isError) {
     return (
-      <aside className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center shadow-[var(--shadow-sm)]">
+      <aside className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 text-center shadow-ambient">
         <p className="text-sm text-danger">실행 상세를 불러오지 못했습니다.</p>
         <Button variant="secondary" size="sm" onClick={onRetry}>
           다시 시도
@@ -70,7 +70,7 @@ export function BatchRunDetailPanel({
   }
 
   return (
-    <aside className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-[var(--shadow-sm)]">
+    <aside className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-border bg-surface-raised p-4 shadow-ambient">
       <div className="flex items-start justify-between">
         <Heading level={2}>{BATCH_JOB_TYPE_LABELS[run.jobType]}</Heading>
         <Button variant="ghost" size="sm" onClick={onClose}>

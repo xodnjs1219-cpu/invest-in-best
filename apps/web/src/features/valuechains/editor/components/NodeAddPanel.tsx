@@ -77,7 +77,7 @@ export function NodeAddPanel({
               role="tab"
               aria-selected={isActive}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 text-sm font-medium ${
+              className={`px-3 py-1.5 text-sm ${
                 isActive ? "border-b-2 border-accent text-accent" : "text-fg-muted hover:text-fg"
               }`}
             >

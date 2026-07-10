@@ -32,7 +32,7 @@ export function RejectReasonDialog({
   const isOverLimit = target.reason.length > REJECT_REASON_MAX_LENGTH;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
       <Card className="flex w-full max-w-md flex-col gap-3 bg-surface-raised p-6">
         <Heading level={2}>{REJECT_DIALOG_TITLE}</Heading>
         <Textarea

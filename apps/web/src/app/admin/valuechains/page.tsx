@@ -62,7 +62,7 @@ export default function AdminValuechainsPage() {
 
       {toast && (
         <div
-          className={`fixed right-4 top-4 z-50 rounded-[var(--radius)] px-4 py-2 text-sm text-white shadow-lg ${
+          className={`fixed right-4 top-4 z-50 rounded-[var(--radius)] px-4 py-2 text-sm text-accent-fg shadow-elevated ${
             toast.variant === "success" ? "bg-success" : "bg-danger"
           }`}
         >

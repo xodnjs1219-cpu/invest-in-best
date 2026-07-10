@@ -19,7 +19,7 @@ export function SecurityResultItem({ item, onSelect }: SecurityResultItemProps) 
     >
       <span className="flex min-w-0 flex-col">
         <span className="flex items-center gap-2">
-          <span className="truncate font-medium text-fg">{item.name}</span>
+          <span className="truncate text-fg">{item.name}</span>
           <span className="shrink-0 text-sm text-fg-muted">{item.ticker}</span>
         </span>
         {item.englishName && (

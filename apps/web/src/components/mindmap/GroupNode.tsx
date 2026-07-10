@@ -52,19 +52,19 @@ export const GroupNode = ({ data, selected }: NodeProps<GroupNodeType>) => {
       <div
         className={`flex items-center gap-2 ${isCircle ? "justify-center" : "justify-between"}`}
       >
-        <span className="truncate text-xs font-semibold text-accent-soft-fg">{data.label}</span>
+        <span className="truncate text-xs text-accent-soft-fg">{data.label}</span>
         {data.onToggleCollapse && (
           <button
             type="button"
             onClick={data.onToggleCollapse}
-            className="rounded px-1.5 py-0.5 text-[10px] font-medium text-accent hover:bg-accent-soft"
+            className="rounded px-1.5 py-0.5 text-[10px] text-accent hover:bg-accent-soft"
             aria-label={data.isCollapsed ? "그룹 펼치기" : "그룹 접기"}
           >
             {data.isCollapsed ? "펼치기" : "접기"}
           </button>
         )}
         {isEmpty && (
-          <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent-soft-fg ring-1 ring-inset ring-accent/25">
+          <span className="rounded-sm bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent-soft-fg ring-1 ring-inset ring-accent/25">
             {EMPTY_BADGE_LABEL}
           </span>
         )}

@@ -19,7 +19,7 @@ export function NodeDeleteButton({ onDelete, label }: { onDelete: () => void; la
       onMouseDown={(e) => e.stopPropagation()}
       aria-label={label}
       title="노드 삭제"
-      className="nodrag absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-surface-raised text-fg-muted shadow-[var(--shadow-sm)] transition-colors hover:border-danger hover:bg-danger hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="nodrag absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-surface-raised text-fg-muted shadow-ambient transition-colors hover:border-danger hover:bg-danger hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
         <path d="M6 6l12 12M18 6 6 18" />

@@ -35,7 +35,7 @@ export function DeactivateConfirmDialog({
       role="alertdialog"
       aria-modal="true"
       aria-label={DEACTIVATE_DIALOG_TITLE}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
     >
       <Card className="w-full max-w-sm bg-surface-raised p-6">
         <Heading level={2} className="mb-4">{DEACTIVATE_DIALOG_TITLE}</Heading>

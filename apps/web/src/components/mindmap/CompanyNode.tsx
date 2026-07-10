@@ -45,14 +45,14 @@ export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeTy
     return (
       <div
         data-animate-landing
-        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border-2 border-accent/40 bg-surface-raised text-center shadow-[var(--shadow-sm)] transition-colors group-hover:border-accent ${nodeStateClass(data)}`}
+        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border-2 border-accent/40 bg-surface-raised text-center shadow-ambient transition-colors group-hover:border-accent ${nodeStateClass(data)}`}
       >
         {data.onDelete && (
           <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
         )}
         {/* 원형 표시에서는 상하좌우 연결점을 감춘다(엣지는 노드 경계로 자동 연결되어 그대로 렌더). */}
         <NodeHandles isConnectable={isConnectable} hidden />
-        <span className="line-clamp-3 px-2.5 text-[13px] font-semibold leading-tight text-fg break-keep">
+        <span className="line-clamp-3 px-2.5 text-[13px] leading-tight text-fg break-keep">
           {data.label}
         </span>
       </div>
@@ -62,16 +62,16 @@ export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeTy
   return (
     <div
       data-animate-landing
-      className={`group relative min-w-[140px] rounded-[var(--radius-lg)] border-2 border-accent/40 bg-surface-raised px-4 py-2 shadow-[var(--shadow-sm)] ${nodeStateClass(data)}`}
+      className={`group relative min-w-[140px] rounded-[var(--radius-lg)] border-2 border-accent/40 bg-surface-raised px-4 py-2 shadow-ambient ${nodeStateClass(data)}`}
     >
       {data.onDelete && (
         <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
       )}
       <NodeHandles isConnectable={isConnectable} />
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-fg">{data.label}</span>
+        <span className="text-sm text-fg">{data.label}</span>
         {showStatusBadge && data.listingStatus && (
-          <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] font-medium text-danger">
+          <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] text-danger">
             {LISTING_STATUS_LABELS[data.listingStatus]}
           </span>
         )}
@@ -80,7 +80,7 @@ export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeTy
         {data.sublabel && <span>{data.sublabel}</span>}
         {data.market && (
           <span
-            className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${marketBadgeClass}`}
+            className={`rounded-full px-1.5 py-0.5 text-[10px] ${marketBadgeClass}`}
           >
             {data.market}
           </span>

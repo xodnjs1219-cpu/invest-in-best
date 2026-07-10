@@ -35,12 +35,12 @@ export function OfficialSaveDialog({ open, isSaving, onConfirm, onCancel }: Offi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
       <Card role="dialog" aria-modal="true" className="w-full max-w-sm bg-surface-raised p-6">
         <Heading level={3}>공식 체인 저장</Heading>
         <p className="mt-2 text-sm text-fg-muted">저장 1회 = 스냅샷 1건으로 기록됩니다.</p>
         <div className="mt-3 flex flex-col gap-1">
-          <label htmlFor="disclosure-date-input" className="text-sm font-medium text-fg-muted">
+          <label htmlFor="disclosure-date-input" className="text-sm text-fg-muted">
             근거 공시일
           </label>
           <Input

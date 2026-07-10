@@ -102,7 +102,7 @@ export default function AdminLlmProposalsPage() {
 
       {toast && (
         <div
-          className={`fixed right-4 top-4 z-50 rounded-[var(--radius)] px-4 py-2 text-sm text-white shadow-lg ${toastStyles[toast.variant]}`}
+          className={`fixed right-4 top-4 z-50 rounded-[var(--radius)] px-4 py-2 text-sm text-accent-fg shadow-elevated ${toastStyles[toast.variant]}`}
         >
           {toast.message}
         </div>

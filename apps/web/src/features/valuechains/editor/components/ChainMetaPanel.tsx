@@ -64,7 +64,7 @@ export function ChainMetaPanel() {
   return (
     <div className="flex flex-col gap-4 border-b border-border px-4 py-4">
       <div className="flex flex-col gap-1">
-        <label htmlFor="chain-name-input" className="text-sm font-medium text-fg-muted">
+        <label htmlFor="chain-name-input" className="text-sm text-fg-muted">
           체인 이름
         </label>
         <Input
@@ -80,7 +80,7 @@ export function ChainMetaPanel() {
       </div>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium text-fg-muted">기준</legend>
+        <legend className="text-sm text-fg-muted">기준</legend>
         {/* 세그먼트형 선택 카드 — 실제 radio는 sr-only로 숨겨 role/접근성/키보드 탐색을 유지하고,
             label을 클릭 가능한 카드로 스타일링한다(peer-checked로 선택 상태를 강조). */}
         <div className="grid grid-cols-2 gap-2">
@@ -101,7 +101,7 @@ export function ChainMetaPanel() {
                 <span className="text-fg-subtle peer-checked:text-accent group-has-[:checked]:text-accent">
                   {option.icon}
                 </span>
-                <span className="text-sm font-semibold text-fg">{option.label}</span>
+                <span className="text-sm text-fg">{option.label}</span>
               </span>
               <span className="text-xs leading-snug text-fg-muted">{option.description}</span>
             </label>
@@ -115,7 +115,7 @@ export function ChainMetaPanel() {
 
           {state.focusSecurity ? (
             <div className="flex items-center gap-2 rounded-[var(--radius)] bg-surface-sunken px-3 py-2">
-              <span className="font-medium text-fg">{state.focusSecurity.name}</span>
+              <span className="text-fg">{state.focusSecurity.name}</span>
               <span className="text-sm text-fg-muted">{state.focusSecurity.ticker}</span>
               <MarketBadge market={state.focusSecurity.market} />
               <button

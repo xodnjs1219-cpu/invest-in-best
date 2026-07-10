@@ -47,6 +47,9 @@
   /* 포커스 링 */
   --ring: #818cf8;
 
+  /* 모달/다이얼로그 스크림 — 검정 대신 slate 틴트(크로마틱 깊이 원칙, §6) */
+  --overlay: rgb(15 23 42 / 0.45);
+
   /* 차트 (SVG/recharts용 — chartTheme.ts의 LIGHT 팔레트와 값 일치) */
   --chart-surface: #ffffff;
   --chart-text: #475569;
@@ -61,11 +64,6 @@
   --radius-sm: 0.375rem;
   --radius: 0.5rem;
   --radius-lg: 0.75rem;
-  /* 구 그림자 토큰 — Phase 7에서 제거 예정(shadow-[var(--shadow-*)] 사용처 이관 후) */
-  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.04);
-  --shadow: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06);
-  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.1), 0 2px 6px -2px rgb(15 23 42 / 0.06);
-
   /* 그림자 4레벨 (DESIGN.md §6) — 블루 틴트 크로마틱 깊이가 원칙.
      브랜드 색 그림자(50,50,93)를 멀리, 중립 검정을 가까이 — 시차(parallax) 깊이. */
   --shadow-ambient: rgba(23, 23, 23, 0.06) 0px 3px 6px;
@@ -115,6 +113,8 @@
 
     --ring: #6366f1;
 
+    --overlay: rgb(2 6 23 / 0.65);
+
     --chart-surface: #111827;
     --chart-text: #9aa7bd;
     --chart-grid: #1f2937;
@@ -123,10 +123,6 @@
     --chart-series-3: #4ade80;
     --chart-series-4: #fbbf24;
     --chart-series-emphasis: #a5b4fc;
-
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
 
     /* 다크에서는 블루 틴트가 배경에 묻히므로 알파 상향 */
     --shadow-ambient: rgba(0, 0, 0, 0.35) 0px 3px 6px;
@@ -170,6 +166,7 @@
   --color-danger-soft: var(--danger-soft);
 
   --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
 
   --radius-sm: var(--radius-sm);
   --radius-DEFAULT: var(--radius);
@@ -185,13 +182,6 @@
   --shadow-standard: var(--shadow-standard);
   --shadow-elevated: var(--shadow-elevated);
   --shadow-deep: var(--shadow-deep);
-  /* 마이그레이션 브릿지(Phase 7 제거 예정): 기존 shadow-sm/md/lg/xl/2xl 사용처를
-     시맨틱 레벨로 매핑 — 이관 완료 전까지 그림자 소실 방지 */
-  --shadow-sm: var(--shadow-ambient);
-  --shadow-md: var(--shadow-standard);
-  --shadow-lg: var(--shadow-elevated);
-  --shadow-xl: var(--shadow-elevated);
-  --shadow-2xl: var(--shadow-deep);
 
   /* 모션 유틸 (DESIGN.md §15) — duration-instant/fast/standard/slow + ease-enter/exit/standard.
      duration을 명시하지 않은 transition-*은 기본값이 fast(120ms)/standard 커브로 정규화된다. */

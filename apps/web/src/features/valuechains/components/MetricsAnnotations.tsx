@@ -31,7 +31,7 @@ export const MetricsAnnotations = ({ variant, annotations }: MetricsAnnotationsP
       {open && (
         <div
           role="tooltip"
-          className="absolute left-0 top-6 z-10 w-64 rounded-[var(--radius)] border border-border bg-surface-raised p-3 text-xs text-fg-muted shadow-[var(--shadow-md)]"
+          className="absolute left-0 top-6 z-10 w-64 rounded-[var(--radius)] border border-border bg-surface-raised p-3 text-xs text-fg-muted shadow-elevated"
         >
           <p>기준 통화: {annotations.baseCurrency}</p>
           <p>환산 기준: {fxBasisLabel}</p>

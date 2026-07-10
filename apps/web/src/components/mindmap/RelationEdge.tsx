@@ -176,7 +176,7 @@ export const RelationEdge = ({
           className={`nodrag nopan relative ${edgeClass} ${isInactiveType ? "opacity-60" : ""}`}
         >
           <span
-            className={`flex max-w-[180px] items-center gap-1 rounded-[var(--radius-sm)] border px-2 py-0.5 text-[11px] font-semibold shadow-[var(--shadow-sm)] ${
+            className={`flex max-w-[180px] items-center gap-1 rounded-[var(--radius-sm)] border px-2 py-0.5 text-[11px] shadow-ambient ${
               isHighlighted
                 ? "border-danger/40 bg-danger-soft text-danger"
                 : "border-border bg-surface-raised text-fg"
@@ -210,7 +210,7 @@ export const RelationEdge = ({
               aria-label={`${label} 관계 삭제`}
               title="관계 삭제"
               // EdgeLabelRenderer는 라벨에 pointer-events:none을 기본 적용하므로 버튼은 auto로 되살린다.
-              className="pointer-events-auto absolute -right-2.5 -top-2.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-surface-raised text-fg-muted shadow-sm transition-colors hover:border-danger hover:bg-danger hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="pointer-events-auto absolute -right-2.5 -top-2.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-surface-raised text-fg-muted shadow-ambient transition-colors hover:border-danger hover:bg-danger hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden>
                 <path d="M6 6l12 12M18 6 6 18" />

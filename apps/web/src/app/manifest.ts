@@ -13,6 +13,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: SITE_DESCRIPTION,
     start_url: "/",
     display: "standalone",
+    // ui-exception(hex): PWA manifest는 리터럴 색 필수 — surface-raised(#ffffff)와 값 일치
     background_color: "#ffffff",
     theme_color: "#ffffff",
     lang: "ko",

@@ -26,7 +26,7 @@ export function DeleteConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
       <Card role="dialog" aria-modal="true" className="w-full max-w-sm bg-surface-raised p-6">
         <Heading level={3}>노드를 삭제하시겠어요?</Heading>
         <p className="mt-2 text-sm text-fg-muted">

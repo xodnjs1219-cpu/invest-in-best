@@ -17,7 +17,7 @@ export function UnsavedLeaveDialog({ open, onConfirm, onCancel }: UnsavedLeaveDi
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
       <Card
         role="alertdialog"
         aria-modal="true"

@@ -56,7 +56,7 @@ export function BelongingChainsSection({ query }: BelongingChainsSectionProps) {
                 className="flex flex-col gap-1 rounded-[var(--radius)] border border-border px-3 py-2 text-sm hover:bg-surface-hover"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-fg">{item.name}</span>
+                  <span className="text-fg">{item.name}</span>
                   <Badge tone="neutral">
                     {item.chainType === "official" ? CHAINS_OFFICIAL_BADGE_LABEL : CHAINS_USER_BADGE_LABEL}
                   </Badge>
