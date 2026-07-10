@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Background,
-  BackgroundVariant,
   ReactFlow,
   ReactFlowProvider,
   useNodesState,
@@ -14,6 +13,12 @@ import {
   type EdgeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import {
+  CanvasControls,
+  CanvasLegend,
+  CanvasMiniMap,
+  MM_BACKGROUND_PROPS,
+} from "@/components/mindmap/CanvasChrome";
 import { CompanyNode } from "@/components/mindmap/CompanyNode";
 import { FreeSubjectNode } from "@/components/mindmap/FreeSubjectNode";
 import { GroupNode } from "@/components/mindmap/GroupNode";
@@ -51,6 +56,8 @@ export interface ChainCanvasProps {
   onElementsDelete?: (params: { nodeIds: string[]; edgeIds: string[] }) => void;
   /** false면 연결 제스처 비활성 + 안내 배너(E6 — 활성 관계 종류 0개, E10 — 마스터 로드 실패). */
   nodesConnectable?: boolean;
+  /** 좌하단 범례에 표시할 그룹(라벨+tone) — 미전달 시 관례·힌트만 표시. */
+  legendGroups?: readonly { label: string; tone: number }[];
 }
 
 const EMPTY_STATE_MESSAGE = "노드를 추가해 밸류체인을 구성하세요";
@@ -69,6 +76,7 @@ function ChainCanvasInner({
   onNodeClick,
   onElementsDelete,
   nodesConnectable = true,
+  legendGroups,
 }: ChainCanvasProps) {
   // React Flow는 controlled `nodes`를 넘길 때 `onNodesChange`가 필수다(v12, error#015). 배선하지 않으면
   // 내부 노드 측정(measured)/초기화가 갱신되지 않아, 페인 더블클릭(줌) 등 내부 상태 변경 시 노드가 사라진다.
@@ -125,11 +133,13 @@ function ChainCanvasInner({
   }, [activeNodeId, edges]);
 
   // 강조 상태를 노드/엣지 data에 주입한 표시용 파생 배열(원본 state는 불변).
+  // 플래그가 실제로 바뀌는 항목만 새 객체로 교체(참조 보존) — hover마다 전량 리렌더 방지(뷰어와 동일 패턴).
   const displayNodes = useMemo(() => {
     if (!neighborIds) return nodes;
     return nodes.map((n) => {
       if (n.type === "groupNode") return n; // 그룹 클러스터는 dim 대상에서 제외
       const emphasized = neighborIds.has(n.id);
+      if (n.data.isEmphasized === emphasized && n.data.isDimmed === !emphasized) return n;
       return { ...n, data: { ...n.data, isEmphasized: emphasized, isDimmed: !emphasized } };
     });
   }, [nodes, neighborIds]);
@@ -138,28 +148,16 @@ function ChainCanvasInner({
     if (!activeNodeId) return edges;
     return edges.map((e) => {
       const connected = e.source === activeNodeId || e.target === activeNodeId;
+      if (e.data?.isEmphasized === connected && e.data?.isDimmed === !connected) return e;
       return { ...e, data: { ...e.data, isEmphasized: connected, isDimmed: !connected } };
     });
   }, [edges, activeNodeId]);
 
   return (
     <div
-      className="relative h-[480px] w-full overflow-hidden rounded-[var(--radius-lg)] border border-border"
+      className="relative h-[clamp(480px,68vh,720px)] w-full overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface-sunken"
       data-mm-hovering={activeNodeId ? "true" : undefined}
     >
-      {/* 은은한 배경 오로라 글로우(랜딩 히어로 계보) — 장식이라 클릭 불가. */}
-      <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden" aria-hidden>
-        <div
-          data-animate-landing
-          className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-accent/10 blur-3xl"
-          style={{ animation: "var(--animate-mm-aurora)" }}
-        />
-        <div
-          data-animate-landing
-          className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-data/10 blur-3xl"
-          style={{ animation: "var(--animate-mm-aurora)", animationDelay: "-6s" }}
-        />
-      </div>
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}
@@ -212,9 +210,17 @@ function ChainCanvasInner({
         // 밸류체인 캔버스에서 더블클릭 줌은 불필요하므로 비활성화한다(줌은 휠·컨트롤로만).
         zoomOnDoubleClick={false}
       >
-        {/* 은은한 배경 입자(옵시디언 그래프뷰 계보) — 미세 점 격자. */}
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1} className="!opacity-40" />
+        {/* 은은한 배경 입자 — 뷰어와 동일한 도트 그리드(§4 캔버스 크롬). */}
+        <Background {...MM_BACKGROUND_PROPS} />
+        <CanvasMiniMap />
       </ReactFlow>
+      {/* 캔버스 컨트롤(확대/축소/전체 보기) — 우상단. */}
+      <CanvasControls />
+      {/* 범례 — 그룹 tone·표기 관례·편집 힌트(좌하단). */}
+      <CanvasLegend
+        groups={legendGroups ?? []}
+        hints={["핸들 드래그 → 연결", "Delete → 선택 삭제"]}
+      />
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="rounded-[var(--radius)] bg-surface-raised/80 px-4 py-2 text-sm text-fg-muted">

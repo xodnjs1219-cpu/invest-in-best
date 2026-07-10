@@ -214,6 +214,12 @@ export function EditorCanvasContainer() {
 
   const isPickerOpen = pendingConnection !== null || editingEdge !== null;
 
+  // 범례용 그룹(라벨+tone) — 셀렉터의 그룹 인덱스와 동일한 순서(Object.values)로 tone을 부여한다.
+  const legendGroups = useMemo(
+    () => Object.values(state.groups).map((group, index) => ({ label: group.name, tone: index })),
+    [state.groups],
+  );
+
   return (
     <div className="relative">
       <ChainCanvas
@@ -224,6 +230,7 @@ export function EditorCanvasContainer() {
         onNodeDragStop={handleNodeDragStop}
         onSelectionChange={handleSelectionChange}
         nodesConnectable={computed.hasActiveRelationTypes}
+        legendGroups={legendGroups}
       />
 
       {blockedReason && (
