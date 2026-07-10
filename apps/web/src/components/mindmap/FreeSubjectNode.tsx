@@ -1,6 +1,6 @@
 import { type Node, type NodeProps } from "@xyflow/react";
 import { SUBJECT_TYPE_LABELS } from "@iib/domain";
-import { nodeStateClass } from "@/components/mindmap/CompanyNode";
+import { nodeChromeClass, nodeStateClass } from "@/components/mindmap/CompanyNode";
 import { NodeDeleteButton } from "@/components/mindmap/NodeDeleteButton";
 import { NodeHandles } from "@/components/mindmap/NodeHandles";
 import type { NodeShape, SubjectType } from "@/components/mindmap/types";
@@ -20,13 +20,15 @@ export type FreeSubjectNodeData = {
 export type FreeSubjectNodeType = Node<FreeSubjectNodeData>;
 
 /** 자유 주체 노드 컴포넌트 (plan 모듈 A8) — 주체 이름 + 주체 유형 뱃지. `data.onDelete` 시 삭제 버튼 노출. */
-export const FreeSubjectNode = ({ id, data, isConnectable }: NodeProps<FreeSubjectNodeType>) => {
+export const FreeSubjectNode = ({ id, data, isConnectable, selected }: NodeProps<FreeSubjectNodeType>) => {
   // 원형 표시(옵시디언식) — 주체명만 담되, 자유 주체의 점선 테두리 언어를 원에서도 유지한다.
+  // 필은 bg-surface — sunken 바닥 < 자유 주체 < 기업(raised)의 3단 명도 위계(§4).
   if (data.shape === "circle") {
     return (
       <div
         data-animate-landing
-        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border-2 border-dashed border-border-strong bg-surface-sunken text-center shadow-ambient ${nodeStateClass(data)}`}
+        data-selected={selected || undefined}
+        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border border-dashed bg-surface text-center transition-[border-color,box-shadow] ${nodeChromeClass(data, selected)} ${nodeStateClass(data)}`}
       >
         {data.onDelete && (
           <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
@@ -43,14 +45,15 @@ export const FreeSubjectNode = ({ id, data, isConnectable }: NodeProps<FreeSubje
   return (
     <div
       data-animate-landing
-      className={`group relative min-w-[120px] rounded-[var(--radius-lg)] border-2 border-dashed border-border-strong bg-surface-sunken px-4 py-2 shadow-ambient ${nodeStateClass(data)}`}
+      data-selected={selected || undefined}
+      className={`group relative min-w-[120px] rounded-[var(--radius-lg)] border border-dashed bg-surface px-4 py-2 transition-[border-color,box-shadow] ${nodeChromeClass(data, selected)} ${nodeStateClass(data)}`}
     >
       {data.onDelete && (
         <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
       )}
       <NodeHandles isConnectable={isConnectable} />
       <div className="text-sm text-fg">{data.label}</div>
-      <span className="mt-1 inline-block rounded-full bg-surface-raised px-1.5 py-0.5 text-[10px] text-fg-muted ring-1 ring-inset ring-border">
+      <span className="mt-1 inline-block rounded-sm bg-surface-raised px-1.5 py-0.5 text-[10px] text-fg-muted ring-1 ring-inset ring-border">
         {SUBJECT_TYPE_LABELS[data.subjectType]}
       </span>
     </div>

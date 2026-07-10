@@ -106,10 +106,26 @@ describe("RelationEdge", () => {
   });
 });
 
+describe("흐름 오버레이 (rest 무채색 원칙)", () => {
+  it("rest 상태 유향 엣지에는 흐름 오버레이를 렌더하지 않는다", () => {
+    const { container } = render(
+      <RelationEdge {...buildProps({ label: "공급", isDirected: true })} />,
+    );
+    expect(container.querySelector(".mm-edge-flow")).toBeNull();
+  });
+
+  it("강조(isEmphasized) 시 흐름 오버레이를 렌더한다", () => {
+    const { container } = render(
+      <RelationEdge {...buildProps({ label: "공급", isDirected: true, isEmphasized: true })} />,
+    );
+    expect(container.querySelector(".mm-edge-flow")).not.toBeNull();
+  });
+});
+
 describe("directedArrowMarker (뷰/편집 공용 화살표 마커)", () => {
   it("유향 → 화살표 마커 반환(accent 색), 무향 → undefined", () => {
     const directed = directedArrowMarker(true);
-    expect(directed).toMatchObject({ color: "var(--accent)", width: 18, height: 18 });
+    expect(directed).toMatchObject({ color: "var(--fg-subtle)", width: 18, height: 18 });
     expect(directedArrowMarker(false)).toBeUndefined();
   });
 

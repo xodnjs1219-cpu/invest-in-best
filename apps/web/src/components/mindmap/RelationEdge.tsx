@@ -29,8 +29,8 @@ export type RelationEdgeData = {
 
 export type RelationEdgeType = Edge<RelationEdgeData>;
 
-/** 화살표 색(뷰/편집 공용) — accent(기본)/danger(하이라이트) 토큰 참조. React Flow가 marker SVG로 생성. */
-const ARROW_COLOR = { default: "var(--accent)", highlight: "var(--danger)" } as const;
+/** 화살표 색(뷰/편집 공용) — 방향은 화살촉 형태가 전달하므로 기본은 뉴트럴, 422 하이라이트만 danger. */
+const ARROW_COLOR = { default: "var(--fg-subtle)", highlight: "var(--danger)" } as const;
 
 /**
  * 유향 관계용 화살표 markerEnd 생성 — 뷰(MindmapCanvas)·편집(selectReactFlowEdges) 공용.
@@ -150,8 +150,9 @@ export const RelationEdge = ({
           ...(dash ? { strokeDasharray: dash } : {}),
         }}
       />
-      {/* 유향 실선 위로 source→target 방향으로 흐르는 빛(데이터 흐름). 장식이므로 클릭 불가. */}
-      {isDirected && (
+      {/* 유향 실선 위로 흐르는 빛(데이터 흐름) — 강조/하이라이트 시에만 렌더.
+          rest 상태의 상시 accent 오버레이는 캔버스 크로마 소음이라 제거(§4 크롬 무채색 원칙). */}
+      {isDirected && (isEmphasized || isHighlighted) && (
         <path
           d={edgePath}
           fill="none"
@@ -160,7 +161,7 @@ export const RelationEdge = ({
           strokeLinecap="round"
           className={`mm-edge-flow pointer-events-none ${edgeClass}`}
           data-animate-landing
-          style={{ opacity: isDimmed ? 0.15 : 0.85 }}
+          style={{ opacity: 0.85 }}
           aria-hidden
         />
       )}
@@ -176,7 +177,7 @@ export const RelationEdge = ({
           className={`nodrag nopan relative ${edgeClass} ${isInactiveType ? "opacity-60" : ""}`}
         >
           <span
-            className={`flex max-w-[180px] items-center gap-1 rounded-[var(--radius-sm)] border px-2 py-0.5 text-[11px] shadow-ambient ${
+            className={`flex max-w-[180px] items-center gap-1 rounded-[var(--radius-sm)] border px-2 py-0.5 text-xs ${
               isHighlighted
                 ? "border-danger/40 bg-danger-soft text-danger"
                 : "border-border bg-surface-raised text-fg"
@@ -186,7 +187,7 @@ export const RelationEdge = ({
             {isDirected && (
               <svg
                 viewBox="0 0 24 24"
-                className={`h-2.5 w-2.5 shrink-0 ${isHighlighted ? "text-danger" : "text-accent"}`}
+                className={`h-2.5 w-2.5 shrink-0 ${isHighlighted ? "text-danger" : "text-fg-muted"}`}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"

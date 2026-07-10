@@ -27,11 +27,25 @@ export function nodeStateClass(data: { isEmphasized?: boolean; isDimmed?: boolea
 }
 
 /**
+ * 노드 섀시 상태 클래스(노드 공용, DESIGN.md §4 캔버스 규약) — 명도 위계.
+ * 기본은 뉴트럴 헤어라인·그림자 없음, accent·그림자는 상태 신호로만 승격한다.
+ * cn()은 충돌 해소를 안 하므로 border-color 계열은 반드시 한 갈래만 반환한다.
+ */
+export function nodeChromeClass(
+  data: { isEmphasized?: boolean },
+  selected?: boolean,
+): string {
+  if (selected) return "border-border-strong ring-2 ring-ring";
+  if (data.isEmphasized) return "border-accent shadow-ambient";
+  return "border-border-strong";
+}
+
+/**
  * 상장기업 노드 컴포넌트 (plan 모듈 A8) — 티커·종목명·시장 배지 표시.
  * `listingStatus !== 'listed'`면 상장폐지/거래정지 배지 추가(E10). props 콜백만 사용, 로직 없음.
  * `data.onDelete`가 있으면(편집 캔버스) 우상단 삭제 버튼을 노출한다.
  */
-export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeType>) => {
+export const CompanyNode = ({ id, data, isConnectable, selected }: NodeProps<CompanyNodeType>) => {
   const showStatusBadge = data.listingStatus && data.listingStatus !== "listed";
 
   // 시장별 배지 색: KRX=data(cyan), US=accent(violet). SecurityBadges의 MarketBadge와 동일한 시각 언어.
@@ -45,7 +59,8 @@ export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeTy
     return (
       <div
         data-animate-landing
-        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border-2 border-accent/40 bg-surface-raised text-center shadow-ambient transition-colors group-hover:border-accent ${nodeStateClass(data)}`}
+        data-selected={selected || undefined}
+        className={`group relative flex aspect-square h-[92px] w-[92px] items-center justify-center rounded-full border bg-surface-raised text-center transition-[border-color,box-shadow] ${nodeChromeClass(data, selected)} ${nodeStateClass(data)}`}
       >
         {data.onDelete && (
           <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
@@ -62,7 +77,8 @@ export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeTy
   return (
     <div
       data-animate-landing
-      className={`group relative min-w-[140px] rounded-[var(--radius-lg)] border-2 border-accent/40 bg-surface-raised px-4 py-2 shadow-ambient ${nodeStateClass(data)}`}
+      data-selected={selected || undefined}
+      className={`group relative min-w-[140px] rounded-[var(--radius-lg)] border bg-surface-raised px-4 py-2 transition-[border-color,box-shadow] ${nodeChromeClass(data, selected)} ${nodeStateClass(data)}`}
     >
       {data.onDelete && (
         <NodeDeleteButton onDelete={() => data.onDelete?.(id)} label={`${data.label} 노드 삭제`} />
@@ -71,7 +87,7 @@ export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeTy
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm text-fg">{data.label}</span>
         {showStatusBadge && data.listingStatus && (
-          <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] text-danger">
+          <span className="rounded-sm bg-danger-soft px-1.5 py-0.5 text-[10px] text-danger">
             {LISTING_STATUS_LABELS[data.listingStatus]}
           </span>
         )}
@@ -79,9 +95,7 @@ export const CompanyNode = ({ id, data, isConnectable }: NodeProps<CompanyNodeTy
       <div className="mt-1 flex items-center gap-1.5 text-xs text-fg-muted">
         {data.sublabel && <span>{data.sublabel}</span>}
         {data.market && (
-          <span
-            className={`rounded-full px-1.5 py-0.5 text-[10px] ${marketBadgeClass}`}
-          >
+          <span className={`rounded-sm px-1.5 py-0.5 text-[10px] ${marketBadgeClass}`}>
             {data.market}
           </span>
         )}

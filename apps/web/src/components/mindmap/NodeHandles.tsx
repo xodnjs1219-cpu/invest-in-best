@@ -11,8 +11,9 @@ import { Handle, Position } from "@xyflow/react";
  * 커서에 가장 가까운 핸들을 선택하며, source/target 조합만 유효 연결로 처리한다.
  */
 
+/* 핸들은 무채색 헤어라인 기본 + 노드 hover 시에만 노출(Figma식) — hover하면 accent로 승격. */
 const HANDLE_BASE =
-  "!h-2.5 !w-2.5 !rounded-full !border-2 !border-accent !bg-surface-raised transition-colors hover:!bg-accent";
+  "!h-2 !w-2 !rounded-full !border !border-border-strong !bg-surface-raised opacity-0 transition-[opacity,background-color,border-color] group-hover:opacity-100 hover:!border-accent hover:!bg-accent";
 
 /** 4변 정의 — 각 변마다 source/target 핸들을 함께 렌더한다. */
 const SIDES = [
