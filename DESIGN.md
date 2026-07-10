@@ -49,6 +49,7 @@ invest-in-best의 화면은 데이터를 다루는 금융 도구이면서 동시
 - **Data Cyan** (`#0891b2`, `--data`): 두 번째 액센트. KRX 시장 배지, 데이터 강조, 마인드맵 KRX 노드. 다크에서 `#22d3ee`.
 - **Data Soft** (`#ecfeff`, `--data-soft`): cyan 틴트 배경. 다크에서 `#083344`.
 - **Accent Soft** (`#eef2ff`, `--accent-soft`): indigo 틴트 배경 (텍스트는 `--accent-soft-fg` `#4338ca`). US 시장 배지, 선택 상태 배경.
+- **마인드맵 그룹 팔레트** (`--mm-group-1..4` + `-soft`/`-fg`): 밸류체인 단계 클러스터의 색 구분은 chart-series 계보(indigo/cyan/green/amber)를 재사용한 이 4색 순환으로만 — 그룹 5개째부터 1번으로 되돌아간다. soft 배경은 기존 의미색 soft 토큰을 참조하므로 다크가 자동 추종된다. 새 hue·임의 파스텔 도입 금지.
 
 ### Interactive
 - **Accent** (`#4f46e5`): 링크, 활성 상태, 선택 요소. 흰 텍스트 대비 6.3:1(WCAG AA).
@@ -139,6 +140,8 @@ invest-in-best의 화면은 데이터를 다루는 금융 도구이면서 동시
 #### 데이터 서피스 규약 — 차트·테이블·마인드맵
 
 마케팅 랜딩과 데이터 서피스는 같은 토큰, 다른 밀도를 쓴다. 랜딩은 `size="md"` primary가 주인공이고, 시세 테이블·마인드맵 툴바·차트 컨트롤에서는 `size="sm"` ghost/secondary가 기본이다. 데이터 서피스에서 primary 버튼은 화면의 최종 행동(저장, 추가) 하나에만 허용 — 컨트롤마다 indigo를 칠하면 데이터 강조가 죽는다.
+
+마인드맵 캔버스도 같은 원칙을 따른다: **크롬(줌 컨트롤·미니맵·범례·도트 그리드)은 무채색 서피스 토큰만** — 색은 콘텐츠(그룹 tone·시장 배지·강조 상태)의 소유다. 노드의 기본 보더는 뉴트럴 헤어라인(`--border-strong` 1px)이고, accent는 hover 강조·선택·방향 표시 같은 상태 신호에만 쓴다. 캔버스 바닥은 `--surface-sunken` 위 도트 그리드 — 바닥 < 자유 주체(`--surface`) < 기업 노드(`--surface-raised`)의 3단 명도 위계가 깊이를 만든다.
 
 ### Cards & Containers
 - `Card` 프리미티브: Background `--surface-raised`, Border `1px solid --border`, Radius `--radius-lg` (12px)

@@ -50,6 +50,24 @@
   /* 모달/다이얼로그 스크림 — 검정 대신 slate 틴트(크로마틱 깊이 원칙, §6) */
   --overlay: rgb(15 23 42 / 0.45);
 
+  /* 마인드맵 그룹 팔레트(§2) — chart-series 계보 4색 순환. 새 hue·임의 파스텔 도입 금지.
+     soft 배경은 기존 의미색 soft를 참조하므로 다크 재정의가 자동 추종된다. */
+  --mm-group-1: var(--chart-series-1); /* indigo */
+  --mm-group-2: var(--chart-series-2); /* cyan */
+  --mm-group-3: var(--chart-series-3); /* green */
+  --mm-group-4: var(--chart-series-4); /* amber */
+  --mm-group-1-soft: var(--accent-soft);
+  --mm-group-2-soft: var(--data-soft);
+  --mm-group-3-soft: var(--success-soft);
+  --mm-group-4-soft: var(--warning-soft);
+  --mm-group-1-fg: var(--accent-soft-fg);
+  --mm-group-2-fg: #0e7490; /* cyan-700 — soft 배경 위 소형 텍스트 AA */
+  --mm-group-3-fg: #15803d; /* green-700 */
+  --mm-group-4-fg: #b45309; /* amber-700 */
+
+  /* 미니맵 마스크(뷰포트 밖 영역) */
+  --mm-minimap-mask: rgb(241 245 249 / 0.6);
+
   /* 차트 (SVG/recharts용 — chartTheme.ts의 LIGHT 팔레트와 값 일치) */
   --chart-surface: #ffffff;
   --chart-text: #475569;
@@ -115,6 +133,12 @@
 
     --overlay: rgb(2 6 23 / 0.65);
 
+    /* 그룹 팔레트 — base/soft는 참조 대상이 다크 재정의를 따라가므로 fg만 재정의 */
+    --mm-group-2-fg: #67e8f9; /* cyan-300 */
+    --mm-group-3-fg: #86efac; /* green-300 */
+    --mm-group-4-fg: #fcd34d; /* amber-300 */
+    --mm-minimap-mask: rgb(15 23 42 / 0.65);
+
     --chart-surface: #111827;
     --chart-text: #9aa7bd;
     --chart-grid: #1f2937;
@@ -167,6 +191,20 @@
 
   --color-ring: var(--ring);
   --color-overlay: var(--overlay);
+
+  /* 마인드맵 그룹 팔레트 유틸 — border-mm-group-1/40, bg-mm-group-2-soft/60, text-mm-group-3-fg 등 */
+  --color-mm-group-1: var(--mm-group-1);
+  --color-mm-group-2: var(--mm-group-2);
+  --color-mm-group-3: var(--mm-group-3);
+  --color-mm-group-4: var(--mm-group-4);
+  --color-mm-group-1-soft: var(--mm-group-1-soft);
+  --color-mm-group-2-soft: var(--mm-group-2-soft);
+  --color-mm-group-3-soft: var(--mm-group-3-soft);
+  --color-mm-group-4-soft: var(--mm-group-4-soft);
+  --color-mm-group-1-fg: var(--mm-group-1-fg);
+  --color-mm-group-2-fg: var(--mm-group-2-fg);
+  --color-mm-group-3-fg: var(--mm-group-3-fg);
+  --color-mm-group-4-fg: var(--mm-group-4-fg);
 
   --radius-sm: var(--radius-sm);
   --radius-DEFAULT: var(--radius);
@@ -357,6 +395,15 @@ body {
 }
 [data-mm-hovering="true"] .mm-highlighted {
   opacity: 1;
+}
+
+/* 미니맵 — 캔버스 크롬은 무채색 서피스 토큰만(§4 데이터 서피스 규약) */
+.react-flow__minimap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--surface-raised);
+  box-shadow: var(--shadow-ambient);
+  overflow: hidden;
 }
 
 /* 관계 타이틀(라벨)이 항상 모든 엣지 선(강조된 굵은 선 포함) 위에 오도록 레이어 z를 못박는다.
