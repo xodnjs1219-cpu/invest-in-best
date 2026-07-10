@@ -58,9 +58,25 @@
   --radius-sm: 0.375rem;
   --radius: 0.5rem;
   --radius-lg: 0.75rem;
+  /* 구 그림자 토큰 — Phase 7에서 제거 예정(shadow-[var(--shadow-*)] 사용처 이관 후) */
   --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.04);
   --shadow: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06);
   --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.1), 0 2px 6px -2px rgb(15 23 42 / 0.06);
+
+  /* 그림자 4레벨 (DESIGN.md §6) — 블루 틴트 크로마틱 깊이가 원칙.
+     브랜드 색 그림자(50,50,93)를 멀리, 중립 검정을 가까이 — 시차(parallax) 깊이. */
+  --shadow-ambient: rgba(23, 23, 23, 0.06) 0px 3px 6px;
+  --shadow-standard: rgba(23, 23, 23, 0.08) 0px 15px 35px;
+  --shadow-elevated:
+    rgba(50, 50, 93, 0.25) 0px 30px 45px -30px, rgba(0, 0, 0, 0.1) 0px 18px 36px -18px;
+  --shadow-deep:
+    rgba(3, 3, 39, 0.25) 0px 14px 21px -14px, rgba(0, 0, 0, 0.1) 0px 8px 17px -8px;
+
+  /* 모션 토큰 (DESIGN.md §15) — 3단 + instant. 스프링·오버슈트 금지. */
+  --motion-instant: 0ms;
+  --motion-fast: 120ms;
+  --motion-standard: 200ms;
+  --motion-slow: 320ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -105,6 +121,14 @@
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
     --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+
+    /* 다크에서는 블루 틴트가 배경에 묻히므로 알파 상향 */
+    --shadow-ambient: rgba(0, 0, 0, 0.35) 0px 3px 6px;
+    --shadow-standard: rgba(0, 0, 0, 0.45) 0px 15px 35px;
+    --shadow-elevated:
+      rgba(50, 50, 93, 0.55) 0px 30px 45px -30px, rgba(0, 0, 0, 0.4) 0px 18px 36px -18px;
+    --shadow-deep:
+      rgba(3, 3, 39, 0.6) 0px 14px 21px -14px, rgba(0, 0, 0, 0.4) 0px 8px 17px -8px;
   }
 }
 
@@ -147,6 +171,55 @@
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+
+  /* 그림자 유틸 — Tailwind 기본(2xs~2xl) 리셋 후 시맨틱 4레벨만 노출.
+     shadow-ambient / shadow-standard / shadow-elevated / shadow-deep */
+  --shadow-*: initial;
+  --shadow-ambient: var(--shadow-ambient);
+  --shadow-standard: var(--shadow-standard);
+  --shadow-elevated: var(--shadow-elevated);
+  --shadow-deep: var(--shadow-deep);
+  /* 마이그레이션 브릿지(Phase 7 제거 예정): 기존 shadow-sm/md/lg/xl/2xl 사용처를
+     시맨틱 레벨로 매핑 — 이관 완료 전까지 그림자 소실 방지 */
+  --shadow-sm: var(--shadow-ambient);
+  --shadow-md: var(--shadow-standard);
+  --shadow-lg: var(--shadow-elevated);
+  --shadow-xl: var(--shadow-elevated);
+  --shadow-2xl: var(--shadow-deep);
+
+  /* 모션 유틸 (DESIGN.md §15) — duration-instant/fast/standard/slow + ease-enter/exit/standard.
+     duration을 명시하지 않은 transition-*은 기본값이 fast(120ms)/standard 커브로 정규화된다. */
+  --transition-duration-instant: var(--motion-instant);
+  --transition-duration-fast: var(--motion-fast);
+  --transition-duration-standard: var(--motion-standard);
+  --transition-duration-slow: var(--motion-slow);
+  --ease-enter: cubic-bezier(0.2, 0.6, 0.25, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* 디스플레이 타이포 복합 토큰 (DESIGN.md §3) — 크기+행간+트래킹+웨이트 300을 유틸 하나로.
+     text-display-hero / text-display / text-heading / text-subheading / text-body-lg */
+  --text-display-hero: 3.5rem;
+  --text-display-hero--line-height: 1.03;
+  --text-display-hero--letter-spacing: -1.4px;
+  --text-display-hero--font-weight: 300;
+  --text-display: 3rem;
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.96px;
+  --text-display--font-weight: 300;
+  --text-heading: 2rem;
+  --text-heading--line-height: 1.1;
+  --text-heading--letter-spacing: -0.64px;
+  --text-heading--font-weight: 300;
+  --text-subheading: 1.375rem;
+  --text-subheading--line-height: 1.1;
+  --text-subheading--letter-spacing: -0.22px;
+  --text-subheading--font-weight: 300;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.4;
+  --text-body-lg--font-weight: 300;
 
   /* 랜딩 진입 애니메이션 키프레임 */
   --animate-landing-rise: landing-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -262,9 +335,9 @@ body {
   animation: mm-edge-flow 0.9s linear infinite;
 }
 
-/* 노드 진입 애니메이션 클래스(노드 래퍼에 부여). */
+/* 노드 진입 애니메이션 클래스(노드 래퍼에 부여). motion-slow + ease-enter. */
 .mm-node-enter {
-  animation: mm-node-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: mm-node-enter var(--motion-slow) cubic-bezier(0.2, 0.6, 0.25, 1) both;
 }
 
 /* hover 강조/흐림(dim) — React Flow 노드/엣지 래퍼에 상태 클래스로 제어.
@@ -272,8 +345,8 @@ body {
 .react-flow__node,
 .react-flow__edge {
   transition:
-    opacity 0.18s ease,
-    filter 0.18s ease;
+    opacity var(--motion-standard) cubic-bezier(0.25, 0.1, 0.25, 1),
+    filter var(--motion-standard) cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 [data-mm-hovering="true"] .mm-dimmed {
   opacity: 0.25;
@@ -293,8 +366,14 @@ body {
   z-index: 6;
 }
 
-/* 접근성: 모션 최소화 선호 시 진입/장식 애니메이션 정지 */
+/* 접근성: 모션 최소화 선호 시 모든 motion-* 토큰은 instant로 붕괴(DESIGN.md §15.4)
+   + 진입/장식 애니메이션 정지 */
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-standard: 0ms;
+    --motion-slow: 0ms;
+  }
   [data-animate-landing],
   .mm-edge-flow,
   .mm-node-enter {
