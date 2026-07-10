@@ -18,16 +18,21 @@ export function Skeleton({ className, ...props }: ComponentPropsWithoutRef<"div"
   );
 }
 
-/** 오류 상태 — 중앙 정렬 메시지 + 선택적 재시도. */
+/**
+ * 오류 상태 — 중앙 정렬 메시지 + 선택적 재시도(+보조 액션 children).
+ * 메시지 규약(§14): 무엇이 실패했는지 + 다음 행동. "문제가 발생했습니다" 단독 금지.
+ */
 export function ErrorState({
   message,
   onRetry,
   retryLabel = "다시 시도",
+  children,
   className,
 }: {
   message: ReactNode;
   onRetry?: () => void;
   retryLabel?: string;
+  children?: ReactNode;
   className?: string;
 }) {
   return (
@@ -39,10 +44,15 @@ export function ErrorState({
       )}
     >
       <p className="text-sm text-danger">{message}</p>
-      {onRetry && (
-        <Button variant="secondary" size="sm" onClick={onRetry}>
-          {retryLabel}
-        </Button>
+      {(onRetry || children) && (
+        <div className="flex items-center gap-2">
+          {onRetry && (
+            <Button variant="secondary" size="sm" onClick={onRetry}>
+              {retryLabel}
+            </Button>
+          )}
+          {children}
+        </div>
       )}
     </div>
   );

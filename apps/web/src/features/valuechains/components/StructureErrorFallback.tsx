@@ -14,7 +14,7 @@ export const StructureErrorFallback = () => {
     <ErrorState
       message={
         <>
-          <span className="block font-medium">구조 데이터를 불러오지 못했습니다.</span>
+          <span className="block">구조 데이터를 불러오지 못했습니다.</span>
           <span className="mt-1 block">잠시 후 다시 시도해 주세요.</span>
         </>
       }

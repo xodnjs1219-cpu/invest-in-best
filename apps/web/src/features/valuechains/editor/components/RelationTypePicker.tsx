@@ -44,7 +44,7 @@ export function RelationTypePicker({
                   aria-pressed={isCurrent}
                   onClick={() => onSelect(relationType.id)}
                   className={`flex w-full items-center justify-between gap-2 rounded-[var(--radius)] px-2 py-1.5 text-left text-sm hover:bg-surface-hover ${
-                    isCurrent ? "bg-surface-sunken font-medium" : ""
+                    isCurrent ? "bg-accent-soft text-accent-soft-fg" : ""
                   }`}
                 >
                   <span>{relationType.name}</span>

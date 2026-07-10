@@ -1,6 +1,6 @@
 "use client";
 
-import { Heading, Skeleton } from "@/components/ui";
+import { ErrorState, Heading, Skeleton } from "@/components/ui";
 import {
   useChainViewActions,
   useChainViewState,
@@ -26,7 +26,7 @@ export const TimelinePanel = () => {
       )}
 
       {timelineMeta.status === "error" && (
-        <p className="text-sm text-fg-muted">타임라인 정보를 불러오지 못했습니다.</p>
+        <ErrorState message="타임라인 정보를 불러오지 못했습니다. 페이지를 새로 고치면 다시 불러옵니다." />
       )}
 
       {timelineMeta.status === "ready" && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { SUBJECT_TYPE_LABELS } from "@iib/domain";
-import { Badge, Button, Heading, Skeleton } from "@/components/ui";
+import { Badge, Button, ErrorState, Heading, Skeleton } from "@/components/ui";
 import {
   useChainViewActions,
   useChainViewState,
@@ -34,17 +34,14 @@ export const NodeInfoPanel = () => {
       )}
 
       {nodePanel.status === "error" && (
-        <div className="space-y-2 text-sm text-fg-muted">
-          <p>노드 정보를 불러오지 못했습니다.</p>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={retryNodeDetail}>
-              다시 시도
-            </Button>
-            <Button variant="secondary" size="sm" onClick={closeNodePanel}>
-              닫기
-            </Button>
-          </div>
-        </div>
+        <ErrorState
+          message="노드 정보를 불러오지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해 주세요."
+          onRetry={retryNodeDetail}
+        >
+          <Button variant="secondary" size="sm" onClick={closeNodePanel}>
+            닫기
+          </Button>
+        </ErrorState>
       )}
 
       {nodePanel.status === "security-fallback" && (

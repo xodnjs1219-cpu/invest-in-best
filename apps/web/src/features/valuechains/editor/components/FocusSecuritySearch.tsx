@@ -61,7 +61,8 @@ export function FocusSecuritySearch({ onSelect }: FocusSecuritySearchProps) {
 
       {enabled && searchResult.isError && (
         <div className="flex items-center justify-between rounded-[var(--radius)] bg-danger-soft px-3 py-2 text-sm text-danger">
-          <span>검색 중 오류가 발생했습니다.</span>
+          <span>종목 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.</span>
+          {/* ui-exception: danger 인라인 배너 내부 텍스트 버튼 — 배너 색을 상속해야 해 Button 프리미티브 밖 */}
           <button type="button" onClick={() => searchResult.refetch()} className="underline">
             재시도
           </button>
@@ -78,13 +79,14 @@ export function FocusSecuritySearch({ onSelect }: FocusSecuritySearchProps) {
         <ul className="flex flex-col gap-1">
           {items.map((item) => (
             <li key={item.id}>
+              {/* ui-exception: 전폭 리스트 선택 로우 — Button 프리미티브 형태 계약 밖, 토큰 클래스만 사용 */}
               <button
                 type="button"
                 onClick={() => handleSelect(item)}
                 className="flex w-full items-center justify-between gap-3 rounded-[var(--radius)] px-3 py-2 text-left hover:bg-surface-hover"
               >
                 <span className="flex items-center gap-2">
-                  <span className="font-medium text-fg">{item.name}</span>
+                  <span className="text-fg">{item.name}</span>
                   <span className="text-sm text-fg-muted">{item.ticker}</span>
                 </span>
                 <span className="flex items-center gap-1.5">

@@ -7,9 +7,10 @@ import { Button, EmptyState } from "@/components/ui";
 export const ChainNotFoundFallback = () => {
   return (
     <EmptyState
+      variant="page"
       message={
         <>
-          <span className="block text-base font-medium text-fg">체인을 찾을 수 없습니다.</span>
+          <span className="block">체인을 찾을 수 없습니다.</span>
           <span className="mt-1 block text-sm text-fg-muted">
             요청하신 밸류체인이 존재하지 않거나 접근할 수 없습니다.
           </span>
