@@ -10,3 +10,4 @@ export { PageShell } from "./PageShell";
 export { Heading } from "./Heading";
 export { NumericText } from "./NumericText";
 export { Skeleton, ErrorState, EmptyState } from "./states";
+export { useDialogA11y } from "./useDialogA11y";

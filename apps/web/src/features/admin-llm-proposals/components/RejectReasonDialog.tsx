@@ -1,4 +1,6 @@
-import { Button, Card, Heading, Textarea } from "@/components/ui";
+"use client";
+
+import { Button, Card, Heading, Textarea, useDialogA11y } from "@/components/ui";
 import {
   REJECT_DIALOG_CANCEL_LABEL,
   REJECT_DIALOG_CONFIRM_LABEL,
@@ -25,6 +27,11 @@ export function RejectReasonDialog({
   onCancel,
   onConfirm,
 }: RejectReasonDialogProps) {
+  // 제출 중에는 Escape로도 닫히지 않는다(중복 전송 방지).
+  const dialogRef = useDialogA11y(Boolean(target), () => {
+    if (!isSubmitting) onCancel();
+  });
+
   if (!target) {
     return null;
   }
@@ -33,8 +40,16 @@ export function RejectReasonDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
-      <Card className="flex w-full max-w-md flex-col gap-3 bg-surface-raised p-6">
-        <Heading level={2}>{REJECT_DIALOG_TITLE}</Heading>
+      <Card
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reject-reason-dialog-title"
+        className="panel-enter flex w-full max-w-md flex-col gap-3 bg-surface-raised p-6"
+      >
+        <Heading level={2} id="reject-reason-dialog-title">
+          {REJECT_DIALOG_TITLE}
+        </Heading>
         <Textarea
           value={target.reason}
           onChange={(event) => onReasonChange(event.target.value)}

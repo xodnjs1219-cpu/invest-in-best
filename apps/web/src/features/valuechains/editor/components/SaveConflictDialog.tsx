@@ -1,7 +1,7 @@
 "use client";
 
 import { SAVE_CONFLICT_DIALOG_TEXT } from "@/features/valuechains/editor/constants/save";
-import { Button, Card, Heading } from "@/components/ui";
+import { Button, Card, Heading, useDialogA11y } from "@/components/ui";
 
 /**
  * 저장 충돌(E7) 다이얼로그(UC-018 plan 모듈 22) — 순수 Presenter.
@@ -14,14 +14,24 @@ export interface SaveConflictDialogProps {
 }
 
 export function SaveConflictDialog({ open, onReload, onKeepEditing }: SaveConflictDialogProps) {
+  const dialogRef = useDialogA11y(open, onKeepEditing);
+
   if (!open) {
     return null;
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
-      <Card role="dialog" aria-modal="true" className="w-full max-w-sm bg-surface-raised p-6">
-        <Heading level={3}>{SAVE_CONFLICT_DIALOG_TEXT.title}</Heading>
+      <Card
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="save-conflict-dialog-title"
+        className="panel-enter w-full max-w-sm bg-surface-raised p-6"
+      >
+        <Heading level={3} id="save-conflict-dialog-title">
+          {SAVE_CONFLICT_DIALOG_TEXT.title}
+        </Heading>
         <p className="mt-2 text-sm text-fg-muted">{SAVE_CONFLICT_DIALOG_TEXT.description}</p>
         <div className="mt-4 flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onKeepEditing}>

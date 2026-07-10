@@ -10,7 +10,7 @@ type OAuthCallbackViewProps = {
 
 const ERROR_VIEW_MAP: Record<string, { message: string; href: string; label: string }> = {
   [authErrorCodes.oauthExchangeFailed]: {
-    message: `인증이 거부되었습니다. ${AUTH_OAUTH_MESSAGES.exchangeFailed}`,
+    message: AUTH_OAUTH_MESSAGES.exchangeFailed,
     href: "/auth/login",
     label: AUTH_OAUTH_MESSAGES.retryGoogleLogin,
   },

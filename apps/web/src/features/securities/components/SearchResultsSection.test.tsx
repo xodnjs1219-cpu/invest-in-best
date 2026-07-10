@@ -35,7 +35,7 @@ describe("SearchResultsSection", () => {
   it("결과 0건 성공이면 빈 결과 안내를 표시한다(오류 UI와 구분)", () => {
     render(<SearchResultsSection {...baseProps} items={[]} />);
     expect(screen.getByText(/검색 결과가 없습니다/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /재시도/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /다시 시도/ })).not.toBeInTheDocument();
   });
 
   it("결과 20건 + hasNextPage=true면 목록 20행과 더보기 버튼을 표시한다", () => {
@@ -66,8 +66,8 @@ describe("SearchResultsSection", () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();
     render(<SearchResultsSection {...baseProps} isError onRetry={onRetry} />);
-    expect(screen.getByRole("button", { name: /재시도/ })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /재시도/ }));
+    expect(screen.getByRole("button", { name: /다시 시도/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /다시 시도/ }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 

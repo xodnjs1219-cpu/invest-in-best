@@ -74,7 +74,7 @@ export function FreeSubjectFormTab({ onAdd, disabled }: FreeSubjectFormTabProps)
             </option>
           ))}
         </Select>
-        {typeError && <p className="text-xs text-danger">유형을 선택하세요</p>}
+        {typeError && <p className="text-xs text-danger">유형을 선택해 주세요</p>}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -88,7 +88,7 @@ export function FreeSubjectFormTab({ onAdd, disabled }: FreeSubjectFormTabProps)
           value={subjectName}
           onChange={(e) => setSubjectName(e.target.value)}
         />
-        {nameError && <p className="text-xs text-danger">이름을 입력하세요</p>}
+        {nameError && <p className="text-xs text-danger">이름을 입력해 주세요</p>}
       </div>
 
       <div className="flex flex-col gap-1">

@@ -53,7 +53,7 @@ export const TimelinePanel = () => {
               <span>
                 {restoreFailureNotice.kind === "snapshot-not-found"
                   ? "이전 스냅샷이 없습니다(최소 시점 이전 날짜입니다)."
-                  : "시점 복원 중 오류가 발생했습니다."}
+                  : "시점 복원 중 오류가 발생했습니다. 다른 날짜를 선택하거나 잠시 후 다시 시도해 주세요."}
               </span>
               <button type="button" onClick={clearRestoreFailureNotice} className="underline">
                 닫기

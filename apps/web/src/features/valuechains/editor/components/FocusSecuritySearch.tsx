@@ -64,7 +64,7 @@ export function FocusSecuritySearch({ onSelect }: FocusSecuritySearchProps) {
           <span>종목 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.</span>
           {/* ui-exception: danger 인라인 배너 내부 텍스트 버튼 — 배너 색을 상속해야 해 Button 프리미티브 밖 */}
           <button type="button" onClick={() => searchResult.refetch()} className="underline">
-            재시도
+            다시 시도
           </button>
         </div>
       )}

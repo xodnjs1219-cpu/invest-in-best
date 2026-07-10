@@ -1,4 +1,6 @@
-import { Button, Card, Heading } from "@/components/ui";
+"use client";
+
+import { Button, Card, Heading, useDialogA11y } from "@/components/ui";
 
 /**
  * 미저장 이탈 경고 다이얼로그 (UC-013 plan 모듈 22, E4).
@@ -12,6 +14,8 @@ export interface UnsavedLeaveDialogProps {
 }
 
 export function UnsavedLeaveDialog({ open, onConfirm, onCancel }: UnsavedLeaveDialogProps) {
+  const dialogRef = useDialogA11y(open, onCancel);
+
   if (!open) {
     return null;
   }
@@ -19,11 +23,12 @@ export function UnsavedLeaveDialog({ open, onConfirm, onCancel }: UnsavedLeaveDi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
       <Card
+        ref={dialogRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="unsaved-leave-dialog-title"
         aria-describedby="unsaved-leave-dialog-description"
-        className="w-full max-w-sm bg-surface-raised p-6"
+        className="panel-enter w-full max-w-sm bg-surface-raised p-6"
       >
         <Heading level={3} id="unsaved-leave-dialog-title">
           저장하지 않은 변경 사항이 있습니다

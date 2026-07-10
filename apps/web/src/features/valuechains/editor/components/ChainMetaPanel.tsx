@@ -76,7 +76,7 @@ export function ChainMetaPanel() {
           onBlur={() => setNameTouched(true)}
           placeholder="밸류체인 이름을 입력하세요"
         />
-        {showNameError && <p className="text-xs text-danger">이름을 입력하세요</p>}
+        {showNameError && <p className="text-xs text-danger">이름을 입력해 주세요</p>}
       </div>
 
       <fieldset className="flex flex-col gap-2">

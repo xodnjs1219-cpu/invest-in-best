@@ -55,7 +55,7 @@ export function ChainCardsSection({
           ))}
         </div>
       ) : isError ? (
-        <ErrorState message="목록을 불러오지 못했습니다." onRetry={onRetry} retryLabel="재시도" />
+        <ErrorState message="목록을 불러오지 못했습니다." onRetry={onRetry} />
       ) : items.length === 0 ? (
         <EmptyState message={EMPTY_MESSAGES[emptyVariant]} />
       ) : (

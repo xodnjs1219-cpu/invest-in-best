@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Heading } from "@/components/ui";
+import { Button, Card, Heading, useDialogA11y } from "@/components/ui";
 
 /**
  * 노드 삭제 확인 다이얼로그(UC-015 plan 모듈 21, E7/BR-5) — 순수 Presenter, 로직 없음.
@@ -21,14 +21,24 @@ export function DeleteConfirmDialog({
   onConfirm,
   onCancel,
 }: DeleteConfirmDialogProps) {
+  const dialogRef = useDialogA11y(open, onCancel);
+
   if (!open) {
     return null;
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
-      <Card role="dialog" aria-modal="true" className="w-full max-w-sm bg-surface-raised p-6">
-        <Heading level={3}>노드를 삭제하시겠어요?</Heading>
+      <Card
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-node-dialog-title"
+        className="panel-enter w-full max-w-sm bg-surface-raised p-6"
+      >
+        <Heading level={3} id="delete-node-dialog-title">
+          노드를 삭제하시겠습니까?
+        </Heading>
         <p className="mt-2 text-sm text-fg-muted">
           노드 {nodeCount}개와 연결된 엣지 {connectedEdgeCount}개가 함께 삭제됩니다.
         </p>

@@ -6,8 +6,8 @@ import type { ActionResult } from "@/features/valuechains/editor/context/ChainEd
 import { Badge, Button, Input, Select } from "@/components/ui";
 
 const GROUP_BLOCK_MESSAGES: Record<GroupBlockReason, string> = {
-  NAME_REQUIRED: "이름을 입력하세요",
-  NO_NODES_SELECTED: "노드를 먼저 선택하세요",
+  NAME_REQUIRED: "이름을 입력해 주세요",
+  NO_NODES_SELECTED: "노드를 먼저 선택해 주세요",
   GROUP_NOT_FOUND: "그룹을 찾을 수 없습니다",
 };
 

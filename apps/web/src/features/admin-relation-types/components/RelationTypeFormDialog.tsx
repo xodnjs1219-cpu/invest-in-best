@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { relationTypeNameSchema } from "@iib/domain";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Button, Card, Heading, Input } from "@/components/ui";
+import { Button, Card, Heading, Input, useDialogA11y } from "@/components/ui";
 import {
   CANCEL_BUTTON_LABEL,
   DIRECTION_FIELD_HELP_TEXT,
@@ -59,14 +59,19 @@ export function RelationTypeFormDialog({
     },
   });
 
+  const dialogRef = useDialogA11y(true, () => {
+    if (!isSubmitting) onCancel();
+  });
+
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={FORM_DIALOG_TITLES[mode]}
       className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
     >
-      <Card className="w-full max-w-md bg-surface-raised p-6">
+      <Card className="panel-enter w-full max-w-md bg-surface-raised p-6">
         <Heading level={2} className="mb-4">{FORM_DIALOG_TITLES[mode]}</Heading>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">

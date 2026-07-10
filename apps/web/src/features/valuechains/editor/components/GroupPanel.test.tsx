@@ -36,7 +36,7 @@ describe("GroupPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "그룹 만들기" }));
 
-    expect(screen.getByText("이름을 입력하세요")).toBeInTheDocument();
+    expect(screen.getByText("이름을 입력해 주세요")).toBeInTheDocument();
   });
 
   it("노드 0개 선택 상태에서 생성 시도 → 안내 문구 표시", async () => {
@@ -47,7 +47,7 @@ describe("GroupPanel", () => {
     await user.type(screen.getByLabelText("그룹 이름"), "새 그룹");
     await user.click(screen.getByRole("button", { name: "그룹 만들기" }));
 
-    expect(screen.getByText("노드를 먼저 선택하세요")).toBeInTheDocument();
+    expect(screen.getByText("노드를 먼저 선택해 주세요")).toBeInTheDocument();
   });
 
   it("그룹 목록에 이름·멤버 수 표시", () => {
@@ -85,7 +85,7 @@ describe("GroupPanel", () => {
     await user.clear(input);
     await user.click(screen.getByRole("button", { name: "확인" }));
 
-    expect(screen.getByText("이름을 입력하세요")).toBeInTheDocument();
+    expect(screen.getByText("이름을 입력해 주세요")).toBeInTheDocument();
   });
 
   it("선택 노드 그룹 지정 드롭다운 → assignNodeToGroup 호출", async () => {

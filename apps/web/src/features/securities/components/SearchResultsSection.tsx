@@ -45,7 +45,7 @@ export function SearchResultsSection({
 
   if (isError) {
     return (
-      <ErrorState message={getSearchErrorMessage(errorCode)} onRetry={onRetry} retryLabel="재시도" />
+      <ErrorState message={getSearchErrorMessage(errorCode)} onRetry={onRetry} />
     );
   }
 

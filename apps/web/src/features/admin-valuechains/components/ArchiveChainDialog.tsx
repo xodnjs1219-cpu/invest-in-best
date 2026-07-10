@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Heading } from "@/components/ui";
+import { Button, Card, Heading, useDialogA11y } from "@/components/ui";
 import { ARCHIVE_DIALOG_TEXT } from "@/features/admin-valuechains/constants";
 
 export interface ArchiveChainTarget {
@@ -20,6 +20,11 @@ export interface ArchiveChainDialogProps {
  * 진행 중(isArchiving)에는 dismiss(취소)를 차단한다.
  */
 export function ArchiveChainDialog({ target, isArchiving, onConfirm, onCancel }: ArchiveChainDialogProps) {
+  // 보관 진행 중에는 Escape로도 닫히지 않는다(버튼 disabled와 동일 규칙).
+  const dialogRef = useDialogA11y(Boolean(target), () => {
+    if (!isArchiving) onCancel();
+  });
+
   if (!target) {
     return null;
   }
@@ -33,8 +38,16 @@ export function ArchiveChainDialog({ target, isArchiving, onConfirm, onCancel }:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
-      <Card role="alertdialog" aria-modal="true" className="w-full max-w-sm bg-surface-raised p-6">
-        <Heading level={3}>{ARCHIVE_DIALOG_TEXT.title}</Heading>
+      <Card
+        ref={dialogRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="archive-chain-dialog-title"
+        className="panel-enter w-full max-w-sm bg-surface-raised p-6"
+      >
+        <Heading level={3} id="archive-chain-dialog-title">
+          {ARCHIVE_DIALOG_TEXT.title}
+        </Heading>
         <p className="mt-2 text-sm text-fg-muted">
           {`"${target.name}"`} {ARCHIVE_DIALOG_TEXT.description}
         </p>

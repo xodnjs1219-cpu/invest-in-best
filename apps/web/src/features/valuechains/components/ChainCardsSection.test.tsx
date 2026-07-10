@@ -41,8 +41,8 @@ describe("ChainCardsSection", () => {
     const onRetry = vi.fn();
     render(<ChainCardsSection {...baseProps} isError onRetry={onRetry} />);
 
-    expect(screen.getByRole("button", { name: /재시도/ })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /재시도/ }));
+    expect(screen.getByRole("button", { name: /다시 시도/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /다시 시도/ }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 

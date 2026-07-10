@@ -1,4 +1,6 @@
-import { Button, Card, Heading } from "@/components/ui";
+"use client";
+
+import { Button, Card, Heading, useDialogA11y } from "@/components/ui";
 import {
   CANCEL_BUTTON_LABEL,
   DEACTIVATE_COMMON_NOTICE,
@@ -26,18 +28,24 @@ export function DeactivateConfirmDialog({
   onConfirm,
   onCancel,
 }: DeactivateConfirmDialogProps) {
+  // 제출 중에는 Escape로도 닫히지 않는다(버튼 disabled와 동일 규칙).
+  const dialogRef = useDialogA11y(Boolean(target), () => {
+    if (!isSubmitting) onCancel();
+  });
+
   if (!target) {
     return null;
   }
 
   return (
     <div
+      ref={dialogRef}
       role="alertdialog"
       aria-modal="true"
       aria-label={DEACTIVATE_DIALOG_TITLE}
       className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
     >
-      <Card className="w-full max-w-sm bg-surface-raised p-6">
+      <Card className="panel-enter w-full max-w-sm bg-surface-raised p-6">
         <Heading level={2} className="mb-4">{DEACTIVATE_DIALOG_TITLE}</Heading>
         <p className="mb-2 text-sm text-fg-muted">
           <strong>{target.name}</strong>

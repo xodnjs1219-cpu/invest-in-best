@@ -13,7 +13,7 @@ describe("FreeSubjectFormTab", () => {
     await user.type(screen.getByLabelText("이름"), "일반 소비자");
     await user.click(screen.getByRole("button", { name: "추가" }));
 
-    expect(screen.getByText("유형을 선택하세요")).toBeInTheDocument();
+    expect(screen.getByText("유형을 선택해 주세요")).toBeInTheDocument();
     expect(onAdd).not.toHaveBeenCalled();
   });
 
@@ -26,7 +26,7 @@ describe("FreeSubjectFormTab", () => {
     await user.type(screen.getByLabelText("이름"), "   ");
     await user.click(screen.getByRole("button", { name: "추가" }));
 
-    expect(screen.getByText("이름을 입력하세요")).toBeInTheDocument();
+    expect(screen.getByText("이름을 입력해 주세요")).toBeInTheDocument();
     expect(onAdd).not.toHaveBeenCalled();
   });
 

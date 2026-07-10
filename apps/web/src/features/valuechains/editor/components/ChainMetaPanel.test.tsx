@@ -54,7 +54,7 @@ describe("ChainMetaPanel", () => {
   it("이름이 비어있고 필드가 터치되지 않았으면 오류가 보이지 않는다", () => {
     setState({ nameIssue: "NAME_REQUIRED" });
     render(<ChainMetaPanel />);
-    expect(screen.queryByText("이름을 입력하세요")).not.toBeInTheDocument();
+    expect(screen.queryByText("이름을 입력해 주세요")).not.toBeInTheDocument();
   });
 
   it("이름 필드 터치 후 비어있으면(E3) 오류를 표시한다", async () => {
@@ -66,7 +66,7 @@ describe("ChainMetaPanel", () => {
     await user.click(input);
     await user.tab(); // blur
 
-    expect(screen.getByText("이름을 입력하세요")).toBeInTheDocument();
+    expect(screen.getByText("이름을 입력해 주세요")).toBeInTheDocument();
   });
 
   it("기준을 '기업 중심'으로 선택하면 대상 기업 검색 영역과 선택 사항 안내가 노출된다", async () => {

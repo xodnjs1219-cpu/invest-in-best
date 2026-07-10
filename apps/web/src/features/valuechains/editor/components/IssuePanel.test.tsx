@@ -21,10 +21,10 @@ describe("IssuePanel", () => {
 
   it("클라이언트 이슈(이름 공백) → 이름 필드 사유 표시", () => {
     const clientIssues: ServerIssue[] = [
-      { code: "NAME_REQUIRED", message: "체인 이름을 입력하세요.", targets: { field: "name" } },
+      { code: "NAME_REQUIRED", message: "체인 이름을 입력해 주세요.", targets: { field: "name" } },
     ];
     render(<IssuePanel clientIssues={clientIssues} serverIssues={[]} />);
-    expect(screen.getByText("체인 이름을 입력하세요.")).toBeInTheDocument();
+    expect(screen.getByText("체인 이름을 입력해 주세요.")).toBeInTheDocument();
   });
 
   it("클라이언트+서버 이슈 혼재 → 전부 나열", () => {

@@ -86,7 +86,7 @@ describe("MindmapCanvas", () => {
     render(<MindmapCanvas />);
 
     // Assert
-    expect(screen.getByText("구조 데이터를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("밸류체인 구조를 불러오지 못했습니다.")).toBeInTheDocument();
   });
 
   it("structure.status='ready'이면 React Flow 캔버스를 렌더링한다", () => {

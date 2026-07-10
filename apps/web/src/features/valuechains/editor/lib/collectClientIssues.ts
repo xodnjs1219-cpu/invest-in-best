@@ -17,7 +17,7 @@ export function collectClientIssues(
 
   const nameIssue = validateChainNameFormat(state.name);
   if (nameIssue) {
-    issues.push({ code: "NAME_REQUIRED", message: "체인 이름을 입력하세요.", targets: { field: "name" } });
+    issues.push({ code: "NAME_REQUIRED", message: "체인 이름을 입력해 주세요.", targets: { field: "name" } });
   }
 
   const payload = serializeSavePayload(state);

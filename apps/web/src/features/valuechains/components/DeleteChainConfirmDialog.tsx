@@ -1,4 +1,6 @@
-import { Button, Card, Heading } from "@/components/ui";
+"use client";
+
+import { Button, Card, Heading, useDialogA11y } from "@/components/ui";
 import {
   buildDeleteConfirmDescription,
   DELETE_CANCEL_LABEL,
@@ -27,18 +29,24 @@ export function DeleteChainConfirmDialog({
   onConfirm,
   onCancel,
 }: DeleteChainConfirmDialogProps) {
+  // 진행 중에는 Escape로도 닫히지 않는다(중복 확정·이탈 방지 — 버튼 disabled와 동일 규칙).
+  const dialogRef = useDialogA11y(open, () => {
+    if (!isDeleting) onCancel();
+  });
+
   if (!open) {
     return null;
   }
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-chain-dialog-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
     >
-      <Card className="w-full max-w-sm p-5 shadow-deep">
+      <Card className="panel-enter w-full max-w-sm p-5 shadow-deep">
         <Heading level={3} id="delete-chain-dialog-title">
           {DELETE_CONFIRM_TITLE}
         </Heading>

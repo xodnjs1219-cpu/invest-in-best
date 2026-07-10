@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, Heading, Input } from "@/components/ui";
+import { Button, Card, Heading, Input, useDialogA11y } from "@/components/ui";
 
 export interface OfficialSaveDialogProps {
   open: boolean;
@@ -17,6 +17,11 @@ export interface OfficialSaveDialogProps {
  */
 export function OfficialSaveDialog({ open, isSaving, onConfirm, onCancel }: OfficialSaveDialogProps) {
   const [disclosureDate, setDisclosureDate] = useState("");
+
+  // 저장 중에는 Escape로도 닫히지 않는다(중복 전송 방지 — handleCancel과 동일 가드).
+  const dialogRef = useDialogA11y(open, () => {
+    if (!isSaving) onCancel();
+  });
 
   if (!open) {
     return null;
@@ -36,8 +41,16 @@ export function OfficialSaveDialog({ open, isSaving, onConfirm, onCancel }: Offi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
-      <Card role="dialog" aria-modal="true" className="w-full max-w-sm bg-surface-raised p-6">
-        <Heading level={3}>공식 체인 저장</Heading>
+      <Card
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="official-save-dialog-title"
+        className="panel-enter w-full max-w-sm bg-surface-raised p-6"
+      >
+        <Heading level={3} id="official-save-dialog-title">
+          공식 체인 저장
+        </Heading>
         <p className="mt-2 text-sm text-fg-muted">저장 1회 = 스냅샷 1건으로 기록됩니다.</p>
         <div className="mt-3 flex flex-col gap-1">
           <label htmlFor="disclosure-date-input" className="text-sm text-fg-muted">
