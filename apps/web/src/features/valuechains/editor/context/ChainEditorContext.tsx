@@ -122,7 +122,10 @@ export interface ChainEditorStateValue {
 }
 
 /** 노드/엣지 액션 공용 결과 타입 — 실패 시 dispatch 없이 사유만 반환한다. */
-export type ActionResult<TReason extends string> = { ok: true } | { ok: false; reason: TReason };
+/** ok 시 노드 추가류 액션은 생성된 clientNodeId를 함께 반환한다(캔버스 포커스용). */
+export type ActionResult<TReason extends string> =
+  | { ok: true; clientNodeId?: string }
+  | { ok: false; reason: TReason };
 
 export interface ChainEditorActions {
   changeName(name: string): void;
@@ -356,7 +359,7 @@ export function ChainEditorProvider(props: ChainEditorProviderProps) {
       const clientNodeId = crypto.randomUUID();
       const position = getDefaultNodePosition(selectNodeCount(state));
       dispatch({ type: "LISTED_NODE_ADDED", payload: { clientNodeId, security, position } });
-      return { ok: true };
+      return { ok: true, clientNodeId };
     },
     [state],
   );
@@ -389,7 +392,7 @@ export function ChainEditorProvider(props: ChainEditorProviderProps) {
           position,
         },
       });
-      return { ok: true };
+      return { ok: true, clientNodeId };
     },
     [state],
   );

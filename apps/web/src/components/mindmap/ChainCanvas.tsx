@@ -7,6 +7,7 @@ import {
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type Edge,
   type Node,
   type NodeTypes,
@@ -58,6 +59,10 @@ export interface ChainCanvasProps {
   nodesConnectable?: boolean;
   /** 좌하단 범례에 표시할 그룹(라벨+tone) — 미전달 시 관례·힌트만 표시. */
   legendGroups?: readonly { label: string; tone: number }[];
+  /** 방금 추가된 노드 id — 캔버스를 그 위치로 부드럽게 이동시킨다("추가했는데 안 보임" 방지). */
+  focusNodeId?: string | null;
+  /** 포커스 이동을 소비했음을 알림 — 호출측이 focusNodeId를 초기화한다. */
+  onFocusHandled?: () => void;
 }
 
 const EMPTY_STATE_MESSAGE = "노드를 추가해 밸류체인을 구성하세요";
@@ -77,7 +82,10 @@ function ChainCanvasInner({
   onElementsDelete,
   nodesConnectable = true,
   legendGroups,
+  focusNodeId,
+  onFocusHandled,
 }: ChainCanvasProps) {
+  const { setCenter, getZoom } = useReactFlow();
   // React Flow는 controlled `nodes`를 넘길 때 `onNodesChange`가 필수다(v12, error#015). 배선하지 않으면
   // 내부 노드 측정(measured)/초기화가 갱신되지 않아, 페인 더블클릭(줌) 등 내부 상태 변경 시 노드가 사라진다.
   // 따라서 React Flow 내부 상태(useNodesState)를 두고 onNodesChange를 배선하되, 문서 SOT에서 파생된 prop을
@@ -111,6 +119,26 @@ function ChainCanvasInner({
   useEffect(() => {
     setEdges(edgesProp);
   }, [edgesProp, setEdges]);
+
+  // 방금 추가된 노드로 뷰포트 이동 — 노드가 내부 상태에 동기화될 때까지 기다렸다가 1회 센터링.
+  // 새 노드는 항상 그룹 미소속(절대 좌표)이므로 position을 그대로 쓴다.
+  useEffect(() => {
+    if (!focusNodeId) return;
+    const target = nodes.find((n) => n.id === focusNodeId);
+    if (!target) return; // 다음 동기화 렌더에서 재시도
+    if (!target.parentId) {
+      const width = target.measured?.width ?? 160;
+      const height = target.measured?.height ?? 60;
+      const reduceMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      void setCenter(target.position.x + width / 2, target.position.y + height / 2, {
+        zoom: Math.max(getZoom(), 0.85),
+        duration: reduceMotion ? 0 : 320,
+      });
+    }
+    onFocusHandled?.();
+  }, [focusNodeId, nodes, setCenter, getZoom, onFocusHandled]);
 
   const isEmpty = nodes.length === 0;
 
@@ -219,7 +247,7 @@ function ChainCanvasInner({
       {/* 범례 — 그룹 tone·표기 관례·편집 힌트(좌하단). */}
       <CanvasLegend
         groups={legendGroups ?? []}
-        hints={["핸들 드래그 → 연결", "Delete → 선택 삭제"]}
+        hints={["핸들 드래그 → 연결", "Shift+드래그 → 다중 선택", "Delete → 선택 삭제"]}
       />
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

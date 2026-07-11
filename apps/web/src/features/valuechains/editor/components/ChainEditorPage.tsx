@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { EditorMode, EditorVariant } from "@iib/domain";
 import {
   ChainEditorProvider,
@@ -44,6 +44,10 @@ function ChainEditorPageBody() {
     resetSaveError,
   } = useChainEditorActions();
   const { isLeaveDialogOpen, confirmLeave, cancelLeave } = useUnsavedChangesGuard(state.isDirty);
+
+  // 방금 추가된 노드 — 캔버스가 해당 위치로 뷰포트를 이동한다("추가했는데 안 보임" 방지).
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
+  const handleFocusHandled = useCallback(() => setFocusNodeId(null), []);
 
   // "현재 노드" 탭 데이터 — 노드 목록과 그룹명 맵(소속 그룹 표기용). state 변경 시에만 재계산.
   const nodeListItems = useMemo(() => selectNodeListItems(state), [state]);
@@ -106,8 +110,16 @@ function ChainEditorPageBody() {
             nodeCount={computed.nodeCount}
             isNearNodeLimit={computed.isNearNodeLimit}
             remainingNodeCapacity={computed.remainingNodeCapacity}
-            onAddListedCompanyNode={(security) => addListedCompanyNode(security)}
-            onAddFreeSubjectNode={(input) => addFreeSubjectNode(input)}
+            onAddListedCompanyNode={(security) => {
+              const result = addListedCompanyNode(security);
+              if (result.ok && result.clientNodeId) setFocusNodeId(result.clientNodeId);
+              return result;
+            }}
+            onAddFreeSubjectNode={(input) => {
+              const result = addFreeSubjectNode(input);
+              if (result.ok && result.clientNodeId) setFocusNodeId(result.clientNodeId);
+              return result;
+            }}
             usedSecurityIds={selectUsedSecurityIds(state)}
             nodeListItems={nodeListItems}
             groupNameById={groupNameById}
@@ -128,7 +140,7 @@ function ChainEditorPageBody() {
         <div className="flex flex-1 flex-col gap-2">
           <IssuePanel clientIssues={computed.clientIssues} serverIssues={state.serverIssues} />
           <div className="flex-1">
-            <EditorCanvasContainer />
+            <EditorCanvasContainer focusNodeId={focusNodeId} onFocusHandled={handleFocusHandled} />
           </div>
         </div>
       </div>

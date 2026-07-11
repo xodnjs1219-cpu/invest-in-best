@@ -26,12 +26,18 @@ const EDGE_BLOCK_MESSAGES: Record<EdgeBlockReason, string> = {
 type PendingConnection = { source: string; target: string };
 type EditingEdge = { clientEdgeId: string; relationTypeId: string };
 
+export interface EditorCanvasContainerProps {
+  /** 방금 추가된 노드 id — ChainCanvas가 해당 위치로 뷰포트를 이동한다. */
+  focusNodeId?: string | null;
+  onFocusHandled?: () => void;
+}
+
 /**
  * 편집 캔버스 컨테이너(UC-015/016 plan 모듈 M21) — Context 상태를 읽어 `ChainCanvas`(순수 프레젠터)에
  * React Flow 데이터를 배선하고, 연결 제스처(pending → RelationTypePicker) 및 삭제(확인 다이얼로그) 흐름을
  * 처리한다. 로직-표시 분리: 도메인 판정은 Context 액션(`addEdge` 등)에 위임한다.
  */
-export function EditorCanvasContainer() {
+export function EditorCanvasContainer({ focusNodeId, onFocusHandled }: EditorCanvasContainerProps = {}) {
   const { state, computed } = useChainEditorState();
   const { addEdge, changeEdgeRelation, deleteElements, moveNode, dissolveGroup, changeSelection } =
     useChainEditorActions();
@@ -231,6 +237,8 @@ export function EditorCanvasContainer() {
         onSelectionChange={handleSelectionChange}
         nodesConnectable={computed.hasActiveRelationTypes}
         legendGroups={legendGroups}
+        focusNodeId={focusNodeId}
+        onFocusHandled={onFocusHandled}
       />
 
       {blockedReason && (

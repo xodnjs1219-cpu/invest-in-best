@@ -24,30 +24,39 @@ describe("GroupPanel", () => {
     render(<GroupPanel {...buildProps({ onCreateGroup })} />);
 
     await user.type(screen.getByLabelText("그룹 이름"), "새 그룹");
-    await user.click(screen.getByRole("button", { name: "그룹 만들기" }));
+    await user.click(screen.getByRole("button", { name: "선택한 2개로 그룹 만들기" }));
 
     expect(onCreateGroup).toHaveBeenCalledWith({ name: "새 그룹", memberNodeIds: ["n1", "n2"] });
   });
 
-  it("이름 공백으로 생성 시도 → 인라인 오류 표시, onCreateGroup 미호출", async () => {
-    const user = userEvent.setup();
-    const onCreateGroup = vi.fn().mockReturnValue({ ok: false, reason: "NAME_REQUIRED" });
-    render(<GroupPanel {...buildProps({ onCreateGroup })} />);
-
-    await user.click(screen.getByRole("button", { name: "그룹 만들기" }));
-
-    expect(screen.getByText("이름을 입력해 주세요")).toBeInTheDocument();
+  it("선택된 노드 수를 배지로 상시 표시한다", () => {
+    render(<GroupPanel {...buildProps()} />);
+    expect(screen.getByText("선택된 노드 2개")).toBeInTheDocument();
   });
 
-  it("노드 0개 선택 상태에서 생성 시도 → 안내 문구 표시", async () => {
+  it("이름이 비어 있으면 생성 버튼이 비활성이고 이유를 안내한다(사전 차단)", () => {
+    const onCreateGroup = vi.fn();
+    render(<GroupPanel {...buildProps({ onCreateGroup })} />);
+
+    const button = screen.getByRole("button", { name: "선택한 2개로 그룹 만들기" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", "그룹 이름을 입력해 주세요");
+    expect(onCreateGroup).not.toHaveBeenCalled();
+  });
+
+  it("노드 0개 선택이면 다중 선택 방법을 사전 안내하고 버튼을 비활성화한다", async () => {
     const user = userEvent.setup();
-    const onCreateGroup = vi.fn().mockReturnValue({ ok: false, reason: "NO_NODES_SELECTED" });
+    const onCreateGroup = vi.fn();
     render(<GroupPanel {...buildProps({ selectedNodeIds: [], onCreateGroup })} />);
 
-    await user.type(screen.getByLabelText("그룹 이름"), "새 그룹");
-    await user.click(screen.getByRole("button", { name: "그룹 만들기" }));
+    expect(screen.getByText(/Shift\+드래그/)).toBeInTheDocument();
+    expect(screen.getByText("선택된 노드 0개")).toBeInTheDocument();
 
-    expect(screen.getByText("노드를 먼저 선택해 주세요")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("그룹 이름"), "새 그룹");
+    const button = screen.getByRole("button", { name: "그룹 만들기" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", "캔버스에서 노드를 먼저 선택해 주세요");
+    expect(onCreateGroup).not.toHaveBeenCalled();
   });
 
   it("그룹 목록에 이름·멤버 수 표시", () => {
