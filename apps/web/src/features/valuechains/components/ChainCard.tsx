@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge, Card } from "@/components/ui";
+import { ChainMiniPreview } from "@/features/valuechains/components/ChainMiniPreview";
 import {
   formatFocusLabel,
   formatMetricDisplay,
@@ -26,31 +27,36 @@ export function ChainCard({ card, onSelect, actionSlot }: ChainCardProps) {
   const nodeCountLabel = formatNodeCount(card.nodeCount);
 
   return (
-    <Card interactive className="relative flex w-full flex-col gap-2 p-4 text-left">
-      <div className="flex items-start justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => onSelect(card.id)}
-          className="truncate text-left text-base text-fg after:absolute after:inset-0 after:rounded-[var(--radius-lg)] after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-        >
-          {card.name}
-        </button>
-        {actionSlot && <span className="relative z-10 shrink-0">{actionSlot}</span>}
-      </div>
-      <span className="text-sm text-fg-muted">{focusLabel}</span>
-      <span className="text-sm text-fg-muted">{nodeCountLabel}</span>
+    <Card interactive className="relative flex w-full gap-3 p-4 text-left">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => onSelect(card.id)}
+            className="truncate text-left text-base text-fg after:absolute after:inset-0 after:rounded-[var(--radius-lg)] after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+          >
+            {card.name}
+          </button>
+          {actionSlot && <span className="relative z-10 shrink-0">{actionSlot}</span>}
+        </div>
+        <span className="text-sm text-fg-muted">{focusLabel}</span>
+        <span className="text-sm text-fg-muted">{nodeCountLabel}</span>
 
-      {metricDisplay.kind === "unavailable" ? (
-        <span className="text-sm text-fg-subtle">집계 준비 중</span>
-      ) : (
-        <span className="flex flex-col gap-0.5">
-          <span className="text-lg text-fg">{metricDisplay.text}</span>
-          <span className="flex items-center gap-1.5 text-xs text-fg-muted">
-            <span>{metricDisplay.coverageText}</span>
-            {metricDisplay.isCarriedForward && <Badge tone="warning">이월 집계</Badge>}
+        {metricDisplay.kind === "unavailable" ? (
+          <span className="text-sm text-fg-subtle">집계 준비 중</span>
+        ) : (
+          <span className="flex flex-col gap-0.5">
+            <span className="text-lg text-fg">{metricDisplay.text}</span>
+            <span className="flex items-center gap-1.5 text-xs text-fg-muted">
+              <span>{metricDisplay.coverageText}</span>
+              {metricDisplay.isCarriedForward && <Badge tone="warning">이월 집계</Badge>}
+            </span>
           </span>
-        </span>
-      )}
+        )}
+      </div>
+
+      {/* 우측 미니 미리보기 — chainId 시드 결정적 썸네일(장식), 클릭은 스트레치드 오버레이가 담당 */}
+      <ChainMiniPreview chainId={card.id} nodeCount={card.nodeCount} />
     </Card>
   );
 }
