@@ -107,8 +107,10 @@ function ChainCanvasInner({
         return {
           ...incoming,
           measured: existing.measured,
-          width: existing.width,
-          height: existing.height,
+          // 그룹 노드는 width/height가 멤버 bounds에서 파생되는 prop이다 — incoming이 명시하면
+          // 그 값을 써야 멤버 이동/추가 시 그룹 박스가 함께 자란다(고정하면 노드가 박스 밖으로 나감).
+          width: incoming.width ?? existing.width,
+          height: incoming.height ?? existing.height,
           selected: existing.selected,
           dragging: existing.dragging,
         };

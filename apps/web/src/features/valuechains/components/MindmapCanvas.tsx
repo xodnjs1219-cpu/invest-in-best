@@ -191,8 +191,9 @@ const MindmapCanvasInner = () => {
           ? {
               ...incoming,
               measured: existing.measured,
-              width: existing.width,
-              height: existing.height,
+              // incoming이 크기를 명시하면(파생 크기 노드) 그 값을 우선한다 — 에디터와 동일 규칙.
+              width: incoming.width ?? existing.width,
+              height: incoming.height ?? existing.height,
             }
           : incoming;
       });
