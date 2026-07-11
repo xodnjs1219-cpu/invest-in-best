@@ -11,12 +11,17 @@ const INITIAL_PAGE_PARAM = 1;
 /** 401(세션 만료/무인증)은 재시도 금지 — 결과가 바뀌지 않는다(엣지 7, 게스트 뷰 전환용). */
 const NO_RETRY_STATUSES = new Set([401]);
 
-const buildUrl = (page: number): string =>
-  `${MINE_ENDPOINT}?${new URLSearchParams({ page: String(page), limit: String(CHAIN_LIST_PAGE_SIZE) }).toString()}`;
+const buildUrl = (page: number, search?: string): string => {
+  const params = new URLSearchParams({ page: String(page), limit: String(CHAIN_LIST_PAGE_SIZE) });
+  if (search) params.set("search", search);
+  return `${MINE_ENDPOINT}?${params.toString()}`;
+};
 
 type UseMyChainCardsOptions = {
   /** 호출측이 `isAuthenticated`를 전달한다 — 비로그인이면 쿼리 자체를 비활성화한다. */
   enabled: boolean;
+  /** 체인 이름/포함 종목 부분 일치 검색어 — 공백뿐이면 무시. */
+  search?: string;
 };
 
 /**
@@ -26,10 +31,12 @@ type UseMyChainCardsOptions = {
 export function useMyChainCards(
   options: UseMyChainCardsOptions,
 ): UseInfiniteQueryResult<InfiniteData<ChainCardListResponse>, ApiError> {
+  const search = options.search?.trim() || undefined;
   return useInfiniteQuery({
-    queryKey: chainCardQueryKeys.mine,
+    // 검색어별 캐시 분리 — 기존 [valuechains, mine] 프리픽스 무효화는 그대로 동작한다.
+    queryKey: [...chainCardQueryKeys.mine, { search: search ?? null }],
     queryFn: async ({ pageParam }) => {
-      const raw = await apiFetch<ChainCardListResponse>(buildUrl(pageParam));
+      const raw = await apiFetch<ChainCardListResponse>(buildUrl(pageParam, search));
       return ChainCardListResponseSchema.parse(raw);
     },
     initialPageParam: INITIAL_PAGE_PARAM,

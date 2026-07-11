@@ -147,6 +147,8 @@ export type FindChainCardsParams = {
   ownerId: string | null;
   limit: number;
   offset: number;
+  /** 체인 이름/포함 노드 부분 일치 검색어 — null이면 필터 없음(RPC p_search). */
+  search: string | null;
 };
 
 export type FindChainCardsResult = {
@@ -168,6 +170,7 @@ export const findChainCards = async (
     p_owner_id: params.ownerId,
     p_limit: params.limit,
     p_offset: params.offset,
+    p_search: params.search,
   });
 
   if (error) {

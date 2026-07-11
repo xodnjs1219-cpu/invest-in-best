@@ -232,6 +232,7 @@ describe("findChainCards (UC-007 체인 카드 목록)", () => {
       ownerId: null,
       limit: 20,
       offset: 0,
+      search: null,
     });
 
     // Assert
@@ -241,7 +242,23 @@ describe("findChainCards (UC-007 체인 카드 목록)", () => {
       p_owner_id: null,
       p_limit: 20,
       p_offset: 0,
+      p_search: null,
     });
+  });
+
+  it("search 지정 시 p_search로 관통한다(이름/포함 종목 검색)", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
+    const client = { rpc };
+
+    await findChainCards(client as never, {
+      chainType: "official",
+      ownerId: null,
+      limit: 20,
+      offset: 0,
+      search: "반도체",
+    });
+
+    expect(rpc).toHaveBeenCalledWith("list_chain_cards", expect.objectContaining({ p_search: "반도체" }));
   });
 
   it("mine 조회 시 p_owner_id에 사용자 id를 전달한다", async () => {
@@ -254,6 +271,7 @@ describe("findChainCards (UC-007 체인 카드 목록)", () => {
       ownerId: "user-1",
       limit: 20,
       offset: 20,
+      search: null,
     });
 
     // Assert
@@ -262,6 +280,7 @@ describe("findChainCards (UC-007 체인 카드 목록)", () => {
       p_owner_id: "user-1",
       p_limit: 20,
       p_offset: 20,
+      p_search: null,
     });
   });
 
@@ -276,6 +295,7 @@ describe("findChainCards (UC-007 체인 카드 목록)", () => {
       ownerId: null,
       limit: 20,
       offset: 0,
+      search: null,
     });
 
     // Assert
@@ -292,6 +312,7 @@ describe("findChainCards (UC-007 체인 카드 목록)", () => {
       ownerId: null,
       limit: 20,
       offset: 0,
+      search: null,
     });
 
     // Assert
@@ -308,6 +329,7 @@ describe("findChainCards (UC-007 체인 카드 목록)", () => {
       ownerId: null,
       limit: 20,
       offset: 0,
+      search: null,
     });
 
     // Assert

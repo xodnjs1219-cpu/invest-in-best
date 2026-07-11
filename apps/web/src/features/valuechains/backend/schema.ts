@@ -209,6 +209,14 @@ export type DataFreshness = z.infer<typeof DataFreshnessDtoSchema>;
 export const ChainCardListQuerySchema = createPaginationQuerySchema({
   defaultLimit: CHAIN_LIST_PAGE_SIZE,
   maxLimit: LIST_PAGE_LIMIT_MAX,
+}).extend({
+  /** 체인 이름 또는 포함 노드(종목명/티커/자유 주체명) 부분 일치 검색어 — 공백만이면 무시. */
+  search: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
 });
 
 export type ChainCardListQuery = z.infer<typeof ChainCardListQuerySchema>;

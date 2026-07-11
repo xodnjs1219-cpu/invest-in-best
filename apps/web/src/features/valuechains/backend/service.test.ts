@@ -389,7 +389,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -416,7 +416,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
   it("0행 → items:[], totalCount:0, hasMore:false (엣지 1)", async () => {
     const repo = createCardsRepo(async () => ({ rows: [], error: null }));
 
-    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -431,7 +431,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -445,7 +445,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -459,7 +459,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -473,7 +473,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -484,7 +484,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
   it("repository error → failure(500, VALUECHAIN_LIST_FETCH_FAILED)", async () => {
     const repo = createCardsRepo(async () => ({ rows: [], error: "db down" }));
 
-    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -499,7 +499,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listOfficialChainCards(repo, { page: 1, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -515,7 +515,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       return { rows: [], error: null };
     });
 
-    await listOfficialChainCards(repo, { page: 2, limit: 20 });
+    await listOfficialChainCards(repo, { page: 2, limit: 20, search: undefined });
 
     expect(capturedOffset).toBe(20);
   });
@@ -526,7 +526,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listOfficialChainCards(repo, { page: 2, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 2, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -540,7 +540,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listOfficialChainCards(repo, { page: 2, limit: 20 });
+    const result = await listOfficialChainCards(repo, { page: 2, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -555,7 +555,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       return { rows: [], error: null };
     });
 
-    await listMyChainCards(repo, "user-123", { page: 1, limit: 20 });
+    await listMyChainCards(repo, "user-123", { page: 1, limit: 20, search: undefined });
 
     expect(capturedParams).toEqual(
       expect.objectContaining({ chainType: "user", ownerId: "user-123" }),
@@ -568,7 +568,7 @@ describe("listOfficialChainCards / listMyChainCards (UC-007)", () => {
       error: null,
     }));
 
-    const result = await listMyChainCards(repo, "user-123", { page: 1, limit: 20 });
+    const result = await listMyChainCards(repo, "user-123", { page: 1, limit: 20, search: undefined });
 
     expect(result.ok).toBe(true);
     if (result.ok) {

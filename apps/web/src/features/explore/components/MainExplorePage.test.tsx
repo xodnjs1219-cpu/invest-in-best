@@ -200,4 +200,22 @@ describe("MainExplorePage", () => {
     expect(screen.getByText("공식 밸류체인")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText("내 밸류체인")).not.toBeInTheDocument());
   });
+  it("체인 검색어 입력(디바운스) 후 목록 요청 URL에 search가 포함된다", async () => {
+    useCurrentUserMock.mockReturnValue({ status: "unauthenticated", user: null });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(buildCardListResponse()));
+    global.fetch = fetchMock;
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByRole("searchbox", { name: "밸류체인 검색" }), "반도체");
+
+    await waitFor(
+      () => {
+        const urls = fetchMock.mock.calls.map((call) => String(call[0]));
+        expect(urls.some((url) => url.includes("search=%EB%B0%98%EB%8F%84%EC%B2%B4"))).toBe(true);
+      },
+      { timeout: 3000 },
+    );
+  });
+
 });

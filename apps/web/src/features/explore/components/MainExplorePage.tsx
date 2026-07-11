@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heading } from "@/components/ui";
+import { SEARCH_DEBOUNCE_MS } from "@iib/domain";
+import { Heading, Input } from "@/components/ui";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useCurrentUser } from "@/features/auth/context/current-user-provider";
 import { CreateChainButton } from "@/features/explore/components/CreateChainButton";
 import { ChainCardsSection } from "@/features/valuechains/components/ChainCardsSection";
@@ -24,12 +27,17 @@ export function MainExplorePage() {
   const { status } = useCurrentUser();
   const isAuthenticated = status === "authenticated";
 
+  // ── 체인 검색(이름/포함 종목) — 디바운스 후 목록 쿼리 파라미터로 위임 ────
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
+  const chainSearch = debouncedSearch.trim() || undefined;
+
   // ── 공식 밸류체인 목록 ─────────────────────────────────
-  const officialQuery = useOfficialChainCards();
+  const officialQuery = useOfficialChainCards({ search: chainSearch });
   const officialItems = officialQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   // ── 내 밸류체인 목록(로그인 시에만 활성) ────────────────
-  const myQuery = useMyChainCards({ enabled: isAuthenticated });
+  const myQuery = useMyChainCards({ enabled: isAuthenticated, search: chainSearch });
   const myItems = myQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const isMyChainsUnauthorized =
     myQuery.error instanceof ApiError && myQuery.error.status === 401;
@@ -39,6 +47,30 @@ export function MainExplorePage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
       <Heading level={1}>밸류체인 탐색</Heading>
+
+      {/* 체인 검색 — 이름 또는 포함 종목(종목명/티커/자유 주체)으로 공식·내 체인을 함께 필터 */}
+      <div className="relative flex items-center">
+        <Input
+          type="search"
+          role="searchbox"
+          aria-label="밸류체인 검색"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="체인 이름 또는 포함 종목으로 검색 (예: 반도체, 삼성전자)"
+          className="pr-9"
+        />
+        {searchInput.length > 0 && (
+          <button
+            type="button"
+            aria-label="검색어 지우기"
+            onClick={() => setSearchInput("")}
+            className="absolute right-1 flex h-8 w-8 items-center justify-center rounded-full text-fg-subtle hover:text-fg-muted"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
       <div className="flex justify-end">
         <CreateChainButton isAuthenticated={isAuthenticated} />
       </div>

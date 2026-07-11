@@ -298,6 +298,7 @@ export type ChainCardsRepository = {
     ownerId: string | null;
     limit: number;
     offset: number;
+    search: string | null;
   }) => Promise<{ rows: unknown[]; error: string | null }>;
 };
 
@@ -327,6 +328,7 @@ const listChainCards = async (
     ownerId: params.ownerId,
     limit: query.limit,
     offset,
+    search: query.search ?? null,
   });
 
   if (error) {
