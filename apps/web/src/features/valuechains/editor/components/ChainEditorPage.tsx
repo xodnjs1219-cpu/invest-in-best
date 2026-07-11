@@ -124,17 +124,21 @@ function ChainEditorPageBody() {
             nodeListItems={nodeListItems}
             groupNameById={groupNameById}
             onDeleteNode={requestDeleteNode}
-          />
-          <GroupPanel
-            groups={Object.values(state.groups)}
-            groupMembership={computed.groupMembership}
-            emptyGroupIds={computed.emptyGroupIds}
-            duplicateGroupNames={computed.duplicateGroupNames}
-            selectedNodeIds={state.selection.nodeIds}
-            onCreateGroup={createGroup}
-            onRenameGroup={renameGroup}
-            onDissolveGroup={dissolveGroup}
-            onAssignNodeToGroup={assignNodeToGroup}
+            groupCount={Object.keys(state.groups).length}
+            selectedNodeCount={state.selection.nodeIds.length}
+            groupPanel={
+              <GroupPanel
+                groups={Object.values(state.groups)}
+                groupMembership={computed.groupMembership}
+                emptyGroupIds={computed.emptyGroupIds}
+                duplicateGroupNames={computed.duplicateGroupNames}
+                selectedNodeIds={state.selection.nodeIds}
+                onCreateGroup={createGroup}
+                onRenameGroup={renameGroup}
+                onDissolveGroup={dissolveGroup}
+                onAssignNodeToGroup={assignNodeToGroup}
+              />
+            }
           />
         </div>
         <div className="flex flex-1 flex-col gap-2">

@@ -113,4 +113,46 @@ describe("NodeAddPanel", () => {
     await user.click(screen.getByRole("tab", { name: "자유 주체" }));
     expect(screen.getByTestId("free-subject-form-tab")).toBeInTheDocument();
   });
+
+  it("groupPanel 슬롯이 있으면 '그룹' 탭이 생기고, 전환 시 슬롯을 렌더한다", async () => {
+    const user = userEvent.setup();
+    render(
+      <NodeAddPanel
+        nodeCount={0}
+        isNearNodeLimit={false}
+        remainingNodeCapacity={100}
+        onAddListedCompanyNode={vi.fn()}
+        onAddFreeSubjectNode={vi.fn()}
+        usedSecurityIds={new Set()}
+        nodeListItems={[]}
+        groupNameById={new Map()}
+        onDeleteNode={vi.fn()}
+        groupCount={2}
+        groupPanel={<div data-testid="group-panel-slot" />}
+      />,
+    );
+
+    const groupTab = screen.getByRole("tab", { name: /그룹/ });
+    expect(groupTab).toHaveTextContent("(2)");
+    await user.click(groupTab);
+    expect(screen.getByTestId("group-panel-slot")).toBeInTheDocument();
+  });
+
+  it("groupPanel 미전달이면 '그룹' 탭 자체가 없다(하위호환)", () => {
+    render(
+      <NodeAddPanel
+        nodeCount={0}
+        isNearNodeLimit={false}
+        remainingNodeCapacity={100}
+        onAddListedCompanyNode={vi.fn()}
+        onAddFreeSubjectNode={vi.fn()}
+        usedSecurityIds={new Set()}
+        nodeListItems={[]}
+        groupNameById={new Map()}
+        onDeleteNode={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("tab", { name: /그룹/ })).not.toBeInTheDocument();
+  });
 });
