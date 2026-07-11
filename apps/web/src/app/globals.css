@@ -385,6 +385,39 @@ body {
   opacity: 1;
 }
 
+/* 타임라인 슬라이더 — appearance-none 상태의 브라우저 기본 썸을 토큰 기반으로 재정의.
+   썸은 상태(선택 시점) 신호이므로 accent, 테두리는 raised 링으로 트랙과 분리한다. */
+.mm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  margin-top: -4px; /* 8px 트랙 중앙 정렬: (track 8 − thumb 16) / 2 */
+  border-radius: 9999px;
+  background: var(--accent);
+  border: 2px solid var(--surface-raised);
+  box-shadow: var(--shadow-ambient);
+  cursor: grab;
+  transition: transform var(--motion-fast) cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.mm-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+.mm-slider::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background: var(--accent);
+  border: 2px solid var(--surface-raised);
+  box-shadow: var(--shadow-ambient);
+  cursor: grab;
+}
+.mm-slider:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 /* 미니맵 — 캔버스 크롬은 무채색 서피스 토큰만(§4 데이터 서피스 규약) */
 .react-flow__minimap {
   border: 1px solid var(--border);

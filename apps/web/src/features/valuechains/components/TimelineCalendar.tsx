@@ -25,6 +25,6 @@ export const TimelineCalendar = ({ range, selectedDate, onSelectDate }: Timeline
         onSelectDate(value as IsoDate);
       }
     }}
-    className="rounded-sm border border-border bg-surface-raised px-2 py-1 font-mono tabular text-sm text-fg"
+    className="rounded-sm border border-border-strong bg-surface-sunken px-2 py-1.5 font-mono tabular text-sm text-fg transition-colors focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
   />
 );

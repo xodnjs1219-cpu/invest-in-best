@@ -22,7 +22,7 @@ export const TimelinePanel = () => {
       <Heading level={3}>시점 타임라인</Heading>
 
       {timelineMeta.status === "loading" && (
-        <Skeleton data-testid="timeline-skeleton" className="h-10" />
+        <Skeleton data-testid="timeline-skeleton" className="h-16" />
       )}
 
       {timelineMeta.status === "error" && (
