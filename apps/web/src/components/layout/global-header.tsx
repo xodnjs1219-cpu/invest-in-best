@@ -23,7 +23,10 @@ export function GlobalHeader() {
           invest-in-best
         </Link>
         <Link href="/explore" className="text-sm text-fg-muted transition-colors hover:text-accent">
-          탐색
+          밸류체인
+        </Link>
+        <Link href="/stocks" className="text-sm text-fg-muted transition-colors hover:text-accent">
+          종목 검색
         </Link>
       </div>
       {status === "authenticated" && user ? (
